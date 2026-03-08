@@ -25,28 +25,50 @@ interface Deal {
 const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Nuovo Lead' }
 
 type View = 'kanban' | 'list' | 'analytics'
+type QuickRange = 'today' | 'week' | 'month' | 'lastmonth' | 'alltime' | 'custom'
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return '-'
-  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`
+  const parts = dateStr.split('-')
+  if (parts.length === 3) return `${parseInt(parts[2])}/${parseInt(parts[1])}/${parts[0]}`
+  return '-'
 }
 
-function toInputDate(d: Date) {
-  return d.toISOString().split('T')[0]
+// Crea una stringa YYYY-MM-DD senza problemi di fuso orario
+function toYMD(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
 }
 
-function getWeekRange() {
+function getRangeForQuick(type: QuickRange): { from: string; to: string } {
   const now = new Date()
-  const day = now.getDay() === 0 ? 7 : now.getDay()
-  const start = new Date(now)
-  start.setDate(now.getDate() - day + 1)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(start)
-  end.setDate(start.getDate() + 4)
-  end.setHours(23, 59, 59, 999)
-  return { start, end }
+  const y = now.getFullYear()
+  const mo = now.getMonth()
+
+  if (type === 'today') {
+    const s = toYMD(now)
+    return { from: s, to: s }
+  }
+  if (type === 'week') {
+    // Lun-Dom della settimana corrente
+    const day = now.getDay() === 0 ? 7 : now.getDay()
+    const mon = new Date(now); mon.setDate(now.getDate() - day + 1)
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
+    return { from: toYMD(mon), to: toYMD(sun) }
+  }
+  if (type === 'month') {
+    const start = new Date(y, mo, 1)
+    const end = new Date(y, mo + 1, 0)
+    return { from: toYMD(start), to: toYMD(end) }
+  }
+  if (type === 'lastmonth') {
+    const start = new Date(y, mo - 1, 1)
+    const end = new Date(y, mo, 0)
+    return { from: toYMD(start), to: toYMD(end) }
+  }
+  return { from: '', to: '' }
 }
 
 export default function CrmContent() {
@@ -62,10 +84,11 @@ export default function CrmContent() {
   const [isNewContact, setIsNewContact] = useState(false)
   const [view, setView] = useState<View>('kanban')
   const [groupBy, setGroupBy] = useState('stage')
+  const [activeQuick, setActiveQuick] = useState<QuickRange>('week')
 
-  const { start: defaultStart, end: defaultEnd } = getWeekRange()
-  const [dateFrom, setDateFrom] = useState(toInputDate(defaultStart))
-  const [dateTo, setDateTo] = useState(toInputDate(defaultEnd))
+  const weekRange = getRangeForQuick('week')
+  const [dateFrom, setDateFrom] = useState(weekRange.from)
+  const [dateTo, setDateTo] = useState(weekRange.to)
 
   useEffect(() => {
     async function init() {
@@ -135,36 +158,20 @@ export default function CrmContent() {
     await updateStage(dealId, newStage)
   }
 
-  function setQuickRange(type: string) {
-    const now = new Date()
-    if (type === 'today') {
-      setDateFrom(toInputDate(now))
-      setDateTo(toInputDate(now))
-    } else if (type === 'week') {
-      const { start, end } = getWeekRange()
-      setDateFrom(toInputDate(start))
-      setDateTo(toInputDate(end))
-    } else if (type === 'month') {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1)
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      setDateFrom(toInputDate(start))
-      setDateTo(toInputDate(end))
-    } else if (type === 'lastmonth') {
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const end = new Date(now.getFullYear(), now.getMonth(), 0)
-      setDateFrom(toInputDate(start))
-      setDateTo(toInputDate(end))
+  function applyQuick(type: QuickRange) {
+    setActiveQuick(type)
+    if (type !== 'alltime') {
+      const range = getRangeForQuick(type)
+      setDateFrom(range.from)
+      setDateTo(range.to)
     }
   }
 
   function getFilteredDeals() {
-    const from = new Date(dateFrom)
-    from.setHours(0, 0, 0, 0)
-    const to = new Date(dateTo)
-    to.setHours(23, 59, 59, 999)
+    if (activeQuick === 'alltime') return deals
     return deals.filter(d => {
-      const date = d.entry_date ? new Date(d.entry_date) : new Date(d.created_at)
-      return date >= from && date <= to
+      const dateStr = d.entry_date || d.created_at.split('T')[0]
+      return dateStr >= dateFrom && dateStr <= dateTo
     })
   }
 
@@ -178,12 +185,21 @@ export default function CrmContent() {
     return grouped
   }
 
-  if (!checked) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">Verifica accesso...</p></div>
+  function btnClass(type: QuickRange) {
+    return `px-3 py-1 rounded-lg text-sm font-medium transition-colors ${activeQuick === type ? 'bg-blue-600 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`
+  }
+
+  if (!checked) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <p className="text-gray-500">Verifica accesso...</p>
+    </div>
+  )
 
   const filteredDeals = getFilteredDeals()
 
   return (
     <div className="min-h-screen bg-gray-100">
+
       {/* Header */}
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-800">CRM</h1>
@@ -218,7 +234,13 @@ export default function CrmContent() {
                           {stageDeals.map((deal, index) => (
                             <Draggable key={deal.id} draggableId={deal.id} index={index}>
                               {(provided, snapshot) => (
-                                <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} onClick={() => setSelectedDeal(deal)} className={`bg-white rounded-lg p-3 cursor-pointer ${snapshot.isDragging ? 'shadow-xl rotate-1' : 'shadow hover:shadow-md'}`}>
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  onClick={() => setSelectedDeal(deal)}
+                                  className={`bg-white rounded-lg p-3 cursor-pointer ${snapshot.isDragging ? 'shadow-xl rotate-1' : 'shadow hover:shadow-md'}`}
+                                >
                                   <p className="font-semibold text-sm text-gray-800">{deal.title}</p>
                                   {deal.contact_name && <p className="text-xs text-gray-500">{deal.contact_name}</p>}
                                   {deal.estimate > 0 && <p className="text-xs text-green-600 mt-1">€ {deal.estimate.toLocaleString()}</p>}
@@ -290,15 +312,31 @@ export default function CrmContent() {
         <div className="p-6">
           <div className="bg-white rounded-xl shadow p-4 mb-6">
             <div className="flex flex-wrap gap-2 items-center">
-              <button onClick={() => setQuickRange('today')} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">Oggi</button>
-              <button onClick={() => setQuickRange('week')} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">Questa settimana</button>
-              <button onClick={() => setQuickRange('month')} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">Questo mese</button>
-              <button onClick={() => setQuickRange('lastmonth')} className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm">Scorso mese</button>
-              <div className="flex items-center gap-2 ml-2">
-                <input type="date" className="border rounded-lg p-2 text-sm" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-                <span className="text-gray-500">→</span>
-                <input type="date" className="border rounded-lg p-2 text-sm" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-              </div>
+              <button onClick={() => applyQuick('today')} className={btnClass('today')}>Oggi</button>
+              <button onClick={() => applyQuick('week')} className={btnClass('week')}>Questa settimana</button>
+              <button onClick={() => applyQuick('month')} className={btnClass('month')}>Questo mese</button>
+              <button onClick={() => applyQuick('lastmonth')} className={btnClass('lastmonth')}>Scorso mese</button>
+              <button onClick={() => applyQuick('alltime')} className={btnClass('alltime')}>Dall'inizio</button>
+              {activeQuick !== 'alltime' && (
+                <div className="flex items-center gap-2 ml-2">
+                  <input
+                    type="date"
+                    className="border rounded-lg p-2 text-sm"
+                    value={dateFrom}
+                    onChange={e => { setActiveQuick('custom'); setDateFrom(e.target.value) }}
+                  />
+                  <span className="text-gray-500">→</span>
+                  <input
+                    type="date"
+                    className="border rounded-lg p-2 text-sm"
+                    value={dateTo}
+                    onChange={e => { setActiveQuick('custom'); setDateTo(e.target.value) }}
+                  />
+                </div>
+              )}
+              {activeQuick === 'alltime' && (
+                <span className="text-sm text-gray-400 ml-2 italic">Tutti i dati</span>
+              )}
             </div>
           </div>
 
