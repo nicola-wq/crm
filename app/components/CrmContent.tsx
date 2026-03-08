@@ -34,7 +34,6 @@ function formatDate(dateStr: string) {
   return '-'
 }
 
-// Crea una stringa YYYY-MM-DD senza problemi di fuso orario
 function toYMD(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
@@ -46,13 +45,11 @@ function getRangeForQuick(type: QuickRange): { from: string; to: string } {
   const now = new Date()
   const y = now.getFullYear()
   const mo = now.getMonth()
-
   if (type === 'today') {
     const s = toYMD(now)
     return { from: s, to: s }
   }
   if (type === 'week') {
-    // Lun-Dom della settimana corrente
     const day = now.getDay() === 0 ? 7 : now.getDay()
     const mon = new Date(now); mon.setDate(now.getDate() - day + 1)
     const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
@@ -85,6 +82,7 @@ export default function CrmContent() {
   const [view, setView] = useState<View>('kanban')
   const [groupBy, setGroupBy] = useState('stage')
   const [activeQuick, setActiveQuick] = useState<QuickRange>('week')
+  const [saveError, setSaveError] = useState('')
 
   const weekRange = getRangeForQuick('week')
   const [dateFrom, setDateFrom] = useState(weekRange.from)
@@ -122,6 +120,29 @@ export default function CrmContent() {
     setIsNewContact(false)
     setSearchQuery('')
     setSearchResults([])
+    fetchDeals()
+  }
+
+  async function saveDeal(deal: Deal) {
+    setSaveError('')
+    const { error } = await supabase.from('deals').update({
+      title: deal.title,
+      contact_name: deal.contact_name,
+      phone: deal.phone,
+      email: deal.email,
+      origin: deal.origin,
+      environment: deal.environment,
+      entry_date: deal.entry_date || null,
+      appointment_date: deal.appointment_date || null,
+      estimate: deal.estimate || 0,
+      project_timeline: deal.project_timeline,
+      stage: deal.stage,
+    }).eq('id', deal.id)
+    if (error) {
+      setSaveError('Errore: ' + error.message)
+      return
+    }
+    setSelectedDeal(null)
     fetchDeals()
   }
 
@@ -238,7 +259,7 @@ export default function CrmContent() {
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
-                                  onClick={() => setSelectedDeal(deal)}
+                                  onClick={() => { setSelectedDeal(deal); setSaveError('') }}
                                   className={`bg-white rounded-lg p-3 cursor-pointer ${snapshot.isDragging ? 'shadow-xl rotate-1' : 'shadow hover:shadow-md'}`}
                                 >
                                   <p className="font-semibold text-sm text-gray-800">{deal.title}</p>
@@ -290,7 +311,7 @@ export default function CrmContent() {
                   </thead>
                   <tbody>
                     {groupDeals.map(deal => (
-                      <tr key={deal.id} onClick={() => setSelectedDeal(deal)} className="border-t hover:bg-gray-50 cursor-pointer">
+                      <tr key={deal.id} onClick={() => { setSelectedDeal(deal); setSaveError('') }} className="border-t hover:bg-gray-50 cursor-pointer">
                         <td className="p-3 font-medium">{deal.title}</td>
                         <td className="p-3 text-gray-600">{deal.contact_name}</td>
                         <td className="p-3 text-gray-600">{deal.environment}</td>
@@ -319,19 +340,9 @@ export default function CrmContent() {
               <button onClick={() => applyQuick('alltime')} className={btnClass('alltime')}>Dall'inizio</button>
               {activeQuick !== 'alltime' && (
                 <div className="flex items-center gap-2 ml-2">
-                  <input
-                    type="date"
-                    className="border rounded-lg p-2 text-sm"
-                    value={dateFrom}
-                    onChange={e => { setActiveQuick('custom'); setDateFrom(e.target.value) }}
-                  />
+                  <input type="date" className="border rounded-lg p-2 text-sm" value={dateFrom} onChange={e => { setActiveQuick('custom'); setDateFrom(e.target.value) }} />
                   <span className="text-gray-500">→</span>
-                  <input
-                    type="date"
-                    className="border rounded-lg p-2 text-sm"
-                    value={dateTo}
-                    onChange={e => { setActiveQuick('custom'); setDateTo(e.target.value) }}
-                  />
+                  <input type="date" className="border rounded-lg p-2 text-sm" value={dateTo} onChange={e => { setActiveQuick('custom'); setDateTo(e.target.value) }} />
                 </div>
               )}
               {activeQuick === 'alltime' && (
@@ -369,7 +380,7 @@ export default function CrmContent() {
               </thead>
               <tbody>
                 {filteredDeals.map(deal => (
-                  <tr key={deal.id} onClick={() => setSelectedDeal(deal)} className="border-t hover:bg-gray-50 cursor-pointer">
+                  <tr key={deal.id} onClick={() => { setSelectedDeal(deal); setSaveError('') }} className="border-t hover:bg-gray-50 cursor-pointer">
                     <td className="p-3 font-medium">{deal.title}</td>
                     <td className="p-3">{deal.contact_name}</td>
                     <td className="p-3">{deal.origin}</td>
@@ -463,31 +474,64 @@ export default function CrmContent() {
         </div>
       )}
 
-      {/* Modal Dettaglio */}
+      {/* Modal Dettaglio / Modifica */}
       {selectedDeal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">{selectedDeal.title}</h2>
-            <div className="flex flex-col gap-2 text-sm">
-              {selectedDeal.contact_name && <p><span className="font-semibold">Contatto:</span> {selectedDeal.contact_name}</p>}
-              {selectedDeal.phone && <p><span className="font-semibold">Telefono:</span> {selectedDeal.phone}</p>}
-              {selectedDeal.email && <p><span className="font-semibold">Email:</span> {selectedDeal.email}</p>}
-              {selectedDeal.origin && <p><span className="font-semibold">Origine:</span> {selectedDeal.origin}</p>}
-              {selectedDeal.environment && <p><span className="font-semibold">Ambiente:</span> {selectedDeal.environment}</p>}
-              {selectedDeal.entry_date && <p><span className="font-semibold">Data ingresso:</span> {formatDate(selectedDeal.entry_date)}</p>}
-              {selectedDeal.appointment_date && <p><span className="font-semibold">Appuntamento:</span> {formatDate(selectedDeal.appointment_date)}</p>}
-              {selectedDeal.estimate > 0 && <p><span className="font-semibold">Preventivo:</span> € {selectedDeal.estimate.toLocaleString()}</p>}
-              {selectedDeal.project_timeline && <p><span className="font-semibold">Tempi progettuali:</span> {selectedDeal.project_timeline}</p>}
+            <h2 className="text-xl font-bold mb-4">Modifica Affare</h2>
+            <div className="flex flex-col gap-3 text-sm">
+              <div>
+                <label className="text-xs text-gray-500">Titolo</label>
+                <input className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.title} onChange={e => setSelectedDeal({...selectedDeal, title: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Contatto</label>
+                <input className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.contact_name || ''} onChange={e => setSelectedDeal({...selectedDeal, contact_name: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Telefono</label>
+                <input className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.phone || ''} onChange={e => setSelectedDeal({...selectedDeal, phone: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Email</label>
+                <input className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.email || ''} onChange={e => setSelectedDeal({...selectedDeal, email: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Origine</label>
+                <input className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.origin || ''} onChange={e => setSelectedDeal({...selectedDeal, origin: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Ambiente</label>
+                <input className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.environment || ''} onChange={e => setSelectedDeal({...selectedDeal, environment: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Data ingresso</label>
+                <input type="date" className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.entry_date || ''} onChange={e => setSelectedDeal({...selectedDeal, entry_date: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Data appuntamento</label>
+                <input type="date" className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.appointment_date || ''} onChange={e => setSelectedDeal({...selectedDeal, appointment_date: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Preventivo (€)</label>
+                <input type="number" className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.estimate || ''} onChange={e => setSelectedDeal({...selectedDeal, estimate: Number(e.target.value)})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Tempi progettuali</label>
+                <input className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.project_timeline || ''} onChange={e => setSelectedDeal({...selectedDeal, project_timeline: e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Fase</label>
+                <select className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.stage} onChange={e => setSelectedDeal({...selectedDeal, stage: e.target.value})}>
+                  {STAGES.map(s => <option key={s}>{s}</option>)}
+                </select>
+              </div>
             </div>
-            <div className="mt-4">
-              <label className="text-sm font-semibold">Sposta nella fase:</label>
-              <select className="border rounded-lg p-2 w-full mt-1" value={selectedDeal.stage} onChange={e => { updateStage(selectedDeal.id, e.target.value); setSelectedDeal({...selectedDeal, stage: e.target.value}) }}>
-                {STAGES.map(s => <option key={s}>{s}</option>)}
-              </select>
-            </div>
+            {saveError && <p className="text-red-500 text-sm mt-3">{saveError}</p>}
             <div className="flex gap-2 mt-4">
-              <button onClick={() => setSelectedDeal(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Chiudi</button>
-              <button onClick={() => deleteDeal(selectedDeal.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
+              <button onClick={() => saveDeal(selectedDeal)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Salva modifiche</button>
+              <button onClick={() => { setSelectedDeal(null); setSaveError('') }} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
+              <button onClick={() => deleteDeal(selectedDeal.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 ml-auto">Elimina</button>
             </div>
           </div>
         </div>
