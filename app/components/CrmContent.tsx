@@ -396,6 +396,35 @@ export default function CrmContent() {
     setSelectedDeal(null); setEditMode(false); setEditDeal(null)
   }
 
+  function downloadCSV() {
+    const headers = ['Contatto', ...listCols.map(c => c.label)]
+    const rows = listDeals.map(deal => {
+      const base = [deal.contact_name || '']
+      const cols = listCols.map(({col}) => {
+        const rawVal: any = (deal as any)[col]
+        if (col === 'entry_date' || col === 'appointment_date') return rawVal ? formatDate(rawVal) : ''
+        if (col === 'created_at') return rawVal ? formatDate(rawVal.split('T')[0]) : ''
+        if (col === 'estimate') return rawVal > 0 ? rawVal : ''
+        if (col === 'probability') return rawVal != null ? `${rawVal}%` : ''
+        if (col === 'weighted') {
+          const w = deal.estimate && deal.probability != null ? Math.round(deal.estimate * deal.probability / 100) : null
+          return w != null && w > 0 ? w : ''
+        }
+        return rawVal || ''
+      })
+      return [...base, ...cols]
+    })
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `contatti_${toYMD(new Date())}.csv`
+    a.click(); URL.revokeObjectURL(url)
+  }
+
   const BulkActionBar = ({ dealsInView }: { dealsInView: Deal[] }) => (
     selectedIds.size > 0 ? (
       <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
@@ -604,7 +633,13 @@ export default function CrmContent() {
               className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${filterAggiudicati?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-300 hover:border-green-400'}`}>
               🏆 Aggiudicati
             </button>
-            <span className="text-xs text-gray-400 ml-auto">{listDeals.length} contatti</span>
+            <div className="flex items-center gap-3 ml-auto">
+              <span className="text-xs text-gray-400">{listDeals.length} contatti</span>
+              <button onClick={downloadCSV} className="flex items-center gap-1.5 bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-900 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Download CSV
+              </button>
+            </div>
           </div>
           <BulkActionBar dealsInView={listDeals} />
           {Object.entries(getGroupedDeals(listDeals)).map(([group,groupDeals]) => (
