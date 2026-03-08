@@ -39,11 +39,12 @@ function toInputDate(d: Date) {
 
 function getWeekRange() {
   const now = new Date()
+  const day = now.getDay() === 0 ? 7 : now.getDay()
   const start = new Date(now)
-  start.setDate(now.getDate() - now.getDay() + 1)
+  start.setDate(now.getDate() - day + 1)
   start.setHours(0, 0, 0, 0)
   const end = new Date(start)
-  end.setDate(start.getDate() + 6)
+  end.setDate(start.getDate() + 4)
   end.setHours(23, 59, 59, 999)
   return { start, end }
 }
