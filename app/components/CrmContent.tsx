@@ -115,6 +115,9 @@ export default function CrmContent() {
   const [listEnvFilter, setListEnvFilter] = useState<string[]>([])
   const [bulkEntryDate, setBulkEntryDate] = useState('')
   const [showBulkEnvPicker, setShowBulkEnvPicker] = useState(false)
+  const [filterAggiudicati, setFilterAggiudicati] = useState(false)
+  const [saleDatePopup, setSaleDatePopup] = useState<{id:string, stage:string, prob:number|null}|null>(null)
+  const [saleDateValue, setSaleDateValue] = useState(toYMD(new Date()))
   const last30 = getLast30Days()
   const [listDateFrom, setListDateFrom] = useState(last30.from)
   const [listDateTo, setListDateTo] = useState(last30.to)
@@ -205,6 +208,11 @@ export default function CrmContent() {
 
   async function saveDeal(deal: Deal) {
     setSaveError('')
+    if (deal.stage === 'Vendita' && selectedDeal?.stage !== 'Vendita') {
+      setSaleDateValue(toYMD(new Date()))
+      setSaleDatePopup({id: deal.id, stage: deal.stage, prob: deal.probability ?? 100})
+      return
+    }
     const prob = deal.probability ?? getDefaultProb(deal.stage)
     const { error } = await supabase.from('deals').update({
       title: deal.contact_name, contact_name: deal.contact_name, phone: deal.phone, email: deal.email,
@@ -246,7 +254,12 @@ export default function CrmContent() {
     const currentP = deal?.probability ?? null
     const newProb = newStage === 'Vendita' && currentP === null ? 100 : newStage === 'Preventivo' && currentP === null ? 50 : newStage === 'Non convertito' && currentP === null ? 0 : currentP
     setDeals(prev => prev.map(d => d.id===dealId ? {...d, stage:newStage, probability:newProb} : d))
-    await updateStage(dealId, newStage, deal?.probability ?? null)
+    if (newStage === 'Vendita') {
+      setSaleDateValue(toYMD(new Date()))
+      setSaleDatePopup({id: dealId, stage: newStage, prob: newProb})
+    } else {
+      await updateStage(dealId, newStage, deal?.probability ?? null)
+    }
   }
 
   function applyQuick(type: QuickRange) {
@@ -262,13 +275,14 @@ export default function CrmContent() {
   function getListDeals() {
     let filtered = deals
     if (listDateActive && listDateFrom && listDateTo)
-      filtered = filtered.filter(d => d.entry_date && d.entry_date>=listDateFrom && d.entry_date<=listDateTo)
+      filtered = filtered.filter(d => { const ds = d.entry_date || d.created_at.split('T')[0]; return ds>=listDateFrom && ds<=listDateTo })
     if (listEnvFilter.length > 0)
       filtered = filtered.filter(d => {
         if (!d.environment) return false
         const envs = d.environment.split(',').map((e:string)=>e.trim())
         return listEnvFilter.some(f => envs.includes(f))
       })
+    if (filterAggiudicati) filtered = filtered.filter(d => d.stage === 'Vendita')
     return filtered
   }
 
@@ -348,11 +362,19 @@ export default function CrmContent() {
     if (stage === 'Vendita') {
       return deals.filter(d => {
         if (d.stage !== 'Vendita') return false
-        const ds = d.entry_date || ''
+        const ds = d.entry_date || d.created_at.split('T')[0]
         return ds >= kanbanVenditaFrom && ds <= kanbanVenditaTo
       })
     }
     return deals.filter(d => d.stage === stage)
+  }
+
+  async function confirmSaleDate() {
+    if (!saleDatePopup) return
+    const {id, stage, prob} = saleDatePopup
+    await supabase.from('deals').update({stage, probability: prob ?? 100, entry_date: saleDateValue}).eq('id', id)
+    setSaleDatePopup(null); fetchDeals()
+    setSelectedDeal(null); setEditMode(false); setEditDeal(null)
   }
 
   const BulkActionBar = ({ dealsInView }: { dealsInView: Deal[] }) => (
@@ -423,18 +445,13 @@ export default function CrmContent() {
   const tassoConvPreventivo = preventivi.length > 0 ? Math.round((vendite.length / preventivi.length)*100) : 0
 
   // Daily chart data
-  const dayMap: Record<string,{ingressi:number,preventivi:number,vendite:number}> = {}
+  const dayMap: Record<string,number> = {}
   filteredDeals.forEach(d => {
-    const day = d.entry_date || ''
-    if (!day) return
-    if (!dayMap[day]) dayMap[day] = {ingressi:0,preventivi:0,vendite:0}
-    if (d.stage==='Ingresso') dayMap[day].ingressi++
-    else if (d.stage==='Preventivo') dayMap[day].preventivi++
-    else if (d.stage==='Vendita') dayMap[day].vendite++
-    else dayMap[day].ingressi++
+    const day = d.entry_date || d.created_at.split('T')[0]
+    dayMap[day] = (dayMap[day]||0) + 1
   })
   const days = Object.keys(dayMap).sort()
-  const maxDay = Math.max(...days.map(d=>dayMap[d].ingressi+dayMap[d].preventivi+dayMap[d].vendite), 1)
+  const maxDay = Math.max(...days.map(d => dayMap[d]), 1)
 
   // Pie: ambienti per valore venduto
   const envSoldMap: Record<string,number> = {}
@@ -562,6 +579,11 @@ export default function CrmContent() {
               })}
               {listEnvFilter.length>0 && <button onClick={()=>setListEnvFilter([])} className="text-xs text-gray-400 underline hover:text-gray-600">Rimuovi filtro</button>}
             </div>
+            <div className="w-px h-6 bg-gray-200 mx-1" />
+            <button onClick={()=>setFilterAggiudicati(p=>!p)}
+              className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${filterAggiudicati?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-300 hover:border-green-400'}`}>
+              🏆 Aggiudicati
+            </button>
             <span className="text-xs text-gray-400 ml-auto">{listDeals.length} contatti</span>
           </div>
           <BulkActionBar dealsInView={listDeals} />
@@ -726,27 +748,21 @@ export default function CrmContent() {
               {days.length === 0 ? <p className="text-gray-400 text-sm">Nessun dato nel periodo</p> : (
                 <div className="flex items-end gap-1" style={{height:'120px'}}>
                   {days.map(day => {
-                    const d = dayMap[day]
-                    const tot = d.ingressi+d.preventivi+d.vendite
-                    const h = Math.round((tot/maxDay)*100)
+                    const count = dayMap[day]
+                    const parts = day.split('-')
+                    const label = `${parts[2]}/${parts[1]}`
                     return (
-                      <div key={day} className="flex flex-col items-center flex-1 min-w-0" title={`${formatDate(day)}: ${tot} ingressi`}>
+                      <div key={day} className="flex flex-col items-center flex-1 min-w-0" title={`${formatDate(day)}: ${count} ingressi`}>
                         <div className="w-full flex flex-col justify-end" style={{height:'100px'}}>
-                          <div style={{height:`${Math.round((d.vendite/maxDay)*100)}px`}} className="bg-green-500 w-full rounded-t-sm"/>
-                          <div style={{height:`${Math.round((d.preventivi/maxDay)*100)}px`}} className="bg-blue-400 w-full"/>
-                          <div style={{height:`${Math.round((d.ingressi/maxDay)*100)}px`}} className="bg-gray-300 w-full"/>
+                          <div style={{height:`${Math.round((count/maxDay)*100)}px`}} className="bg-blue-400 w-full rounded-t-sm"/>
                         </div>
-                        <span className="text-xs text-gray-400 mt-1 truncate w-full text-center" style={{fontSize:'9px'}}>{day.slice(5)}</span>
+                        <span className="text-gray-400 mt-1 truncate w-full text-center" style={{fontSize:'9px'}}>{label}</span>
                       </div>
                     )
                   })}
                 </div>
               )}
-              <div className="flex gap-3 mt-3 text-xs text-gray-500">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-gray-300 rounded-sm inline-block"/>Ingressi</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-400 rounded-sm inline-block"/>Preventivi</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-500 rounded-sm inline-block"/>Vendite</span>
-              </div>
+
             </div>
             {/* KPI secondari */}
             <div className="flex flex-col gap-3">
@@ -994,6 +1010,20 @@ export default function CrmContent() {
                   <button onClick={()=>setConfirmDelete(selectedDeal.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 ml-auto">Elimina</button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {saleDatePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70]">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-1">Contatto aggiudicato! 🏆</h3>
+            <p className="text-gray-600 text-sm mb-4">Inserisci la data di vendita:</p>
+            <input type="date" className="border rounded-lg p-2 w-full mb-4" value={saleDateValue} onChange={e=>setSaleDateValue(e.target.value)} />
+            <div className="flex gap-2">
+              <button onClick={confirmSaleDate} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium">Conferma</button>
+              <button onClick={()=>{setSaleDatePopup(null); fetchDeals()}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
             </div>
           </div>
         </div>
