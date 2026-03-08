@@ -124,15 +124,34 @@ export default function CrmContent() {
   const [listDateActive, setListDateActive] = useState(true)
   const [listSortCol, setListSortCol] = useState<string>('entry_date')
   const [listSortDir, setListSortDir] = useState<'asc'|'desc'>('desc')
-  const [listCols, setListCols] = useState([
+  const DEFAULT_COLS = [
     {label:'Data ingresso', col:'entry_date'},
     {label:'Data inserimento', col:'created_at'},
     {label:'Ambiente', col:'environment'},
     {label:'Fase', col:'stage'},
     {label:'Preventivo', col:'estimate'},
     {label:'Probabilità', col:'probability'},
+    {label:'Valore ponderato', col:'weighted'},
     {label:'Appuntamento', col:'appointment_date'},
-  ])
+  ]
+  const [listCols, setListColsRaw] = useState(() => {
+    try {
+      const saved = localStorage.getItem('crm_list_cols')
+      if (saved) {
+        const savedCols: {label:string,col:string}[] = JSON.parse(saved)
+        // merge: keep saved order but add any new cols missing
+        const allCols = DEFAULT_COLS
+        const savedKeys = savedCols.map(c=>c.col)
+        const missing = allCols.filter(c=>!savedKeys.includes(c.col))
+        return [...savedCols, ...missing]
+      }
+    } catch {}
+    return DEFAULT_COLS
+  })
+  function setListCols(cols: {label:string,col:string}[]) {
+    setListColsRaw(cols)
+    try { localStorage.setItem('crm_list_cols', JSON.stringify(cols)) } catch {}
+  }
   const [dragColIdx, setDragColIdx] = useState<number|null>(null)
   const [inlineEdit, setInlineEdit] = useState<{id:string,col:string,val:string}|null>(null)
   // Kanban filter
@@ -441,8 +460,9 @@ export default function CrmContent() {
   const avgIngresso = tuttiIngressi.length > 0 ? Math.round(totaleVenduto/tuttiIngressi.length) : 0
   const avgVendita = vendite.length > 0 ? Math.round(vendite.reduce((s,d)=>s+(d.estimate||0),0)/vendite.length) : 0
   const avgPreventivo = prevConValore.length > 0 ? Math.round(prevConValore.reduce((s,d)=>s+(d.estimate||0),0)/prevConValore.length) : 0
-  const tassoConvIngresso = ingressiStage.length > 0 ? Math.round((vendite.length/ingressiStage.length)*100) : 0
-  const tassoConvPreventivo = preventivi.length > 0 ? Math.round((vendite.length / preventivi.length)*100) : 0
+  const tuttiConPreventivo = deals.filter(d => d.stage === 'Preventivo' || d.stage === 'Vendita')
+  const tassoConvIngresso = tuttiIngressi.length > 0 ? Math.round((vendite.length/tuttiIngressi.length)*100) : 0
+  const tassoConvPreventivo = tuttiConPreventivo.length > 0 ? Math.round((vendite.length/tuttiConPreventivo.length)*100) : 0
 
   // Daily chart data
   const dayMap: Record<string,number> = {}
@@ -626,20 +646,21 @@ export default function CrmContent() {
                           )}
                         </td>
                         {listCols.map(({col})=>{
-                          const readonly = col==='created_at'
+                          const readonly = col==='created_at' || col==='weighted'
                           const rawVal: any = (deal as any)[col]
                           let display: any = rawVal
                           if(col==='entry_date'||col==='appointment_date') display=formatDate(rawVal||'')
                           else if(col==='created_at') display=formatDate((rawVal||'').split('T')[0])
                           else if(col==='estimate') display=Number(rawVal)>0?`€ ${Number(rawVal).toLocaleString()}`:'-'
                           else if(col==='probability') display=rawVal!=null?`${rawVal}%`:'-'
+                          else if(col==='weighted') { const w=deal.estimate&&deal.probability!=null?Math.round(deal.estimate*deal.probability/100):null; display=w!=null&&w>0?`€ ${w.toLocaleString()}`:'-' }
                           else display=rawVal||'-'
                           const isEditing = inlineEdit?.id===deal.id&&inlineEdit.col===col
                           const editVal = inlineEdit?.val??''
                           const isVendita = deal.stage==='Vendita'
                           const probReadonly = false
                           return (
-                            <td key={col} className={`p-3 whitespace-nowrap relative ${readonly?'text-gray-400':col==='estimate'?'text-green-600':col==='stage'?'':col==='probability'?'':col==='created_at'||col==='entry_date'||col==='appointment_date'?'text-gray-500':'text-gray-600'} ${readonly?'cursor-default':'cursor-text'}`}
+                            <td key={col} className={`p-3 whitespace-nowrap relative ${readonly?'text-gray-400':col==='estimate'||col==='weighted'?'text-green-600':col==='stage'?'':col==='probability'?'':col==='created_at'||col==='entry_date'||col==='appointment_date'?'text-gray-500':'text-gray-600'} ${readonly?'cursor-default':'cursor-text'}`}
                               onClick={e=>{
                                 e.stopPropagation()
                                 if(readonly||probReadonly) return
@@ -791,20 +812,19 @@ export default function CrmContent() {
             <div className="bg-white rounded-xl shadow p-4">
               <p className="text-xs text-gray-500">Tasso conv. all'ingresso</p>
               <p className="text-2xl font-bold text-purple-600">{tassoConvIngresso}%</p>
-              <p className="text-xs text-gray-400">vendite / contatti in fase Ingresso</p>
+              <p className="text-xs text-gray-400">vendite / contatti con data ingresso</p>
             </div>
             <div className="bg-white rounded-xl shadow p-4">
               <p className="text-xs text-gray-500">Tasso conv. al preventivo</p>
               <p className="text-2xl font-bold text-orange-500">{tassoConvPreventivo}%</p>
-              <p className="text-xs text-gray-400">vendite / preventivi totali</p>
+              <p className="text-xs text-gray-400">vendite / (preventivi + vendite)</p>
             </div>
           </div>
 
           {/* Torte ambienti */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {[
               {title:'Valore venduto per ambiente', data:envSoldData, fmt:(v:number)=>`€ ${v.toLocaleString()}`},
-              {title:'Pipeline ponderata per ambiente', data:envPipeData, fmt:(v:number)=>`€ ${Math.round(v).toLocaleString()}`},
               {title:'Ingressi per ambiente', data:envCountData, fmt:(v:number)=>`${v}`},
             ].map(({title,data,fmt})=>(
               <div key={title} className="bg-white rounded-xl shadow p-5">
