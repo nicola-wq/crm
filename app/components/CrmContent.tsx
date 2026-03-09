@@ -17,7 +17,7 @@ interface Deal {
 }
 
 const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Qualificato', probability: null as number | null }
-type View = 'kanban' | 'list' | 'dashboard' | 'leads'
+type View = 'kanban' | 'list' | 'dashboard' | 'leads' | 'tasks'
 type QuickRange = 'today' | 'week' | 'month' | 'lastmonth' | 'alltime' | 'custom'
 
 function formatDate(dateStr: string) {
@@ -160,6 +160,12 @@ export default function CrmContent() {
   const [kanbanVenditaTo, setKanbanVenditaTo] = useState(monthRange.to)
   // Leads
   const [leads, setLeads] = useState<Deal[]>([])
+  const [allTasks, setAllTasks] = useState<any[]>([])
+  const [taskFilter, setTaskFilter] = useState<'all'|'todo'|'done'>('todo')
+  const [showNewTask, setShowNewTask] = useState(false)
+  const [newTaskForm, setNewTaskForm] = useState({title:'', due_date:'', deal_id:'', search:''})
+  const [newTaskSearch, setNewTaskSearch] = useState('')
+  const [newTaskSearchResults, setNewTaskSearchResults] = useState<Deal[]>([])
   const [showLeadForm, setShowLeadForm] = useState(false)
   const [leadForm, setLeadForm] = useState({contact_name:'', phone:'', email:'', origin:''})
   const [convertingLead, setConvertingLead] = useState<Deal|null>(null)
@@ -182,6 +188,8 @@ export default function CrmContent() {
     setDeals(data || [])
     const { data: ldata } = await supabase.from('deals').select('*').eq('is_lead', true).order('created_at', { ascending: false })
     setLeads(ldata || [])
+    const { data: tdata } = await supabase.from('tasks').select('*, deals(contact_name, stage)').order('created_at', { ascending: false })
+    setAllTasks(tdata || [])
   }
 
   function buildRpcParams(f: typeof emptyDeal, stage?: string) {
@@ -266,6 +274,20 @@ export default function CrmContent() {
   async function updateStage(id: string, stage: string, currentProb: number|null) {
     const newProb = (stage === 'Vendita' && currentProb === null) ? 100 : (stage === 'Preventivo' && currentProb === null ? 50 : stage === 'Non convertito' && currentProb === null ? 0 : currentProb)
     await supabase.from('deals').update({stage, probability: newProb}).eq('id', id)
+    if (stage === 'Appuntamento fissato') {
+      const deal = deals.find(d => d.id === id)
+      if (deal?.origin?.toLowerCase().includes('chat ai')) {
+        await createAutoTaskIfNeeded(id, 'Confermare appuntamento')
+      }
+    }
+  }
+
+
+  async function createAutoTaskIfNeeded(dealId: string, title: string) {
+    // Check if task already exists
+    const { data } = await supabase.from('tasks').select('id').eq('deal_id', dealId).eq('title', title).eq('auto', true)
+    if (data && data.length > 0) return
+    await supabase.from('tasks').insert({ deal_id: dealId, title, auto: true, done: false })
   }
 
   async function deleteDeal(id: string) {
@@ -532,6 +554,7 @@ export default function CrmContent() {
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-gray-800">PENSARE CASA C.so Regina</h1>
         <div className="flex gap-2 items-center">
+          <button onClick={()=>setView('tasks')} className={`px-3 py-2 text-sm rounded-lg border mr-1 ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300 hover:bg-orange-50'}`}>Task</button>
           <button onClick={()=>setView('leads')} className={`px-3 py-2 text-sm rounded-lg border mr-3 ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'}`}>Lead</button>
           <div className="flex border rounded-lg overflow-hidden mr-2">
             <button onClick={()=>setView('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Kanban</button>
@@ -1183,6 +1206,118 @@ export default function CrmContent() {
         </div>
       )}
 
+
+      {/* TASKS */}
+      {view==='tasks' && (
+        <div className="p-6 max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl shadow p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-bold text-gray-800">Tutti i Task</h2>
+                <button onClick={()=>setShowNewTask(true)} className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-orange-600">+ Nuova Task</button>
+              </div>
+              <div className="flex border rounded-lg overflow-hidden">
+                <button onClick={()=>setTaskFilter('todo')} className={`px-3 py-1.5 text-sm ${taskFilter==='todo'?'bg-orange-500 text-white':'bg-white text-gray-600 hover:bg-gray-50'}`}>Da fare</button>
+                <button onClick={()=>setTaskFilter('done')} className={`px-3 py-1.5 text-sm ${taskFilter==='done'?'bg-orange-500 text-white':'bg-white text-gray-600 hover:bg-gray-50'}`}>Completati</button>
+                <button onClick={()=>setTaskFilter('all')} className={`px-3 py-1.5 text-sm ${taskFilter==='all'?'bg-orange-500 text-white':'bg-white text-gray-600 hover:bg-gray-50'}`}>Tutti</button>
+              </div>
+            </div>
+            {(() => {
+              const filtered = allTasks.filter(t =>
+                taskFilter === 'all' ? true :
+                taskFilter === 'todo' ? !t.done :
+                t.done
+              )
+              if (filtered.length === 0) return <p className="text-gray-400 text-sm text-center py-8">Nessun task</p>
+              return (
+                <div className="flex flex-col divide-y">
+                  {filtered.map(task => (
+                    <div key={task.id} className="flex items-start gap-3 py-3">
+                      <input type="checkbox" checked={task.done} onChange={async()=>{
+                        await supabase.from('tasks').update({done:!task.done}).eq('id',task.id)
+                        fetchDeals()
+                      }} className="mt-0.5 cursor-pointer" />
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm ${task.done?'line-through text-gray-400':'text-gray-800'}`}>{task.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {task.deals?.contact_name && (
+                            <button onClick={()=>window.location.href=`/deal/${task.deal_id}`}
+                              className="text-xs text-blue-500 hover:underline">{task.deals.contact_name}</button>
+                          )}
+                          {task.deals?.stage && <span className="text-xs text-gray-400">{task.deals.stage}</span>}
+                          {task.due_date && <span className="text-xs text-orange-500">{formatDate(task.due_date)}</span>}
+                          {task.auto && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-400 flex-shrink-0">{formatDate(task.created_at.split('T')[0])}</p>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* NUOVA TASK */}
+      {showNewTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-bold mb-4">Nuova Task</h2>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className="text-xs text-gray-500">Titolo *</label>
+                <input className="border rounded-lg p-2 w-full mt-1 text-sm" placeholder="Es. Richiamare cliente..." value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm, title:e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Data scadenza</label>
+                <input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={newTaskForm.due_date} onChange={e=>setNewTaskForm({...newTaskForm, due_date:e.target.value})} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Associa a contatto (opzionale)</label>
+                <input className="border rounded-lg p-2 w-full mt-1 text-sm" placeholder="Cerca per nome o telefono..."
+                  value={newTaskSearch}
+                  onChange={async e=>{
+                    setNewTaskSearch(e.target.value)
+                    if(e.target.value.length>=2){
+                      const {data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5)
+                      setNewTaskSearchResults(data||[])
+                    } else { setNewTaskSearchResults([]) }
+                  }} />
+                {newTaskSearchResults.length>0 && (
+                  <div className="border rounded-lg mt-1 bg-white shadow-lg max-h-40 overflow-y-auto">
+                    {newTaskSearchResults.map(d=>(
+                      <button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm, deal_id:d.id}); setNewTaskSearch(d.contact_name); setNewTaskSearchResults([])}}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0">
+                        <span className="font-medium">{d.contact_name}</span>
+                        {d.phone && <span className="text-gray-400 ml-2 text-xs">{d.phone}</span>}
+                        <span className="text-xs text-blue-400 ml-2">{d.stage}</span>
+                      </button>
+                    ))}
+                    <button onClick={()=>{setNewTaskForm({...newTaskForm, deal_id:''}); setNewTaskSearch(''); setNewTaskSearchResults([])}}
+                      className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50">✕ Nessuna associazione</button>
+                  </div>
+                )}
+                {newTaskForm.deal_id && <p className="text-xs text-green-600 mt-1">✓ Associata a: {newTaskSearch}</p>}
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={async()=>{
+                if(!newTaskForm.title.trim()) return
+                await supabase.from('tasks').insert({
+                  title: newTaskForm.title.trim(),
+                  due_date: newTaskForm.due_date||null,
+                  deal_id: newTaskForm.deal_id||null,
+                  auto: false, done: false,
+                })
+                setNewTaskForm({title:'',due_date:'',deal_id:'',search:''}); setNewTaskSearch(''); setNewTaskSearchResults([]); setShowNewTask(false); fetchDeals()
+              }} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">Salva</button>
+              <button onClick={()=>{setShowNewTask(false);setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([])}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* LEAD FORM */}
       {showLeadForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1197,11 +1332,12 @@ export default function CrmContent() {
             <div className="flex gap-2 mt-5">
               <button onClick={async()=>{
                 if(!leadForm.contact_name.trim()) return
-                await supabase.from('deals').insert({
+                const { data: newLead } = await supabase.from('deals').insert({
                   title: leadForm.contact_name, contact_name: leadForm.contact_name,
                   phone: leadForm.phone||null, email: leadForm.email||null, origin: leadForm.origin||null,
                   stage: 'Qualificato', is_lead: true, lead_stage: 'Nuovo', probability: null,
-                })
+                }).select().single()
+                if (newLead) await createAutoTaskIfNeeded(newLead.id, 'Contattare il contatto')
                 setLeadForm({contact_name:'',phone:'',email:'',origin:''}); setShowLeadForm(false); fetchDeals()
               }} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">Salva</button>
               <button onClick={()=>{setShowLeadForm(false);setLeadForm({contact_name:'',phone:'',email:'',origin:''})}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
