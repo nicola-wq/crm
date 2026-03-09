@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 
@@ -88,6 +89,7 @@ function PieChart({ data, size=160 }: { data: {label:string, value:number, color
 const PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316']
 
 export default function CrmContent() {
+  const router = useRouter()
   const [deals, setDeals] = useState<Deal[]>([])
   const [checked, setChecked] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -348,7 +350,7 @@ export default function CrmContent() {
   }
 
   function openDeal(deal: Deal) { setSelectedDeal(deal); setEditDeal({...deal}); setEditMode(false); setSaveError('') }
-  function goToDeal(deal: Deal) { window.location.href = `/deal/${deal.id}` }
+  function goToDeal(deal: Deal) { router.push(`/deal/${deal.id}`) }
 
   function toggleSelect(id: string) {
     setSelectedIds(prev => { const next=new Set(prev); next.has(id)?next.delete(id):next.add(id); return next })
@@ -554,7 +556,7 @@ export default function CrmContent() {
     <div className="min-h-screen bg-gray-100">
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <button onClick={()=>window.location.href='/'} className="text-gray-400 hover:text-blue-600 transition-colors" title="Homepage">
+          <button onClick={()=>router.push('/')} className="text-gray-400 hover:text-blue-600 transition-colors" title="Homepage">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
           </button>
           <h1 className="text-xl font-bold text-gray-800">PENSARE CASA C.so Regina</h1>
@@ -1315,7 +1317,7 @@ export default function CrmContent() {
                                   <p className={`text-sm ${task.done?'line-through text-gray-400':'text-gray-800'}`}>{task.title}</p>
                                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                     {task.deals?.contact_name && (
-                                      <button onClick={()=>window.location.href=`/deal/${task.deal_id}`}
+                                      <button onClick={()=>router.push(`/deal/${task.deal_id}`)}
                                         className="text-xs text-blue-500 hover:underline">{task.deals.contact_name}</button>
                                     )}
                                     {task.deals?.stage && <span className="text-xs text-gray-400">{task.deals.stage}</span>}

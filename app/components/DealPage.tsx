@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const STAGES = ['Qualificato', 'Appuntamento fissato', 'Ingresso', 'Preventivo', 'Vendita', 'Non convertito']
@@ -57,6 +58,7 @@ function EnvSelect({ value, onChange }: { value: string, onChange: (v: string) =
 }
 
 export default function DealPage({ dealId }: { dealId: string }) {
+  const router = useRouter()
   const [deal, setDeal] = useState<Deal | null>(null)
   const [editDeal, setEditDeal] = useState<Deal | null>(null)
   const [editMode, setEditMode] = useState(false)
@@ -205,7 +207,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <div className="bg-white shadow px-6 py-4 flex items-center gap-4">
-        <button onClick={() => window.history.back()} className="text-gray-500 hover:text-gray-800 flex items-center gap-1 text-sm">
+        <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 flex items-center gap-1 text-sm">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Indietro
         </button>
@@ -219,7 +221,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
             {deal.estimate > 0 && <span className="text-green-600 text-sm font-semibold">€ {deal.estimate.toLocaleString()}</span>}
           </div>
         </div>
-        <button onClick={() => window.location.href = '/'} className="text-gray-400 hover:text-blue-600 transition-colors" title="Homepage">
+        <button onClick={() => router.push('/')} className="text-gray-400 hover:text-blue-600 transition-colors" title="Homepage">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
         </button>
       </div>
