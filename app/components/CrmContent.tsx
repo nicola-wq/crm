@@ -317,6 +317,7 @@ export default function CrmContent() {
   }
 
   function openDeal(deal: Deal) { setSelectedDeal(deal); setEditDeal({...deal}); setEditMode(false); setSaveError('') }
+  function goToDeal(deal: Deal) { window.location.href = `/deal/${deal.id}` }
 
   function toggleSelect(id: string) {
     setSelectedIds(prev => { const next=new Set(prev); next.has(id)?next.delete(id):next.add(id); return next })
@@ -566,7 +567,7 @@ export default function CrmContent() {
                             <Draggable key={deal.id} draggableId={deal.id} index={index}>
                               {(provided,snapshot) => (
                                 <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
-                                  onClick={()=>openDeal(deal)}
+                                  onClick={()=>goToDeal(deal)}
                                   className={`bg-white rounded-lg p-3 cursor-pointer ${snapshot.isDragging?'shadow-xl rotate-1':'shadow hover:shadow-md'}`}>
                                   <p className="font-semibold text-sm text-gray-800">{deal.contact_name||deal.title}</p>
                                   {deal.estimate>0 && <p className="text-xs text-green-600 mt-0.5">€ {deal.estimate.toLocaleString()}</p>}
@@ -671,13 +672,13 @@ export default function CrmContent() {
                     {groupDeals.map(deal => (
                       <tr key={deal.id} className={`border-t hover:bg-gray-50 ${selectedIds.has(deal.id)?'bg-blue-50':''}`}>
                         <td className="p-3" onClick={e=>{e.stopPropagation();toggleSelect(deal.id)}}><input type="checkbox" checked={selectedIds.has(deal.id)} onChange={()=>toggleSelect(deal.id)} /></td>
-                        <td className="p-3 font-medium whitespace-nowrap" onClick={e=>{e.stopPropagation();setInlineEdit({id:deal.id,col:'contact_name',val:deal.contact_name||''})}}>
+                        <td className="p-3 font-medium whitespace-nowrap">
                           {inlineEdit?.id===deal.id&&inlineEdit.col==='contact_name'?(
                             <input autoFocus className="border rounded px-2 py-1 text-sm w-36 font-medium" value={inlineEdit.val}
                               onChange={e=>setInlineEdit({...inlineEdit,val:e.target.value})} onBlur={saveInlineEdit}
                               onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />
                           ):(
-                            <span className="cursor-text hover:bg-blue-50 rounded px-1 py-0.5">{deal.contact_name||<span className="text-gray-300 italic">—</span>}</span>
+                            <span className="cursor-pointer hover:text-blue-600 hover:underline rounded px-1 py-0.5" onClick={()=>goToDeal(deal)}>{deal.contact_name||<span className="text-gray-300 italic">—</span>}</span>
                           )}
                         </td>
                         {listCols.map(({col})=>{
