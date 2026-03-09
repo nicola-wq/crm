@@ -18,9 +18,9 @@ interface Deal {
   estimate: number; project_timeline: string; stage: string; created_at: string
   probability: number | null; is_lead: boolean; lead_stage: string
 }
-interface Note { id: string; deal_id: string; text: string; created_at: string }
-interface Task { id: string; deal_id: string; title: string; done: boolean; auto: boolean; due_date: string; created_at: string }
-interface Attachment { id: string; deal_id: string; file_name: string; file_url: string; file_type: string; created_at: string }
+interface Note { id: string; deal_id: string; text: string; created_at: string; created_by: string }
+interface Task { id: string; deal_id: string; title: string; done: boolean; auto: boolean; due_date: string; created_at: string; created_by: string }
+interface Attachment { id: string; deal_id: string; file_name: string; file_url: string; file_type: string; created_at: string; created_by: string }
 type TimelineItem =
   | { type: 'note'; data: Note }
   | { type: 'task'; data: Task }
@@ -76,12 +76,16 @@ export default function DealPage({ dealId }: { dealId: string }) {
   const [confirmDeleteTask, setConfirmDeleteTask] = useState<string | null>(null)
   const [confirmDeleteAttachment, setConfirmDeleteAttachment] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'tutti' | 'note' | 'task' | 'allegati'>('tutti')
+  const [userEmail, setUserEmail] = useState('')
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editingNoteText, setEditingNoteText] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { window.location.replace('/login'); return }
+      setUserEmail(session.user.email || '')
       fetchAll()
     }
     init()
@@ -118,13 +122,19 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
   async function addNote() {
     if (!newNote.trim()) return
-    await supabase.from('notes').insert({ deal_id: dealId, text: newNote.trim() })
+    await supabase.from('notes').insert({ deal_id: dealId, text: newNote.trim(), created_by: userEmail })
     setNewNote(''); fetchAll()
   }
 
   async function deleteNote(id: string) {
     await supabase.from('notes').delete().eq('id', id)
     setConfirmDeleteNote(null); fetchAll()
+  }
+
+  async function saveNoteEdit(id: string) {
+    if (!editingNoteText.trim()) return
+    await supabase.from('notes').update({ text: editingNoteText.trim(), created_by: userEmail }).eq('id', id)
+    setEditingNoteId(null); setEditingNoteText(''); fetchAll()
   }
 
   async function addTask() {
@@ -160,6 +170,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
           deal_id: dealId, file_name: file.name,
           file_url: urlData.publicUrl,
           file_type: file.type,
+          created_by: userEmail,
         })
       }
     }
@@ -363,9 +374,25 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
                     {item.type === 'note' && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 relative group">
-                        <p className="text-sm text-gray-800 whitespace-pre-wrap">{(item.data as Note).text}</p>
-                        <button onClick={() => setConfirmDeleteNote(item.data.id)}
-                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-xs transition-opacity">✕</button>
+                        {editingNoteId === item.data.id ? (
+                          <div className="flex flex-col gap-2">
+                            <textarea className="border rounded-lg p-2 text-sm w-full resize-none bg-white" rows={3}
+                              value={editingNoteText} onChange={e => setEditingNoteText(e.target.value)} autoFocus />
+                            <div className="flex gap-2">
+                              <button onClick={() => saveNoteEdit(item.data.id)} className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Salva</button>
+                              <button onClick={() => { setEditingNoteId(null); setEditingNoteText('') }} className="text-xs text-gray-500 hover:underline">Annulla</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm text-gray-800 whitespace-pre-wrap cursor-text" onClick={() => { setEditingNoteId(item.data.id); setEditingNoteText((item.data as Note).text) }}>{(item.data as Note).text}</p>
+                            {(item.data as Note).created_by && <p className="text-xs text-gray-400 mt-1">{(item.data as Note).created_by}</p>}
+                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                              <button onClick={() => { setEditingNoteId(item.data.id); setEditingNoteText((item.data as Note).text) }} className="text-gray-300 hover:text-blue-400 text-xs">✎</button>
+                              <button onClick={() => setConfirmDeleteNote(item.data.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
 
@@ -397,6 +424,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
                           <p className="text-sm font-medium text-gray-700 truncate">{(item.data as Attachment).file_name}</p>
                           <a href={(item.data as Attachment).file_url} target="_blank" rel="noopener noreferrer"
                             className="text-xs text-blue-500 hover:underline">Apri file</a>
+                          {(item.data as Attachment).created_by && <p className="text-xs text-gray-400">{(item.data as Attachment).created_by}</p>}
                         </div>
                         <button onClick={() => setConfirmDeleteAttachment(item.data.id)}
                           className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-xs transition-opacity">✕</button>
