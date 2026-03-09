@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 const STAGES = ['Qualificato', 'Appuntamento fissato', 'Ingresso', 'Preventivo', 'Vendita', 'Non convertito']
 const ENVIRONMENTS = ['Cucina', 'Soggiorno', 'Camera da letto', 'Cameretta', 'Tavoli e sedie', 'Altro']
 const PROB_OPTIONS = [0, 25, 50, 75, 90, 100]
+const TIMELINES = ['Entro 3 mesi', 'Tra 3 mesi e 6 mesi', 'Oltre 6 mesi']
 const PROB_COLORS: Record<number, string> = {
   0: 'bg-gray-100 text-gray-500', 25: 'bg-red-100 text-red-700',
   50: 'bg-orange-100 text-orange-700', 75: 'bg-yellow-100 text-yellow-700',
@@ -78,6 +79,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
   const [confirmDeleteNote, setConfirmDeleteNote] = useState<string | null>(null)
   const [confirmDeleteTask, setConfirmDeleteTask] = useState<string | null>(null)
   const [confirmDeleteAttachment, setConfirmDeleteAttachment] = useState<string | null>(null)
+  const [confirmDeleteDeal, setConfirmDeleteDeal] = useState(false)
   const [activeTab, setActiveTab] = useState<'tutti' | 'note' | 'task' | 'allegati'>('tutti')
   const [userEmail, setUserEmail] = useState('')
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
@@ -185,6 +187,11 @@ export default function DealPage({ dealId }: { dealId: string }) {
     fetchAll()
   }
 
+  async function deleteDeal() {
+    await supabase.from('deals').delete().eq('id', dealId)
+    router.push('/') 
+  }
+
   async function deleteAttachment(att: Attachment) {
     const path = att.file_url.split('/attachments/')[1]
     if (path) await supabase.storage.from('attachments').remove([path])
@@ -277,7 +284,12 @@ export default function DealPage({ dealId }: { dealId: string }) {
                 <div><label className="text-xs text-gray-400">Data ingresso</label><input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.entry_date || ''} onChange={e => setEditDeal({ ...editDeal!, entry_date: e.target.value })} /></div>
                 <div><label className="text-xs text-gray-400">Data appuntamento</label><input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.appointment_date || ''} onChange={e => setEditDeal({ ...editDeal!, appointment_date: e.target.value })} /></div>
                 <div><label className="text-xs text-gray-400">Preventivo (€)</label><input type="number" className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.estimate || ''} onChange={e => setEditDeal({ ...editDeal!, estimate: Number(e.target.value) })} /></div>
-                <div><label className="text-xs text-gray-400">Tempi progettuali</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.project_timeline || ''} onChange={e => setEditDeal({ ...editDeal!, project_timeline: e.target.value })} /></div>
+                <div><label className="text-xs text-gray-400">Tempi progettuali</label>
+                  <select className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.project_timeline || ''} onChange={e => setEditDeal({ ...editDeal!, project_timeline: e.target.value })}>
+                    <option value="">—</option>
+                    {TIMELINES.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
                 <div><label className="text-xs text-gray-400">Fase</label>
                   <select className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.stage} onChange={e => setEditDeal({ ...editDeal!, stage: e.target.value })}>
                     {STAGES.map(s => <option key={s}>{s}</option>)}
@@ -291,6 +303,13 @@ export default function DealPage({ dealId }: { dealId: string }) {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Elimina contatto */}
+          <div className="mt-3">
+            <button onClick={() => setConfirmDeleteDeal(true)} className="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg py-2 transition-colors">
+              Elimina contatto
+            </button>
           </div>
 
           {/* Task */}
@@ -473,6 +492,19 @@ export default function DealPage({ dealId }: { dealId: string }) {
           </div>
         </div>
       )}
+      {confirmDeleteDeal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="font-bold mb-2">Elimina contatto?</h3>
+            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile. Verranno eliminate anche tutte le note, task e allegati.</p>
+            <div className="flex gap-2">
+              <button onClick={deleteDeal} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
+              <button onClick={() => setConfirmDeleteDeal(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmDeleteAttachment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
