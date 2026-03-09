@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 
@@ -90,7 +90,19 @@ const PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4',
 
 export default function CrmContent() {
   const router = useRouter()
-  const [deals, setDeals] = useState<Deal[]>([])
+  const searchParams = useSearchParams()
+  const tabParam = searchParams.get('tab') as View | null
+  const [view, setView] = useState<View>(tabParam || 'kanban')
+
+  useEffect(() => {
+    const t = searchParams.get('tab') as View | null
+    setView(t || 'kanban')
+  }, [searchParams])
+
+  function navigateTo(v: View) {
+    if (v === 'kanban') router.push('/')
+    else router.push(`/?tab=${v}`)
+  }
   const [checked, setChecked] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [showIngressoForm, setShowIngressoForm] = useState(false)
@@ -104,7 +116,6 @@ export default function CrmContent() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Deal[]>([])
   const [isNewContact, setIsNewContact] = useState(false)
-  const [view, setView] = useState<View>('kanban')
   const [groupBy, setGroupBy] = useState('none')
   const [activeQuick, setActiveQuick] = useState<QuickRange>('month')
   const [saveError, setSaveError] = useState('')
@@ -173,6 +184,7 @@ export default function CrmContent() {
   const [editTaskSearchResults, setEditTaskSearchResults] = useState<Deal[]>([])
   const [showLeadForm, setShowLeadForm] = useState(false)
   const [leadForm, setLeadForm] = useState({contact_name:'', phone:'', email:'', origin:''})
+  const [deals, setDeals] = useState<Deal[]>([])
   const [convertingLead, setConvertingLead] = useState<Deal|null>(null)
   // Dashboard
   const [dateFrom, setDateFrom] = useState(monthRange.from)
@@ -562,12 +574,12 @@ export default function CrmContent() {
           <h1 className="text-xl font-bold text-gray-800">PENSARE CASA C.so Regina</h1>
         </div>
         <div className="flex gap-2 items-center">
-          <button onClick={()=>setView('tasks')} className={`px-3 py-2 text-sm rounded-lg border mr-1 ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300 hover:bg-orange-50'}`}>Task</button>
-          <button onClick={()=>setView('leads')} className={`px-3 py-2 text-sm rounded-lg border mr-3 ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'}`}>Lead</button>
+          <button onClick={()=>navigateTo('tasks')} className={`px-3 py-2 text-sm rounded-lg border mr-1 ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300 hover:bg-orange-50'}`}>Task</button>
+          <button onClick={()=>navigateTo('leads')} className={`px-3 py-2 text-sm rounded-lg border mr-3 ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'}`}>Lead</button>
           <div className="flex border rounded-lg overflow-hidden mr-2">
-            <button onClick={()=>setView('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Pipeline</button>
-            <button onClick={()=>setView('list')} className={`px-3 py-2 text-sm ${view==='list'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Lista</button>
-            <button onClick={()=>setView('dashboard')} className={`px-3 py-2 text-sm ${view==='dashboard'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Dashboard</button>
+            <button onClick={()=>navigateTo('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Pipeline</button>
+            <button onClick={()=>navigateTo('list')} className={`px-3 py-2 text-sm ${view==='list'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Lista</button>
+            <button onClick={()=>navigateTo('dashboard')} className={`px-3 py-2 text-sm ${view==='dashboard'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Dashboard</button>
           </div>
           {view==='leads' && <button onClick={()=>setShowLeadForm(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">+ Nuovo Lead</button>}
           {view!=='leads' && <button onClick={()=>setShowIngressoForm(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">+ Nuovo Ingresso</button>}
