@@ -22,10 +22,13 @@ interface Deal {
 interface Note { id: string; deal_id: string; text: string; created_at: string; created_by: string }
 interface Task { id: string; deal_id: string; title: string; done: boolean; auto: boolean; due_date: string; created_at: string; created_by: string }
 interface Attachment { id: string; deal_id: string; file_name: string; file_url: string; file_type: string; created_at: string; created_by: string }
+interface ActivityLog { id: string; deal_id: string; type: string; from_value: string; to_value: string; note: string; created_at: string; created_by: string }
+
 type TimelineItem =
   | { type: 'note'; data: Note }
   | { type: 'task'; data: Task }
   | { type: 'attachment'; data: Attachment }
+  | { type: 'stage_change'; data: ActivityLog }
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '-'
@@ -65,6 +68,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
   const [notes, setNotes] = useState<Note[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [activityLog, setActivityLog] = useState<ActivityLog[]>([])
   const [newNote, setNewNote] = useState('')
   const [newTask, setNewTask] = useState('')
   const [newTaskDue, setNewTaskDue] = useState('')
@@ -91,21 +95,24 @@ export default function DealPage({ dealId }: { dealId: string }) {
   }, [dealId])
 
   async function fetchAll() {
-    const [{ data: d }, { data: n }, { data: t }, { data: a }] = await Promise.all([
+    const [{ data: d }, { data: n }, { data: t }, { data: a }, { data: al }] = await Promise.all([
       supabase.from('deals').select('*').eq('id', dealId).single(),
       supabase.from('notes').select('*').eq('deal_id', dealId).order('created_at', { ascending: false }),
       supabase.from('tasks').select('*').eq('deal_id', dealId).order('created_at', { ascending: false }),
       supabase.from('attachments').select('*').eq('deal_id', dealId).order('created_at', { ascending: false }),
+      supabase.from('activity_log').select('*').eq('deal_id', dealId).order('created_at', { ascending: false }),
     ])
     if (d) { setDeal(d); setEditDeal({ ...d }) }
     setNotes(n || [])
     setTasks(t || [])
     setAttachments(a || [])
+    setActivityLog(al || [])
   }
 
   async function saveDeal() {
     if (!editDeal) return
     setSaving(true); setSaveError('')
+    const oldStage = deal?.stage
     const prob = editDeal.stage === 'Vendita' ? (editDeal.probability ?? 100) : editDeal.probability
     const { error } = await supabase.from('deals').update({
       contact_name: editDeal.contact_name, title: editDeal.contact_name,
@@ -116,6 +123,12 @@ export default function DealPage({ dealId }: { dealId: string }) {
     }).eq('id', dealId)
     setSaving(false)
     if (error) { setSaveError(error.message); return }
+    if (oldStage && oldStage !== editDeal.stage) {
+      await supabase.from('activity_log').insert({
+        deal_id: dealId, type: 'stage_change',
+        from_value: oldStage, to_value: editDeal.stage, created_by: userEmail,
+      })
+    }
     setEditMode(false); fetchAll()
   }
 
@@ -138,10 +151,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
   async function addTask() {
     if (!newTask.trim()) return
-    await supabase.from('tasks').insert({
-      deal_id: dealId, title: newTask.trim(),
-      auto: false, due_date: newTaskDue || null
-    })
+    await supabase.from('tasks').insert({ deal_id: dealId, title: newTask.trim(), auto: false, due_date: newTaskDue || null })
     setNewTask(''); setNewTaskDue(''); fetchAll()
   }
 
@@ -166,9 +176,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
         const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path)
         await supabase.from('attachments').insert({
           deal_id: dealId, file_name: file.name,
-          file_url: urlData.publicUrl,
-          file_type: file.type,
-          created_by: userEmail,
+          file_url: urlData.publicUrl, file_type: file.type, created_by: userEmail,
         })
       }
     }
@@ -190,10 +198,13 @@ export default function DealPage({ dealId }: { dealId: string }) {
     </div>
   )
 
+  const stageChanges = activityLog.filter(a => a.type === 'stage_change')
+
   const timeline: TimelineItem[] = [
     ...notes.map(n => ({ type: 'note' as const, data: n })),
     ...tasks.map(t => ({ type: 'task' as const, data: t })),
     ...attachments.map(a => ({ type: 'attachment' as const, data: a })),
+    ...stageChanges.map(a => ({ type: 'stage_change' as const, data: a })),
   ].sort((a, b) => new Date(b.data.created_at).getTime() - new Date(a.data.created_at).getTime())
 
   const filteredTimeline = activeTab === 'tutti' ? timeline
@@ -205,7 +216,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header */}
       <div className="bg-white shadow px-6 py-4 flex items-center gap-4">
         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 flex items-center gap-1 text-sm">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -352,11 +362,13 @@ export default function DealPage({ dealId }: { dealId: string }) {
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${
                       item.type === 'note' ? 'bg-yellow-100 text-yellow-600' :
                       item.type === 'task' ? 'bg-purple-100 text-purple-600' :
+                      item.type === 'stage_change' ? 'bg-green-100 text-green-600' :
                       'bg-blue-100 text-blue-600'
                     }`}>
                       {item.type === 'note' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>}
                       {item.type === 'task' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>}
                       {item.type === 'attachment' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>}
+                      {item.type === 'stage_change' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>}
                     </div>
                     {idx < filteredTimeline.length - 1 && <div className="w-0.5 bg-gray-200 flex-1 my-1" style={{minHeight:'24px'}} />}
                   </div>
@@ -398,8 +410,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
                             {(item.data as Task).auto && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
                           </div>
                         </div>
-                        <button onClick={() => setConfirmDeleteTask(item.data.id)}
-                          className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-xs transition-opacity">✕</button>
+                        <button onClick={() => setConfirmDeleteTask(item.data.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-xs transition-opacity">✕</button>
                       </div>
                     )}
 
@@ -414,12 +425,20 @@ export default function DealPage({ dealId }: { dealId: string }) {
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-700 truncate">{(item.data as Attachment).file_name}</p>
-                          <a href={(item.data as Attachment).file_url} target="_blank" rel="noopener noreferrer"
-                            className="text-xs text-blue-500 hover:underline">Apri file</a>
+                          <a href={(item.data as Attachment).file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">Apri file</a>
                           {(item.data as Attachment).created_by && <p className="text-xs text-gray-400">{(item.data as Attachment).created_by}</p>}
                         </div>
-                        <button onClick={() => setConfirmDeleteAttachment(item.data.id)}
-                          className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-xs transition-opacity">✕</button>
+                        <button onClick={() => setConfirmDeleteAttachment(item.data.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-xs transition-opacity">✕</button>
+                      </div>
+                    )}
+
+                    {item.type === 'stage_change' && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                        <span className="text-xs text-gray-500">Fase cambiata:</span>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{(item.data as ActivityLog).from_value}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">{(item.data as ActivityLog).to_value}</span>
+                        {(item.data as ActivityLog).created_by && <span className="text-xs text-gray-400 ml-auto">{(item.data as ActivityLog).created_by}</span>}
                       </div>
                     )}
                   </div>

@@ -65,7 +65,6 @@ function EnvSelect({ value, onChange }: { value: string, onChange: (v: string) =
   )
 }
 
-// Simple SVG Pie Chart
 function PieChart({ data, size=160 }: { data: {label:string, value:number, color:string}[], size?: number }) {
   const total = data.reduce((s,d)=>s+d.value,0)
   if (total === 0) return <div className="flex items-center justify-center text-gray-400 text-sm" style={{width:size,height:size}}>Nessun dato</div>
@@ -103,7 +102,10 @@ export default function CrmContent() {
     if (v === 'kanban') router.push('/')
     else router.push(`/?tab=${v}`)
   }
+
+  const [deals, setDeals] = useState<Deal[]>([])
   const [checked, setChecked] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [showIngressoForm, setShowIngressoForm] = useState(false)
   const [selectedDeal, setSelectedDeal] = useState<Deal|null>(null)
@@ -129,7 +131,7 @@ export default function CrmContent() {
   const [bulkEntryDate, setBulkEntryDate] = useState('')
   const [showBulkEnvPicker, setShowBulkEnvPicker] = useState(false)
   const [filterAggiudicati, setFilterAggiudicati] = useState(false)
-  const [saleDatePopup, setSaleDatePopup] = useState<{id:string, stage:string, prob:number|null}|null>(null)
+  const [saleDatePopup, setSaleDatePopup] = useState<{id:string, stage:string, prob:number|null, fromStage?:string}|null>(null)
   const [saleDateValue, setSaleDateValue] = useState(toYMD(new Date()))
   const last30 = getLast30Days()
   const [listDateFrom, setListDateFrom] = useState(last30.from)
@@ -152,10 +154,8 @@ export default function CrmContent() {
       const saved = localStorage.getItem('crm_list_cols')
       if (saved) {
         const savedCols: {label:string,col:string}[] = JSON.parse(saved)
-        // merge: keep saved order but add any new cols missing
-        const allCols = DEFAULT_COLS
         const savedKeys = savedCols.map(c=>c.col)
-        const missing = allCols.filter(c=>!savedKeys.includes(c.col))
+        const missing = DEFAULT_COLS.filter(c=>!savedKeys.includes(c.col))
         return [...savedCols, ...missing]
       }
     } catch {}
@@ -167,11 +167,9 @@ export default function CrmContent() {
   }
   const [dragColIdx, setDragColIdx] = useState<number|null>(null)
   const [inlineEdit, setInlineEdit] = useState<{id:string,col:string,val:string}|null>(null)
-  // Kanban filter
   const monthRange = getCurrentMonthRange()
   const [kanbanVenditaFrom, setKanbanVenditaFrom] = useState(monthRange.from)
   const [kanbanVenditaTo, setKanbanVenditaTo] = useState(monthRange.to)
-  // Leads
   const [leads, setLeads] = useState<Deal[]>([])
   const [allTasks, setAllTasks] = useState<any[]>([])
   const [taskFilter, setTaskFilter] = useState<'all'|'todo'|'done'>('todo')
@@ -184,9 +182,7 @@ export default function CrmContent() {
   const [editTaskSearchResults, setEditTaskSearchResults] = useState<Deal[]>([])
   const [showLeadForm, setShowLeadForm] = useState(false)
   const [leadForm, setLeadForm] = useState({contact_name:'', phone:'', email:'', origin:''})
-  const [deals, setDeals] = useState<Deal[]>([])
   const [convertingLead, setConvertingLead] = useState<Deal|null>(null)
-  // Dashboard
   const [dateFrom, setDateFrom] = useState(monthRange.from)
   const [dateTo, setDateTo] = useState(monthRange.to)
 
@@ -194,6 +190,7 @@ export default function CrmContent() {
     async function init() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { window.location.replace('/login'); return }
+      setUserEmail(session.user.email || '')
       setChecked(true); fetchDeals()
     }
     init()
@@ -208,9 +205,16 @@ export default function CrmContent() {
     setAllTasks(tdata || [])
   }
 
+  async function logStageChange(dealId: string, fromStage: string, toStage: string) {
+    if (fromStage === toStage) return
+    await supabase.from('activity_log').insert({
+      deal_id: dealId, type: 'stage_change',
+      from_value: fromStage, to_value: toStage, created_by: userEmail,
+    })
+  }
+
   function buildRpcParams(f: typeof emptyDeal, stage?: string) {
     const s = stage || f.stage
-    const prob = f.probability ?? getDefaultProb(s)
     return {
       p_title: f.contact_name, p_contact_name: f.contact_name, p_stage: s,
       p_phone: f.phone||null, p_email: f.email||null, p_origin: f.origin||null,
@@ -225,7 +229,6 @@ export default function CrmContent() {
     const prob = form.probability ?? getDefaultProb(form.stage)
     const { error } = await supabase.rpc('insert_deal', buildRpcParams(form))
     if (!error) {
-      // update probability after insert if needed
       if (prob !== null) {
         const { data } = await supabase.from('deals').select('id').eq('contact_name', form.contact_name).order('created_at', {ascending:false}).limit(1)
         if (data?.[0]) await supabase.from('deals').update({probability: prob}).eq('id', data[0].id)
@@ -258,9 +261,10 @@ export default function CrmContent() {
 
   async function saveDeal(deal: Deal) {
     setSaveError('')
+    const oldDeal = deals.find(d => d.id === deal.id)
     if (deal.stage === 'Vendita' && selectedDeal?.stage !== 'Vendita') {
       setSaleDateValue(toYMD(new Date()))
-      setSaleDatePopup({id: deal.id, stage: deal.stage, prob: deal.probability ?? 100})
+      setSaleDatePopup({id: deal.id, stage: deal.stage, prob: deal.probability ?? 100, fromStage: selectedDeal?.stage})
       return
     }
     const prob = deal.probability ?? getDefaultProb(deal.stage)
@@ -271,6 +275,7 @@ export default function CrmContent() {
       project_timeline: deal.project_timeline, stage: deal.stage, probability: prob,
     }).eq('id', deal.id)
     if (error) { setSaveError('Errore: '+error.message); return }
+    if (oldDeal && oldDeal.stage !== deal.stage) await logStageChange(deal.id, oldDeal.stage, deal.stage)
     setSelectedDeal(null); setEditMode(false); setEditDeal(null); fetchDeals()
   }
 
@@ -287,20 +292,17 @@ export default function CrmContent() {
     setSearchQuery(deal.contact_name); setSearchResults([]); setIsNewContact(false)
   }
 
-  async function updateStage(id: string, stage: string, currentProb: number|null) {
+  async function updateStage(id: string, stage: string, currentProb: number|null, fromStage: string) {
     const newProb = (stage === 'Vendita' && currentProb === null) ? 100 : (stage === 'Preventivo' && currentProb === null ? 50 : stage === 'Non convertito' && currentProb === null ? 0 : currentProb)
     await supabase.from('deals').update({stage, probability: newProb}).eq('id', id)
+    await logStageChange(id, fromStage, stage)
     if (stage === 'Appuntamento fissato') {
       const deal = deals.find(d => d.id === id)
-      if (deal?.origin?.toLowerCase().includes('chat ai')) {
-        await createAutoTaskIfNeeded(id, 'Confermare appuntamento')
-      }
+      if (deal?.origin?.toLowerCase().includes('chat ai')) await createAutoTaskIfNeeded(id, 'Confermare appuntamento')
     }
   }
 
-
   async function createAutoTaskIfNeeded(dealId: string, title: string) {
-    // Check if task already exists
     const { data } = await supabase.from('tasks').select('id').eq('deal_id', dealId).eq('title', title).eq('auto', true)
     if (data && data.length > 0) return
     await supabase.from('tasks').insert({ deal_id: dealId, title, auto: true, done: false })
@@ -315,14 +317,16 @@ export default function CrmContent() {
     if (!result.destination) return
     const dealId = result.draggableId; const newStage = result.destination.droppableId
     const deal = deals.find(d=>d.id===dealId)
+    const fromStage = deal?.stage || ''
+    if (fromStage === newStage) return
     const currentP = deal?.probability ?? null
     const newProb = newStage === 'Vendita' && currentP === null ? 100 : newStage === 'Preventivo' && currentP === null ? 50 : newStage === 'Non convertito' && currentP === null ? 0 : currentP
     setDeals(prev => prev.map(d => d.id===dealId ? {...d, stage:newStage, probability:newProb} : d))
     if (newStage === 'Vendita') {
       setSaleDateValue(toYMD(new Date()))
-      setSaleDatePopup({id: dealId, stage: newStage, prob: newProb})
+      setSaleDatePopup({id: dealId, stage: newStage, prob: newProb, fromStage})
     } else {
-      await updateStage(dealId, newStage, deal?.probability ?? null)
+      await updateStage(dealId, newStage, deal?.probability ?? null, fromStage)
     }
   }
 
@@ -361,7 +365,6 @@ export default function CrmContent() {
     return `px-3 py-1 rounded-lg text-sm font-medium transition-colors ${activeQuick===type?'bg-blue-600 text-white':'bg-gray-100 hover:bg-gray-200 text-gray-700'}`
   }
 
-  function openDeal(deal: Deal) { setSelectedDeal(deal); setEditDeal({...deal}); setEditMode(false); setSaveError('') }
   function goToDeal(deal: Deal) { router.push(`/deal/${deal.id}`) }
 
   function toggleSelect(id: string) {
@@ -378,6 +381,10 @@ export default function CrmContent() {
   }
   async function bulkChangeStage() {
     if (!bulkStage) return
+    for (const id of Array.from(selectedIds)) {
+      const deal = deals.find(d => d.id === id)
+      if (deal && deal.stage !== bulkStage) await logStageChange(id, deal.stage, bulkStage)
+    }
     await supabase.from('deals').update({stage:bulkStage}).in('id', Array.from(selectedIds))
     setSelectedIds(new Set()); setBulkStage(''); fetchDeals()
   }
@@ -413,6 +420,10 @@ export default function CrmContent() {
     let updateVal: any = val
     if (col==='estimate' || col==='probability') updateVal = Number(val)||null
     if ((col==='entry_date'||col==='appointment_date') && val==='') updateVal = null
+    if (col === 'stage') {
+      const deal = deals.find(d => d.id === id)
+      if (deal && deal.stage !== val) await logStageChange(id, deal.stage, val)
+    }
     await supabase.from('deals').update({[col]: updateVal, ...(col==='contact_name'?{title:val}:{})}).eq('id', id)
     setInlineEdit(null); fetchDeals()
   }
@@ -422,7 +433,6 @@ export default function CrmContent() {
   const filteredDeals = getFilteredDeals()
   const listDeals = sortDeals(getListDeals())
 
-  // Kanban: Vendita filtered by date, others all
   const kanbanDeals = (stage: string) => {
     if (stage === 'Vendita') {
       return deals.filter(d => {
@@ -436,8 +446,9 @@ export default function CrmContent() {
 
   async function confirmSaleDate() {
     if (!saleDatePopup) return
-    const {id, stage, prob} = saleDatePopup
+    const {id, stage, prob, fromStage} = saleDatePopup
     await supabase.from('deals').update({stage, probability: prob ?? 100, entry_date: saleDateValue}).eq('id', id)
+    if (fromStage && fromStage !== stage) await logStageChange(id, fromStage, stage)
     setSaleDatePopup(null); fetchDeals()
     setSelectedDeal(null); setEditMode(false); setEditDeal(null)
   }
@@ -460,15 +471,10 @@ export default function CrmContent() {
       })
       return [...base, ...cols]
     })
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-    const bom = '\uFEFF'
-    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = `contatti_${toYMD(new Date())}.csv`
-    a.click(); URL.revokeObjectURL(url)
+    const a = document.createElement('a'); a.href = url; a.download = `contatti_${toYMD(new Date())}.csv`; a.click(); URL.revokeObjectURL(url)
   }
 
   const BulkActionBar = ({ dealsInView }: { dealsInView: Deal[] }) => (
@@ -491,11 +497,7 @@ export default function CrmContent() {
               <div className="absolute top-full left-0 mt-1 bg-white border rounded-xl shadow-lg p-3 z-20" style={{minWidth:'240px'}}>
                 <p className="text-xs text-gray-500 mb-2 font-semibold">Seleziona ambienti:</p>
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {ENVIRONMENTS.map(env=>{
-                    const active = bulkEnv.includes(env)
-                    return <button key={env} type="button" onClick={()=>setBulkEnv(prev=>active?prev.filter(e=>e!==env):[...prev,env])}
-                      className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>{env}</button>
-                  })}
+                  {ENVIRONMENTS.map(env=>{const active=bulkEnv.includes(env);return <button key={env} type="button" onClick={()=>setBulkEnv(prev=>active?prev.filter(e=>e!==env):[...prev,env])} className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>{env}</button>})}
                 </div>
                 <div className="flex gap-1 justify-end border-t pt-2">
                   <button onClick={()=>{setShowBulkEnvPicker(false);setBulkEnv([])}} className="text-xs text-gray-500 px-2 py-1 hover:text-gray-700">Annulla</button>
@@ -518,50 +520,32 @@ export default function CrmContent() {
     ) : null
   )
 
-  // ---- DASHBOARD CALCS ----
-  const ingressiPeriod = filteredDeals.filter(d => ['Ingresso','Preventivo','Vendita'].includes(d.stage))
+  // DASHBOARD CALCS
   const vendite = filteredDeals.filter(d => d.stage === 'Vendita')
   const preventivi = filteredDeals.filter(d => d.stage === 'Preventivo')
   const prevConValore = filteredDeals.filter(d => d.estimate > 0)
   const venditeCerte = vendite.reduce((s,d)=>s+(d.estimate||0),0)
-  const pipelineWeighted = filteredDeals
-    .filter(d=>d.probability!=null && d.probability>0)
-    .reduce((s,d)=>s+(d.estimate||0)*(d.probability||0)/100, 0)
-  const pipelineTotal = pipelineWeighted
+  const pipelineTotal = filteredDeals.filter(d=>d.probability!=null&&d.probability>0).reduce((s,d)=>s+(d.estimate||0)*(d.probability||0)/100,0)
   const ingressiCount = filteredDeals.length
   const tuttiIngressi = filteredDeals.filter(d => !!d.entry_date)
   const totaleVenduto = vendite.reduce((s,d)=>s+(d.estimate||0),0)
   const avgIngresso = tuttiIngressi.length > 0 ? Math.round(totaleVenduto/tuttiIngressi.length) : 0
   const avgVendita = vendite.length > 0 ? Math.round(vendite.reduce((s,d)=>s+(d.estimate||0),0)/vendite.length) : 0
   const avgPreventivo = prevConValore.length > 0 ? Math.round(prevConValore.reduce((s,d)=>s+(d.estimate||0),0)/prevConValore.length) : 0
-  const tuttiConPreventivo = filteredDeals.filter(d => d.stage === 'Preventivo' || d.stage === 'Vendita')
+  const tuttiConPreventivo = filteredDeals.filter(d => d.stage==='Preventivo'||d.stage==='Vendita')
   const tassoConvIngresso = tuttiIngressi.length > 0 ? Math.round((vendite.length/tuttiIngressi.length)*100) : 0
   const tassoConvPreventivo = tuttiConPreventivo.length > 0 ? Math.round((vendite.length/tuttiConPreventivo.length)*100) : 0
-
-  // Daily chart data
   const dayMap: Record<string,number> = {}
-  filteredDeals.forEach(d => {
-    const day = d.entry_date || d.created_at.split('T')[0]
-    dayMap[day] = (dayMap[day]||0) + 1
-  })
+  filteredDeals.forEach(d => { const day=d.entry_date||d.created_at.split('T')[0]; dayMap[day]=(dayMap[day]||0)+1 })
   const days = Object.keys(dayMap).sort()
   const maxDay = Math.max(...days.map(d => dayMap[d]), 1)
-
-  // Pie: ambienti per valore venduto
-  const envSoldMap: Record<string,number> = {}
-  const envPipeMap: Record<string,number> = {}
-  const envCountMap: Record<string,number> = {}
+  const envSoldMap: Record<string,number> = {}; const envCountMap: Record<string,number> = {}
   filteredDeals.forEach(d => {
     const envs = d.environment ? d.environment.split(',').map((e:string)=>e.trim()).filter(Boolean) : ['Non specificato']
-    envs.forEach(env => {
-      if (d.stage==='Vendita') envSoldMap[env] = (envSoldMap[env]||0) + (d.estimate||0)
-      if (d.probability != null) envPipeMap[env] = (envPipeMap[env]||0) + (d.estimate||0)*(d.probability||0)/100
-      envCountMap[env] = (envCountMap[env]||0) + 1
-    })
+    envs.forEach(env => { if(d.stage==='Vendita') envSoldMap[env]=(envSoldMap[env]||0)+(d.estimate||0); envCountMap[env]=(envCountMap[env]||0)+1 })
   })
-  const envKeys = [...new Set([...Object.keys(envSoldMap),...Object.keys(envPipeMap),...Object.keys(envCountMap)])]
+  const envKeys = [...new Set([...Object.keys(envSoldMap),...Object.keys(envCountMap)])]
   const envSoldData = envKeys.map((k,i)=>({label:k,value:envSoldMap[k]||0,color:PIE_COLORS[i%PIE_COLORS.length]}))
-  const envPipeData = envKeys.map((k,i)=>({label:k,value:envPipeMap[k]||0,color:PIE_COLORS[i%PIE_COLORS.length]}))
   const envCountData = envKeys.map((k,i)=>({label:k,value:envCountMap[k]||0,color:PIE_COLORS[i%PIE_COLORS.length]}))
 
   return (
@@ -588,7 +572,6 @@ export default function CrmContent() {
         </div>
       </div>
 
-      {/* KANBAN */}
       {view==='kanban' && (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="p-4 pb-0">
@@ -634,8 +617,7 @@ export default function CrmContent() {
                           ))}
                           {provided.placeholder}
                         </div>
-                        <button onClick={()=>{setQuickAddStage(stage);setQuickForm({...emptyDeal,stage})}}
-                          className="mt-3 w-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg py-1 text-sm transition-colors">
+                        <button onClick={()=>{setQuickAddStage(stage);setQuickForm({...emptyDeal,stage})}} className="mt-3 w-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg py-1 text-sm transition-colors">
                           <span className="text-lg leading-none">+</span>
                         </button>
                       </div>
@@ -648,18 +630,13 @@ export default function CrmContent() {
         </DragDropContext>
       )}
 
-      {/* LIST */}
       {view==='list' && (
         <div className="p-6">
           <div className="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <label className="text-sm font-semibold text-gray-700">Raggruppa per:</label>
               <select className="border rounded-lg p-2 text-sm" value={groupBy} onChange={e=>setGroupBy(e.target.value)}>
-                <option value="none">Nessuno</option>
-                <option value="stage">Fase</option>
-                <option value="origin">Origine</option>
-                <option value="environment">Ambiente</option>
-                <option value="project_timeline">Tempi progettuali</option>
+                <option value="none">Nessuno</option><option value="stage">Fase</option><option value="origin">Origine</option><option value="environment">Ambiente</option><option value="project_timeline">Tempi progettuali</option>
               </select>
             </div>
             <div className="w-px h-6 bg-gray-200 mx-1" />
@@ -674,18 +651,11 @@ export default function CrmContent() {
             <div className="w-px h-6 bg-gray-200 mx-1" />
             <div className="flex items-center gap-2 flex-wrap">
               <label className="text-sm font-semibold text-gray-700">Ambiente:</label>
-              {ENVIRONMENTS.map(env=>{
-                const active = listEnvFilter.includes(env)
-                return <button key={env} type="button" onClick={()=>setListEnvFilter(prev=>active?prev.filter(e=>e!==env):[...prev,env])}
-                  className={`px-3 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>{env}</button>
-              })}
+              {ENVIRONMENTS.map(env=>{const active=listEnvFilter.includes(env);return <button key={env} type="button" onClick={()=>setListEnvFilter(prev=>active?prev.filter(e=>e!==env):[...prev,env])} className={`px-3 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>{env}</button>})}
               {listEnvFilter.length>0 && <button onClick={()=>setListEnvFilter([])} className="text-xs text-gray-400 underline hover:text-gray-600">Rimuovi filtro</button>}
             </div>
             <div className="w-px h-6 bg-gray-200 mx-1" />
-            <button onClick={()=>setFilterAggiudicati(p=>!p)}
-              className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${filterAggiudicati?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-300 hover:border-green-400'}`}>
-              🏆 Aggiudicati
-            </button>
+            <button onClick={()=>setFilterAggiudicati(p=>!p)} className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${filterAggiudicati?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-300 hover:border-green-400'}`}>🏆 Aggiudicati</button>
             <div className="flex items-center gap-3 ml-auto">
               <span className="text-xs text-gray-400">{listDeals.length} contatti</span>
               <button onClick={downloadCSV} className="flex items-center gap-1.5 bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-900 transition-colors">
@@ -708,7 +678,7 @@ export default function CrmContent() {
                       </th>
                       {listCols.map(({label,col},idx)=>(
                         <th key={col} draggable onDragStart={()=>setDragColIdx(idx)} onDragOver={e=>e.preventDefault()}
-                          onDrop={()=>{if(dragColIdx===null||dragColIdx===idx)return;const next=[...listCols];const [moved]=next.splice(dragColIdx,1);next.splice(idx,0,moved);setListCols(next);setDragColIdx(null)}}
+                          onDrop={()=>{if(dragColIdx===null||dragColIdx===idx)return;const next=[...listCols];const[moved]=next.splice(dragColIdx,1);next.splice(idx,0,moved);setListCols(next);setDragColIdx(null)}}
                           onDragEnd={()=>setDragColIdx(null)}
                           className={`text-left p-3 cursor-pointer select-none hover:bg-gray-100 whitespace-nowrap ${dragColIdx===idx?'opacity-40':''}`}
                           onClick={()=>toggleListSort(col)}>
@@ -734,7 +704,7 @@ export default function CrmContent() {
                           )}
                         </td>
                         {listCols.map(({col})=>{
-                          const readonly = col==='created_at' || col==='weighted'
+                          const readonly = col==='created_at'||col==='weighted'
                           const rawVal: any = (deal as any)[col]
                           let display: any = rawVal
                           if(col==='entry_date'||col==='appointment_date') display=formatDate(rawVal||'')
@@ -743,62 +713,29 @@ export default function CrmContent() {
                           else if(col==='probability') display=rawVal!=null?`${rawVal}%`:'-'
                           else if(col==='weighted') { const w=deal.estimate&&deal.probability!=null?Math.round(deal.estimate*deal.probability/100):null; display=w!=null&&w>0?`€ ${w.toLocaleString()}`:'-' }
                           else display=rawVal||'-'
-                          const isEditing = inlineEdit?.id===deal.id&&inlineEdit.col===col
-                          const editVal = inlineEdit?.val??''
-                          const isVendita = deal.stage==='Vendita'
-                          const probReadonly = false
+                          const isEditing=inlineEdit?.id===deal.id&&inlineEdit.col===col
+                          const editVal=inlineEdit?.val??''
                           return (
-                            <td key={col} className={`p-3 whitespace-nowrap relative ${readonly?'text-gray-400':col==='estimate'||col==='weighted'?'text-green-600':col==='stage'?'':col==='probability'?'':col==='created_at'||col==='entry_date'||col==='appointment_date'?'text-gray-500':'text-gray-600'} ${readonly?'cursor-default':'cursor-text'}`}
-                              onClick={e=>{
-                                e.stopPropagation()
-                                if(readonly||probReadonly) return
-                                const current = col==='entry_date'||col==='appointment_date'?rawVal||'':col==='estimate'||col==='probability'?String(rawVal||''):rawVal||''
-                                setInlineEdit({id:deal.id,col,val:current})
-                              }}>
+                            <td key={col} className={`p-3 whitespace-nowrap relative ${readonly?'text-gray-400':col==='estimate'||col==='weighted'?'text-green-600':col==='created_at'||col==='entry_date'||col==='appointment_date'?'text-gray-500':'text-gray-600'} ${readonly?'cursor-default':'cursor-text'}`}
+                              onClick={e=>{e.stopPropagation();if(readonly)return;const current=col==='entry_date'||col==='appointment_date'?rawVal||'':col==='estimate'||col==='probability'?String(rawVal||''):rawVal||'';setInlineEdit({id:deal.id,col,val:current})}}>
                               {isEditing?(
-                                col==='stage'?(
-                                  <select autoFocus className="border rounded px-2 py-1 text-xs" value={editVal}
-                                    onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit}
-                                    onKeyDown={e=>{if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()}>
-                                    {STAGES.map(s=><option key={s}>{s}</option>)}
-                                  </select>
-                                ):col==='probability'?(
-                                  <select autoFocus className="border rounded px-2 py-1 text-xs" value={editVal}
-                                    onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit}
-                                    onKeyDown={e=>{if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()}>
-                                    <option value="">—</option>
-                                    {PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}
-                                  </select>
-                                ):col==='entry_date'||col==='appointment_date'?(
-                                  <input autoFocus type="date" className="border rounded px-2 py-1 text-sm" value={editVal}
-                                    onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit}
-                                    onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />
-                                ):col==='estimate'?(
-                                  <input autoFocus type="number" className="border rounded px-2 py-1 text-sm w-28" value={editVal}
-                                    onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit}
-                                    onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />
-                                ):col==='environment'?(
+                                col==='stage'?(<select autoFocus className="border rounded px-2 py-1 text-xs" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>)
+                                :col==='probability'?(<select autoFocus className="border rounded px-2 py-1 text-xs" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()}><option value="">—</option>{PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select>)
+                                :col==='entry_date'||col==='appointment_date'?(<input autoFocus type="date" className="border rounded px-2 py-1 text-sm" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
+                                :col==='estimate'?(<input autoFocus type="number" className="border rounded px-2 py-1 text-sm w-28" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
+                                :col==='environment'?(
                                   <div className="flex flex-wrap gap-1 bg-white border rounded-lg p-2 shadow-lg z-10 absolute" onClick={e=>e.stopPropagation()} style={{minWidth:'220px'}}>
-                                    {ENVIRONMENTS.map(env=>{
-                                      const sel=editVal.split(',').map((s:string)=>s.trim()).filter(Boolean)
-                                      const active=sel.includes(env)
-                                      return <button key={env} type="button" className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}
-                                        onClick={e=>{e.stopPropagation();const next=active?sel.filter((x:string)=>x!==env):[...sel,env];setInlineEdit({...inlineEdit!,val:next.join(', ')})}}>{env}</button>
-                                    })}
+                                    {ENVIRONMENTS.map(env=>{const sel=editVal.split(',').map((s:string)=>s.trim()).filter(Boolean);const active=sel.includes(env);return <button key={env} type="button" className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`} onClick={e=>{e.stopPropagation();const next=active?sel.filter((x:string)=>x!==env):[...sel,env];setInlineEdit({...inlineEdit!,val:next.join(', ')})}}>{env}</button>})}
                                     <div className="w-full flex justify-end gap-1 mt-1 pt-1 border-t">
                                       <button className="text-xs text-gray-500 px-2 py-1 hover:text-gray-700" onClick={e=>{e.stopPropagation();setInlineEdit(null)}}>Annulla</button>
                                       <button className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700" onClick={e=>{e.stopPropagation();saveInlineEdit()}}>OK</button>
                                     </div>
                                   </div>
-                                ):(
-                                  <input autoFocus className="border rounded px-2 py-1 text-sm w-32" value={editVal}
-                                    onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit}
-                                    onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />
-                                )
+                                ):(<input autoFocus className="border rounded px-2 py-1 text-sm w-32" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
                               ):(
                                 col==='stage'?<span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200">{display}</span>
                                 :col==='probability'&&rawVal!=null?<span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PROB_COLORS[rawVal]||'bg-gray-100 text-gray-600'}`}>{display}</span>
-                                :<span className={`rounded px-1 py-0.5 ${readonly||probReadonly?'':'hover:bg-blue-50'}`}>{display}</span>
+                                :<span className={`rounded px-1 py-0.5 ${readonly?'':'hover:bg-blue-50'}`}>{display}</span>
                               )}
                             </td>
                           )
@@ -814,10 +751,8 @@ export default function CrmContent() {
         </div>
       )}
 
-      {/* DASHBOARD */}
       {view==='dashboard' && (
         <div className="p-6">
-          {/* Filtro periodo */}
           <div className="bg-white rounded-xl shadow p-4 mb-6">
             <div className="flex flex-wrap gap-2 items-center">
               <button onClick={()=>applyQuick('today')} className={btnClass('today')}>Oggi</button>
@@ -834,100 +769,44 @@ export default function CrmContent() {
               )}
             </div>
           </div>
-
-          {/* KPI principali */}
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-green-500">
-              <p className="text-gray-500 text-sm font-medium">Vendite certe (100%)</p>
-              <p className="text-3xl font-bold text-green-600 mt-1">€ {venditeCerte.toLocaleString()}</p>
-              <p className="text-xs text-gray-400 mt-1">{vendite.length} vendite</p>
-            </div>
-            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
-              <p className="text-gray-500 text-sm font-medium">Pipeline ponderata</p>
-              <p className="text-3xl font-bold text-blue-600 mt-1">€ {Math.round(pipelineTotal).toLocaleString()}</p>
-              <p className="text-xs text-gray-400 mt-1">vendite + preventivi × probabilità</p>
-            </div>
+            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-green-500"><p className="text-gray-500 text-sm font-medium">Vendite certe (100%)</p><p className="text-3xl font-bold text-green-600 mt-1">€ {venditeCerte.toLocaleString()}</p><p className="text-xs text-gray-400 mt-1">{vendite.length} vendite</p></div>
+            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500"><p className="text-gray-500 text-sm font-medium">Pipeline ponderata</p><p className="text-3xl font-bold text-blue-600 mt-1">€ {Math.round(pipelineTotal).toLocaleString()}</p><p className="text-xs text-gray-400 mt-1">vendite + preventivi × probabilità</p></div>
           </div>
-
-          {/* Grafico ingressi per giorno + KPI secondari */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            {/* Grafico */}
             <div className="col-span-2 bg-white rounded-xl shadow p-5">
               <p className="font-semibold text-gray-700 mb-4">Ingressi per giorno</p>
-              {days.length === 0 ? <p className="text-gray-400 text-sm">Nessun dato nel periodo</p> : (
+              {days.length===0?<p className="text-gray-400 text-sm">Nessun dato nel periodo</p>:(
                 <div className="flex items-end gap-1" style={{height:'120px'}}>
-                  {days.map(day => {
-                    const count = dayMap[day]
-                    const parts = day.split('-')
-                    const label = `${parts[2]}/${parts[1]}`
-                    return (
-                      <div key={day} className="flex flex-col items-center flex-1 min-w-0" title={`${formatDate(day)}: ${count} ingressi`}>
-                        <div className="w-full flex flex-col justify-end" style={{height:'100px'}}>
-                          <div style={{height:`${Math.round((count/maxDay)*100)}px`}} className="bg-blue-400 w-full rounded-t-sm"/>
-                        </div>
-                        <span className="text-gray-400 mt-1 truncate w-full text-center" style={{fontSize:'9px'}}>{label}</span>
-                      </div>
-                    )
-                  })}
+                  {days.map(day=>{const count=dayMap[day];const parts=day.split('-');const label=`${parts[2]}/${parts[1]}`;return(
+                    <div key={day} className="flex flex-col items-center flex-1 min-w-0" title={`${formatDate(day)}: ${count} ingressi`}>
+                      <div className="w-full flex flex-col justify-end" style={{height:'100px'}}><div style={{height:`${Math.round((count/maxDay)*100)}px`}} className="bg-blue-400 w-full rounded-t-sm"/></div>
+                      <span className="text-gray-400 mt-1 truncate w-full text-center" style={{fontSize:'9px'}}>{label}</span>
+                    </div>
+                  )})}
                 </div>
               )}
-
             </div>
-            {/* KPI secondari */}
             <div className="flex flex-col gap-3">
-              <div className="bg-white rounded-xl shadow p-4">
-                <p className="text-xs text-gray-500">N° ingressi periodo</p>
-                <p className="text-2xl font-bold text-gray-800">{ingressiCount}</p>
-              </div>
-              <div className="bg-white rounded-xl shadow p-4">
-                <p className="text-xs text-gray-500">Valore medio ingresso</p>
-                <p className="text-2xl font-bold text-gray-800">€ {avgIngresso.toLocaleString()}</p>
-              </div>
-              <div className="bg-white rounded-xl shadow p-4">
-                <p className="text-xs text-gray-500">Valore medio vendita</p>
-                <p className="text-2xl font-bold text-green-600">€ {avgVendita.toLocaleString()}</p>
-              </div>
+              <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">N° ingressi periodo</p><p className="text-2xl font-bold text-gray-800">{ingressiCount}</p></div>
+              <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Valore medio ingresso</p><p className="text-2xl font-bold text-gray-800">€ {avgIngresso.toLocaleString()}</p></div>
+              <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Valore medio vendita</p><p className="text-2xl font-bold text-green-600">€ {avgVendita.toLocaleString()}</p></div>
             </div>
           </div>
-
-          {/* KPI conversione */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow p-4">
-              <p className="text-xs text-gray-500">Valore medio preventivo</p>
-              <p className="text-2xl font-bold text-blue-600">€ {avgPreventivo.toLocaleString()}</p>
-              <p className="text-xs text-gray-400">{preventivi.length} preventivi</p>
-            </div>
-            <div className="bg-white rounded-xl shadow p-4">
-              <p className="text-xs text-gray-500">Tasso conv. all'ingresso</p>
-              <p className="text-2xl font-bold text-purple-600">{tassoConvIngresso}%</p>
-              <p className="text-xs text-gray-400">vendite / contatti con data ingresso</p>
-            </div>
-            <div className="bg-white rounded-xl shadow p-4">
-              <p className="text-xs text-gray-500">Tasso conv. al preventivo</p>
-              <p className="text-2xl font-bold text-orange-500">{tassoConvPreventivo}%</p>
-              <p className="text-xs text-gray-400">vendite / (preventivi + vendite)</p>
-            </div>
+            <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Valore medio preventivo</p><p className="text-2xl font-bold text-blue-600">€ {avgPreventivo.toLocaleString()}</p><p className="text-xs text-gray-400">{preventivi.length} preventivi</p></div>
+            <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Tasso conv. all'ingresso</p><p className="text-2xl font-bold text-purple-600">{tassoConvIngresso}%</p><p className="text-xs text-gray-400">vendite / contatti con data ingresso</p></div>
+            <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Tasso conv. al preventivo</p><p className="text-2xl font-bold text-orange-500">{tassoConvPreventivo}%</p><p className="text-xs text-gray-400">vendite / (preventivi + vendite)</p></div>
           </div>
-
-          {/* Torte ambienti */}
           <div className="grid grid-cols-2 gap-4">
-            {[
-              {title:'Valore venduto per ambiente', data:envSoldData, fmt:(v:number)=>`€ ${v.toLocaleString()}`},
-              {title:'Ingressi per ambiente', data:envCountData, fmt:(v:number)=>`${v}`},
-            ].map(({title,data,fmt})=>(
+            {[{title:'Valore venduto per ambiente',data:envSoldData,fmt:(v:number)=>`€ ${v.toLocaleString()}`},{title:'Ingressi per ambiente',data:envCountData,fmt:(v:number)=>`${v}`}].map(({title,data,fmt})=>(
               <div key={title} className="bg-white rounded-xl shadow p-5">
                 <p className="font-semibold text-gray-700 text-sm mb-4">{title}</p>
                 <div className="flex items-center gap-4">
                   <PieChart data={data} size={140}/>
                   <div className="flex flex-col gap-1.5 text-xs flex-1 min-w-0">
-                    {data.filter(d=>d.value>0).map(d=>(
-                      <div key={d.label} className="flex items-center gap-1.5 min-w-0">
-                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:d.color}}/>
-                        <span className="text-gray-600 truncate">{d.label}</span>
-                        <span className="text-gray-400 ml-auto flex-shrink-0">{fmt(d.value)}</span>
-                      </div>
-                    ))}
-                    {data.every(d=>d.value===0) && <p className="text-gray-400">Nessun dato</p>}
+                    {data.filter(d=>d.value>0).map(d=>(<div key={d.label} className="flex items-center gap-1.5 min-w-0"><span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:d.color}}/><span className="text-gray-600 truncate">{d.label}</span><span className="text-gray-400 ml-auto flex-shrink-0">{fmt(d.value)}</span></div>))}
+                    {data.every(d=>d.value===0)&&<p className="text-gray-400">Nessun dato</p>}
                   </div>
                 </div>
               </div>
@@ -936,50 +815,32 @@ export default function CrmContent() {
         </div>
       )}
 
-      {/* LEADS */}
       {view==='leads' && (
         <div className="p-6">
           <div className="flex gap-4 overflow-x-auto pb-4">
             {(['Nuovo','Contattato','Qualificato','Non Qualificato'] as const).map(stage => {
-              const stageLeads = leads.filter(l => (l.lead_stage || 'Nuovo') === stage)
-              const isQualificato = stage === 'Qualificato'
+              const stageLeads = leads.filter(l => (l.lead_stage||'Nuovo')===stage)
+              const isQualificato = stage==='Qualificato'
               return (
                 <div key={stage} className="flex-shrink-0 w-72">
-                  <div className={`rounded-t-xl px-4 py-3 flex items-center justify-between ${
-                    stage==='Nuovo' ? 'bg-gray-700' :
-                    stage==='Contattato' ? 'bg-blue-600' :
-                    stage==='Qualificato' ? 'bg-green-600' :
-                    'bg-red-500'
-                  }`}>
+                  <div className={`rounded-t-xl px-4 py-3 flex items-center justify-between ${stage==='Nuovo'?'bg-gray-700':stage==='Contattato'?'bg-blue-600':stage==='Qualificato'?'bg-green-600':'bg-red-500'}`}>
                     <span className="text-white font-semibold text-sm">{stage}</span>
                     <span className="bg-white bg-opacity-20 text-white text-xs px-2 py-0.5 rounded-full">{stageLeads.length}</span>
                   </div>
-                  <div className="bg-gray-100 rounded-b-xl p-2 flex flex-col gap-2 min-h-32"
-                    onDragOver={e=>e.preventDefault()}
-                    onDrop={async e=>{e.preventDefault(); const id=e.dataTransfer.getData('leadId'); if(id){ await supabase.from('deals').update({lead_stage:stage}).eq('id',id); fetchDeals()}}}>
+                  <div className="bg-gray-100 rounded-b-xl p-2 flex flex-col gap-2 min-h-32" onDragOver={e=>e.preventDefault()} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData('leadId');if(id){await supabase.from('deals').update({lead_stage:stage}).eq('id',id);fetchDeals()}}}>
                     {stageLeads.map(lead => (
-                      <div key={lead.id}
-                        draggable
-                        onDragStart={e=>{e.dataTransfer.setData('leadId',lead.id)}}
-                        className="bg-white rounded-lg p-3 shadow hover:shadow-md cursor-grab active:cursor-grabbing group relative"
-                        onClick={() => goToDeal(lead)}>
+                      <div key={lead.id} draggable onDragStart={e=>{e.dataTransfer.setData('leadId',lead.id)}} className="bg-white rounded-lg p-3 shadow hover:shadow-md cursor-grab active:cursor-grabbing group relative" onClick={()=>goToDeal(lead)}>
                         <p className="font-semibold text-sm text-gray-800">{lead.contact_name}</p>
-                        {lead.phone && <p className="text-xs text-gray-500 mt-0.5">{lead.phone}</p>}
+                        {lead.phone&&<p className="text-xs text-gray-500 mt-0.5">{lead.phone}</p>}
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                          {lead.origin && <p className="text-xs text-blue-400">{lead.origin}</p>}
-                          {lead.environment && <p className="text-xs text-green-600">{lead.environment}</p>}
+                          {lead.origin&&<p className="text-xs text-blue-400">{lead.origin}</p>}
+                          {lead.environment&&<p className="text-xs text-green-600">{lead.environment}</p>}
                         </div>
                         <p className="text-xs text-gray-400 mt-1">{formatDate(lead.created_at.split('T')[0])}</p>
-                        {isQualificato && (
-                          <button onClick={e=>{e.stopPropagation(); setConvertingLead(lead)}}
-                            className="mt-2 w-full text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">⇒ Converti in Pipeline</button>
-                        )}
+                        {isQualificato&&(<button onClick={e=>{e.stopPropagation();setConvertingLead(lead)}} className="mt-2 w-full text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">⇒ Converti in Pipeline</button>)}
                       </div>
                     ))}
-                    <button onClick={()=>setShowLeadForm(true)}
-                      className="text-xs text-gray-400 hover:text-gray-600 py-2 text-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
-                      + Aggiungi lead
-                    </button>
+                    <button onClick={()=>setShowLeadForm(true)} className="text-xs text-gray-400 hover:text-gray-600 py-2 text-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">+ Aggiungi lead</button>
                   </div>
                 </div>
               )
@@ -998,30 +859,15 @@ export default function CrmContent() {
               <input className="border rounded-lg p-2" placeholder="Telefono" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} />
               <input className="border rounded-lg p-2" placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} />
               <input className="border rounded-lg p-2" placeholder="Origine (es. Meta Ads)" value={form.origin} onChange={e=>setForm({...form,origin:e.target.value})} />
-              <label className="text-xs text-gray-500">Ambiente</label>
-              <EnvSelect value={form.environment} onChange={v=>setForm({...form,environment:v})} />
-              <label className="text-xs text-gray-500">Data ingresso</label>
-              <input className="border rounded-lg p-2" type="date" value={form.entry_date} onChange={e=>setForm({...form,entry_date:e.target.value})} />
-              <label className="text-xs text-gray-500">Data appuntamento</label>
-              <input className="border rounded-lg p-2" type="date" value={form.appointment_date} onChange={e=>setForm({...form,appointment_date:e.target.value})} />
+              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={form.environment} onChange={v=>setForm({...form,environment:v})} />
+              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-2" type="date" value={form.entry_date} onChange={e=>setForm({...form,entry_date:e.target.value})} />
+              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-2" type="date" value={form.appointment_date} onChange={e=>setForm({...form,appointment_date:e.target.value})} />
               <input className="border rounded-lg p-2" type="number" placeholder="Preventivo (€)" value={form.estimate||''} onChange={e=>setForm({...form,estimate:Number(e.target.value)})} />
               <input className="border rounded-lg p-2" placeholder="Tempi progettuali" value={form.project_timeline} onChange={e=>setForm({...form,project_timeline:e.target.value})} />
-              <select className="border rounded-lg p-2" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>
-                {STAGES.map(s=><option key={s}>{s}</option>)}
-              </select>
-              {(form.stage==='Preventivo'||form.stage==='Vendita') && (
-                <div>
-                  <label className="text-xs text-gray-500">Probabilità</label>
-                  <select className="border rounded-lg p-2 w-full mt-1" value={form.probability??''} onChange={e=>setForm({...form,probability:e.target.value?Number(e.target.value):null})} disabled={form.stage==='Vendita'}>
-                    {form.stage==='Vendita' ? <option value={100}>100%</option> : PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}
-                  </select>
-                </div>
-              )}
+              <select className="border rounded-lg p-2" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
+              {(form.stage==='Preventivo'||form.stage==='Vendita')&&(<div><label className="text-xs text-gray-500">Probabilità</label><select className="border rounded-lg p-2 w-full mt-1" value={form.probability??''} onChange={e=>setForm({...form,probability:e.target.value?Number(e.target.value):null})} disabled={form.stage==='Vendita'}>{form.stage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
             </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={addDeal} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Salva</button>
-              <button onClick={()=>setShowForm(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
-            </div>
+            <div className="flex gap-2 mt-4"><button onClick={addDeal} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Salva</button><button onClick={()=>setShowForm(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
           </div>
         </div>
       )}
@@ -1037,27 +883,14 @@ export default function CrmContent() {
               <input className="border rounded-lg p-2" placeholder="Telefono" value={quickForm.phone} onChange={e=>setQuickForm({...quickForm,phone:e.target.value})} />
               <input className="border rounded-lg p-2" placeholder="Email" value={quickForm.email} onChange={e=>setQuickForm({...quickForm,email:e.target.value})} />
               <input className="border rounded-lg p-2" placeholder="Origine" value={quickForm.origin} onChange={e=>setQuickForm({...quickForm,origin:e.target.value})} />
-              <label className="text-xs text-gray-500">Ambiente</label>
-              <EnvSelect value={quickForm.environment} onChange={v=>setQuickForm({...quickForm,environment:v})} />
-              <label className="text-xs text-gray-500">Data ingresso</label>
-              <input className="border rounded-lg p-2" type="date" value={quickForm.entry_date} onChange={e=>setQuickForm({...quickForm,entry_date:e.target.value})} />
-              <label className="text-xs text-gray-500">Data appuntamento</label>
-              <input className="border rounded-lg p-2" type="date" value={quickForm.appointment_date} onChange={e=>setQuickForm({...quickForm,appointment_date:e.target.value})} />
+              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={quickForm.environment} onChange={v=>setQuickForm({...quickForm,environment:v})} />
+              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-2" type="date" value={quickForm.entry_date} onChange={e=>setQuickForm({...quickForm,entry_date:e.target.value})} />
+              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-2" type="date" value={quickForm.appointment_date} onChange={e=>setQuickForm({...quickForm,appointment_date:e.target.value})} />
               <input className="border rounded-lg p-2" type="number" placeholder="Preventivo (€)" value={quickForm.estimate||''} onChange={e=>setQuickForm({...quickForm,estimate:Number(e.target.value)})} />
               <input className="border rounded-lg p-2" placeholder="Tempi progettuali" value={quickForm.project_timeline} onChange={e=>setQuickForm({...quickForm,project_timeline:e.target.value})} />
-              {(quickAddStage==='Preventivo'||quickAddStage==='Vendita') && (
-                <div>
-                  <label className="text-xs text-gray-500">Probabilità</label>
-                  <select className="border rounded-lg p-2 w-full mt-1" value={quickForm.probability??''} onChange={e=>setQuickForm({...quickForm,probability:e.target.value?Number(e.target.value):null})} disabled={quickAddStage==='Vendita'}>
-                    {quickAddStage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}
-                  </select>
-                </div>
-              )}
+              {(quickAddStage==='Preventivo'||quickAddStage==='Vendita')&&(<div><label className="text-xs text-gray-500">Probabilità</label><select className="border rounded-lg p-2 w-full mt-1" value={quickForm.probability??''} onChange={e=>setQuickForm({...quickForm,probability:e.target.value?Number(e.target.value):null})} disabled={quickAddStage==='Vendita'}>{quickAddStage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
             </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={addQuickDeal} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Salva</button>
-              <button onClick={()=>setQuickAddStage(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
-            </div>
+            <div className="flex gap-2 mt-4"><button onClick={addQuickDeal} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Salva</button><button onClick={()=>setQuickAddStage(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
           </div>
         </div>
       )}
@@ -1074,17 +907,8 @@ export default function CrmContent() {
             {!isNewContact && (
               <div className="relative mb-4">
                 <input className="border rounded-lg p-2 w-full" placeholder="Cerca per nome o telefono..." value={searchQuery} onChange={e=>searchContacts(e.target.value)} />
-                {searchResults.length>0 && (
-                  <div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                    {searchResults.map(d=>(
-                      <div key={d.id} onClick={()=>selectExistingContact(d)} className="p-3 hover:bg-gray-50 cursor-pointer border-b">
-                        <p className="font-semibold text-sm">{d.contact_name}</p>
-                        <p className="text-xs text-gray-500">{d.phone} · {d.email}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {searchQuery.length>=2&&searchResults.length===0 && <p className="text-sm text-gray-500 mt-2">Nessun contatto trovato. <button onClick={()=>setIsNewContact(true)} className="text-blue-600 underline">Crea nuovo</button></p>}
+                {searchResults.length>0&&(<div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">{searchResults.map(d=>(<div key={d.id} onClick={()=>selectExistingContact(d)} className="p-3 hover:bg-gray-50 cursor-pointer border-b"><p className="font-semibold text-sm">{d.contact_name}</p><p className="text-xs text-gray-500">{d.phone} · {d.email}</p></div>))}</div>)}
+                {searchQuery.length>=2&&searchResults.length===0&&<p className="text-sm text-gray-500 mt-2">Nessun contatto trovato. <button onClick={()=>setIsNewContact(true)} className="text-blue-600 underline">Crea nuovo</button></p>}
               </div>
             )}
             <div className="flex flex-col gap-3">
@@ -1092,84 +916,15 @@ export default function CrmContent() {
               <input className="border rounded-lg p-2" placeholder="Telefono" value={ingressoForm.phone||''} onChange={e=>setIngressoForm({...ingressoForm,phone:e.target.value})} />
               <input className="border rounded-lg p-2" placeholder="Email" value={ingressoForm.email||''} onChange={e=>setIngressoForm({...ingressoForm,email:e.target.value})} />
               <input className="border rounded-lg p-2" placeholder="Origine (es. Meta Ads)" value={ingressoForm.origin||''} onChange={e=>setIngressoForm({...ingressoForm,origin:e.target.value})} />
-              <label className="text-xs text-gray-500">Ambiente</label>
-              <EnvSelect value={ingressoForm.environment} onChange={v=>setIngressoForm({...ingressoForm,environment:v})} />
-              <label className="text-xs text-gray-500">Data ingresso</label>
-              <input className="border rounded-lg p-2" type="date" value={ingressoForm.entry_date} onChange={e=>setIngressoForm({...ingressoForm,entry_date:e.target.value})} />
-              <label className="text-xs text-gray-500">Data appuntamento</label>
-              <input className="border rounded-lg p-2" type="date" value={ingressoForm.appointment_date} onChange={e=>setIngressoForm({...ingressoForm,appointment_date:e.target.value})} />
+              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={ingressoForm.environment} onChange={v=>setIngressoForm({...ingressoForm,environment:v})} />
+              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-2" type="date" value={ingressoForm.entry_date} onChange={e=>setIngressoForm({...ingressoForm,entry_date:e.target.value})} />
+              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-2" type="date" value={ingressoForm.appointment_date} onChange={e=>setIngressoForm({...ingressoForm,appointment_date:e.target.value})} />
               <input className="border rounded-lg p-2" type="number" placeholder="Preventivo (€)" value={ingressoForm.estimate||''} onChange={e=>setIngressoForm({...ingressoForm,estimate:Number(e.target.value)})} />
               <input className="border rounded-lg p-2" placeholder="Tempi progettuali" value={ingressoForm.project_timeline||''} onChange={e=>setIngressoForm({...ingressoForm,project_timeline:e.target.value})} />
             </div>
             <div className="flex gap-2 mt-4">
               <button onClick={addIngresso} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Salva Ingresso</button>
               <button onClick={()=>{setShowIngressoForm(false);setSearchQuery('');setSearchResults([]);setIsNewContact(false)}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Dettaglio */}
-      {selectedDeal&&editDeal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold">{selectedDeal.contact_name||selectedDeal.title}</h2>
-              <div className="flex items-center gap-2">
-                {selectedDeal.probability!=null && <span className={`text-xs px-2 py-1 rounded-full font-medium ${PROB_COLORS[selectedDeal.probability]||'bg-gray-100 text-gray-600'}`}>{selectedDeal.probability}%</span>}
-                <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">{selectedDeal.stage}</span>
-              </div>
-            </div>
-            {!editMode ? (
-              <div className="flex flex-col gap-2 text-sm">
-                {selectedDeal.phone && <p><span className="font-semibold text-gray-500">Telefono:</span> {selectedDeal.phone}</p>}
-                {selectedDeal.email && <p><span className="font-semibold text-gray-500">Email:</span> {selectedDeal.email}</p>}
-                {selectedDeal.origin && <p><span className="font-semibold text-gray-500">Origine:</span> {selectedDeal.origin}</p>}
-                {selectedDeal.environment && <p><span className="font-semibold text-gray-500">Ambiente:</span> {selectedDeal.environment}</p>}
-                {selectedDeal.entry_date && <p><span className="font-semibold text-gray-500">Data ingresso:</span> {formatDate(selectedDeal.entry_date)}</p>}
-                {selectedDeal.appointment_date && <p><span className="font-semibold text-gray-500">Appuntamento:</span> {formatDate(selectedDeal.appointment_date)}</p>}
-                {selectedDeal.estimate>0 && <p><span className="font-semibold text-gray-500">Preventivo:</span> € {selectedDeal.estimate.toLocaleString()}</p>}
-                {selectedDeal.probability!=null && selectedDeal.estimate>0 && (
-                  <p><span className="font-semibold text-gray-500">Valore ponderato:</span> € {Math.round(selectedDeal.estimate*(selectedDeal.probability/100)).toLocaleString()} ({selectedDeal.probability}%)</p>
-                )}
-                {selectedDeal.project_timeline && <p><span className="font-semibold text-gray-500">Tempi progettuali:</span> {selectedDeal.project_timeline}</p>}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3 text-sm">
-                <div><label className="text-xs text-gray-500">Contatto</label><input className="border rounded-lg p-2 w-full mt-1" value={editDeal.contact_name||''} onChange={e=>setEditDeal({...editDeal,contact_name:e.target.value})} /></div>
-                <div><label className="text-xs text-gray-500">Telefono</label><input className="border rounded-lg p-2 w-full mt-1" value={editDeal.phone||''} onChange={e=>setEditDeal({...editDeal,phone:e.target.value})} /></div>
-                <div><label className="text-xs text-gray-500">Email</label><input className="border rounded-lg p-2 w-full mt-1" value={editDeal.email||''} onChange={e=>setEditDeal({...editDeal,email:e.target.value})} /></div>
-                <div><label className="text-xs text-gray-500">Origine</label><input className="border rounded-lg p-2 w-full mt-1" value={editDeal.origin||''} onChange={e=>setEditDeal({...editDeal,origin:e.target.value})} /></div>
-                <div><label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={editDeal.environment||''} onChange={v=>setEditDeal({...editDeal,environment:v})} /></div>
-                <div><label className="text-xs text-gray-500">Data ingresso</label><input type="date" className="border rounded-lg p-2 w-full mt-1" value={editDeal.entry_date||''} onChange={e=>setEditDeal({...editDeal,entry_date:e.target.value})} /></div>
-                <div><label className="text-xs text-gray-500">Data appuntamento</label><input type="date" className="border rounded-lg p-2 w-full mt-1" value={editDeal.appointment_date||''} onChange={e=>setEditDeal({...editDeal,appointment_date:e.target.value})} /></div>
-                <div><label className="text-xs text-gray-500">Preventivo (€)</label><input type="number" className="border rounded-lg p-2 w-full mt-1" value={editDeal.estimate||''} onChange={e=>setEditDeal({...editDeal,estimate:Number(e.target.value)})} /></div>
-                <div><label className="text-xs text-gray-500">Tempi progettuali</label><input className="border rounded-lg p-2 w-full mt-1" value={editDeal.project_timeline||''} onChange={e=>setEditDeal({...editDeal,project_timeline:e.target.value})} /></div>
-                <div><label className="text-xs text-gray-500">Fase</label><select className="border rounded-lg p-2 w-full mt-1" value={editDeal.stage} onChange={e=>setEditDeal({...editDeal,stage:e.target.value})}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
-                <div>
-                  <label className="text-xs text-gray-500">Probabilità</label>
-                  <select className="border rounded-lg p-2 w-full mt-1" value={editDeal.probability??''} onChange={e=>setEditDeal({...editDeal,probability:e.target.value?Number(e.target.value):null})}>
-                    <option value="">—</option>
-                    {PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}
-                  </select>
-                </div>
-                {saveError && <p className="text-red-500 text-sm">{saveError}</p>}
-              </div>
-            )}
-            <div className="flex gap-2 mt-5">
-              {!editMode ? (
-                <>
-                  <button onClick={()=>setEditMode(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Modifica</button>
-                  <button onClick={()=>{setSelectedDeal(null);setEditDeal(null)}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Chiudi</button>
-                  <button onClick={()=>setConfirmDelete(selectedDeal.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 ml-auto">Elimina</button>
-                </>
-              ) : (
-                <>
-                  <button onClick={()=>saveDeal(editDeal)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Salva modifiche</button>
-                  <button onClick={()=>setEditMode(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
-                  <button onClick={()=>setConfirmDelete(selectedDeal.id)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 ml-auto">Elimina</button>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -1183,21 +938,17 @@ export default function CrmContent() {
             <input type="date" className="border rounded-lg p-2 w-full mb-4" value={saleDateValue} onChange={e=>setSaleDateValue(e.target.value)} />
             <div className="flex gap-2">
               <button onClick={confirmSaleDate} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium">Conferma</button>
-              <button onClick={()=>{setSaleDatePopup(null); fetchDeals()}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
+              <button onClick={()=>{setSaleDatePopup(null);fetchDeals()}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
             </div>
           </div>
         </div>
       )}
-
       {confirmBulkDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="text-lg font-bold mb-2">Conferma eliminazione</h3>
             <p className="text-gray-600 text-sm mb-5">Sei sicuro di voler eliminare <strong>{selectedIds.size} contatti</strong>? L'operazione è irreversibile.</p>
-            <div className="flex gap-2">
-              <button onClick={bulkDelete} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Sì, elimina</button>
-              <button onClick={()=>setConfirmBulkDelete(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
-            </div>
+            <div className="flex gap-2"><button onClick={bulkDelete} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Sì, elimina</button><button onClick={()=>setConfirmBulkDelete(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
           </div>
         </div>
       )}
@@ -1206,10 +957,7 @@ export default function CrmContent() {
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="text-lg font-bold mb-2">Conferma eliminazione</h3>
             <p className="text-gray-600 text-sm mb-5">Sei sicuro di voler eliminare questo contatto? L'operazione è irreversibile.</p>
-            <div className="flex gap-2">
-              <button onClick={()=>deleteDeal(confirmDelete)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Sì, elimina</button>
-              <button onClick={()=>setConfirmDelete(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
-            </div>
+            <div className="flex gap-2"><button onClick={()=>deleteDeal(confirmDelete)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Sì, elimina</button><button onClick={()=>setConfirmDelete(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
           </div>
         </div>
       )}
@@ -1218,16 +966,11 @@ export default function CrmContent() {
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="text-lg font-bold mb-2">Conferma uscita</h3>
             <p className="text-gray-600 text-sm mb-5">Sei sicuro di voler uscire?</p>
-            <div className="flex gap-2">
-              <button onClick={()=>{supabase.auth.signOut();window.location.replace('/login')}} className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900">Sì, esci</button>
-              <button onClick={()=>setConfirmLogout(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
-            </div>
+            <div className="flex gap-2"><button onClick={()=>{supabase.auth.signOut();window.location.replace('/login')}} className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900">Sì, esci</button><button onClick={()=>setConfirmLogout(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
           </div>
         </div>
       )}
 
-
-      {/* TASKS */}
       {view==='tasks' && (
         <div className="p-6 max-w-4xl mx-auto">
           <div className="bg-white rounded-xl shadow p-5">
@@ -1242,106 +985,53 @@ export default function CrmContent() {
                 <button onClick={()=>setTaskFilter('all')} className={`px-3 py-1.5 text-sm ${taskFilter==='all'?'bg-orange-500 text-white':'bg-white text-gray-600 hover:bg-gray-50'}`}>Tutti</button>
               </div>
             </div>
-            {(() => {
-              const today = toYMD(new Date())
-              const filtered = allTasks.filter(t =>
-                taskFilter === 'all' ? true :
-                taskFilter === 'todo' ? !t.done :
-                t.done
-              ).sort((a,b) => {
-                const da = a.due_date || a.created_at.split('T')[0]
-                const db = b.due_date || b.created_at.split('T')[0]
-                return da < db ? -1 : da > db ? 1 : 0
-              })
-              if (filtered.length === 0) return <p className="text-gray-400 text-sm text-center py-8">Nessun task</p>
-              // Group by due_date or created_at date
-              const groups: Record<string, typeof filtered> = {}
-              filtered.forEach(t => {
-                const day = t.due_date || t.created_at.split('T')[0]
-                if (!groups[day]) groups[day] = []
-                groups[day].push(t)
-              })
+            {(()=>{
+              const today=toYMD(new Date())
+              const filtered=allTasks.filter(t=>taskFilter==='all'?true:taskFilter==='todo'?!t.done:t.done).sort((a,b)=>{const da=a.due_date||a.created_at.split('T')[0];const db=b.due_date||b.created_at.split('T')[0];return da<db?-1:da>db?1:0})
+              if(filtered.length===0) return <p className="text-gray-400 text-sm text-center py-8">Nessun task</p>
+              const groups: Record<string,typeof filtered>={}
+              filtered.forEach(t=>{const day=t.due_date||t.created_at.split('T')[0];if(!groups[day])groups[day]=[];groups[day].push(t)})
               return (
                 <div className="flex flex-col gap-4 mt-2">
-                  {Object.entries(groups).map(([day, tasks]) => (
+                  {Object.entries(groups).map(([day,tasks])=>(
                     <div key={day}>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${day === today ? 'bg-orange-100 text-orange-600' : day < today ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-500'}`}>
-                          {day === today ? `${formatDate(day)} (oggi)` : formatDate(day)}
-                        </span>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${day===today?'bg-orange-100 text-orange-600':day<today?'bg-red-100 text-red-500':'bg-gray-100 text-gray-500'}`}>{day===today?`${formatDate(day)} (oggi)`:formatDate(day)}</span>
                         <div className="flex-1 h-px bg-gray-100"/>
                       </div>
                       <div className="flex flex-col divide-y border rounded-lg overflow-hidden">
-                        {(tasks as any[]).map(task => (
+                        {(tasks as any[]).map(task=>(
                           <div key={task.id} className="flex items-start gap-3 px-3 py-2.5 bg-white hover:bg-gray-50 group">
-                            <input type="checkbox" checked={task.done} onChange={async()=>{
-                              await supabase.from('tasks').update({done:!task.done}).eq('id',task.id)
-                              fetchDeals()
-                            }} className="mt-0.5 cursor-pointer flex-shrink-0" />
+                            <input type="checkbox" checked={task.done} onChange={async()=>{await supabase.from('tasks').update({done:!task.done}).eq('id',task.id);fetchDeals()}} className="mt-0.5 cursor-pointer flex-shrink-0" />
                             <div className="flex-1 min-w-0">
-                              {editingTask?.id === task.id ? (
+                              {editingTask?.id===task.id?(
                                 <div className="flex flex-col gap-2 py-1">
-                                  <input className="border rounded p-1.5 text-sm w-full" value={editingTask!.title}
-                                    onChange={e=>setEditingTask(t=>t?{...t, title:e.target.value}:t)} autoFocus />
-                                  <div className="flex items-center gap-2">
-                                    <input type="date" className="border rounded p-1 text-xs flex-1" value={editingTask!.due_date}
-                                      onChange={e=>setEditingTask(t=>t?{...t, due_date:e.target.value}:t)} />
-                                  </div>
+                                  <input className="border rounded p-1.5 text-sm w-full" value={editingTask!.title} onChange={e=>setEditingTask(t=>t?{...t,title:e.target.value}:t)} autoFocus />
+                                  <input type="date" className="border rounded p-1 text-xs" value={editingTask!.due_date} onChange={e=>setEditingTask(t=>t?{...t,due_date:e.target.value}:t)} />
                                   <div className="relative">
-                                    <input className="border rounded p-1.5 text-xs w-full" placeholder="Associa contatto (cerca)..."
-                                      value={editTaskSearch}
-                                      onChange={async e=>{
-                                        setEditTaskSearch(e.target.value)
-                                        if(e.target.value.length>=2){
-                                          const {data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5)
-                                          setEditTaskSearchResults(data||[])
-                                        } else setEditTaskSearchResults([])
-                                      }} />
-                                    {editTaskSearchResults.length>0 && (
-                                      <div className="absolute z-10 left-0 right-0 border rounded bg-white shadow-lg mt-0.5 max-h-32 overflow-y-auto">
-                                        {editTaskSearchResults.map(d=>(
-                                          <button key={d.id} onClick={()=>{setEditingTask(t=>t?{...t,deal_id:d.id,deal_name:d.contact_name}:t);setEditTaskSearch(d.contact_name);setEditTaskSearchResults([])}}
-                                            className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 border-b last:border-0">
-                                            <span className="font-medium">{d.contact_name}</span>
-                                            <span className="text-gray-400 ml-2">{d.stage}</span>
-                                          </button>
-                                        ))}
-                                        <button onClick={()=>{setEditingTask(t=>t?{...t,deal_id:'',deal_name:''}:t);setEditTaskSearch('');setEditTaskSearchResults([])}}
-                                          className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-50">✕ Rimuovi associazione</button>
-                                      </div>
-                                    )}
-                                    {editingTask!.deal_name && !editTaskSearchResults.length && <p className="text-xs text-green-600 mt-0.5">✓ {editingTask!.deal_name}</p>}
+                                    <input className="border rounded p-1.5 text-xs w-full" placeholder="Associa contatto..." value={editTaskSearch}
+                                      onChange={async e=>{setEditTaskSearch(e.target.value);if(e.target.value.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5);setEditTaskSearchResults(data||[])}else setEditTaskSearchResults([])}} />
+                                    {editTaskSearchResults.length>0&&(<div className="absolute z-10 left-0 right-0 border rounded bg-white shadow-lg mt-0.5 max-h-32 overflow-y-auto">{editTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setEditingTask(t=>t?{...t,deal_id:d.id,deal_name:d.contact_name}:t);setEditTaskSearch(d.contact_name);setEditTaskSearchResults([])}} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 border-b last:border-0"><span className="font-medium">{d.contact_name}</span><span className="text-gray-400 ml-2">{d.stage}</span></button>))}<button onClick={()=>{setEditingTask(t=>t?{...t,deal_id:'',deal_name:''}:t);setEditTaskSearch('');setEditTaskSearchResults([])}} className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-50">✕ Rimuovi</button></div>)}
+                                    {editingTask!.deal_name&&!editTaskSearchResults.length&&<p className="text-xs text-green-600 mt-0.5">✓ {editingTask!.deal_name}</p>}
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <button onClick={async()=>{
-                                      const et = editingTask!
-                                      await supabase.from('tasks').update({title:et.title, due_date:et.due_date||null, deal_id:et.deal_id||null}).eq('id',task.id)
-                                      setEditingTask(null); setEditTaskSearch(''); setEditTaskSearchResults([]); fetchDeals()
-                                    }} className="text-xs bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600">Salva</button>
+                                    <button onClick={async()=>{const et=editingTask!;await supabase.from('tasks').update({title:et.title,due_date:et.due_date||null,deal_id:et.deal_id||null}).eq('id',task.id);setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([]);fetchDeals()}} className="text-xs bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600">Salva</button>
                                     <button onClick={()=>{setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([])}} className="text-xs text-gray-400 hover:text-gray-600">Annulla</button>
-                                    <button onClick={async()=>{
-                                      if(confirm('Eliminare questa task?')){ await supabase.from('tasks').delete().eq('id',task.id); setEditingTask(null); fetchDeals() }
-                                    }} className="text-xs text-red-400 hover:text-red-600 ml-auto">Elimina</button>
+                                    <button onClick={async()=>{if(confirm('Eliminare questa task?')){await supabase.from('tasks').delete().eq('id',task.id);setEditingTask(null);fetchDeals()}}} className="text-xs text-red-400 hover:text-red-600 ml-auto">Elimina</button>
                                   </div>
                                 </div>
-                              ) : (
+                              ):(
                                 <>
                                   <p className={`text-sm ${task.done?'line-through text-gray-400':'text-gray-800'}`}>{task.title}</p>
                                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                    {task.deals?.contact_name && (
-                                      <button onClick={()=>router.push(`/deal/${task.deal_id}`)}
-                                        className="text-xs text-blue-500 hover:underline">{task.deals.contact_name}</button>
-                                    )}
-                                    {task.deals?.stage && <span className="text-xs text-gray-400">{task.deals.stage}</span>}
-                                    {task.auto && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
+                                    {task.deals?.contact_name&&<button onClick={()=>router.push(`/deal/${task.deal_id}`)} className="text-xs text-blue-500 hover:underline">{task.deals.contact_name}</button>}
+                                    {task.deals?.stage&&<span className="text-xs text-gray-400">{task.deals.stage}</span>}
+                                    {task.auto&&<span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
                                   </div>
                                 </>
                               )}
                             </div>
-                            {editingTask?.id !== task.id && (
-                              <button onClick={()=>{setEditingTask({id:task.id,title:task.title,due_date:task.due_date||'',deal_id:task.deal_id||'',deal_name:task.deals?.contact_name||''}); setEditTaskSearch(task.deals?.contact_name||''); setEditTaskSearchResults([])}}
-                                className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-orange-400 text-xs mt-0.5 transition-opacity">✎</button>
-                            )}
+                            {editingTask?.id!==task.id&&(<button onClick={()=>{setEditingTask({id:task.id,title:task.title,due_date:task.due_date||'',deal_id:task.deal_id||'',deal_name:task.deals?.contact_name||''});setEditTaskSearch(task.deals?.contact_name||'');setEditTaskSearchResults([])}} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-orange-400 text-xs mt-0.5 transition-opacity">✎</button>)}
                           </div>
                         ))}
                       </div>
@@ -1354,104 +1044,53 @@ export default function CrmContent() {
         </div>
       )}
 
-      {/* NUOVA TASK */}
       {showNewTask && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
             <h2 className="text-lg font-bold mb-4">Nuova Task</h2>
             <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-xs text-gray-500">Titolo *</label>
-                <input className="border rounded-lg p-2 w-full mt-1 text-sm" placeholder="Es. Richiamare cliente..." value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm, title:e.target.value})} />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500">Data scadenza</label>
-                <input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={newTaskForm.due_date} onChange={e=>setNewTaskForm({...newTaskForm, due_date:e.target.value})} />
-              </div>
+              <div><label className="text-xs text-gray-500">Titolo *</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" placeholder="Es. Richiamare cliente..." value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm,title:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Data scadenza</label><input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={newTaskForm.due_date} onChange={e=>setNewTaskForm({...newTaskForm,due_date:e.target.value})} /></div>
               <div>
                 <label className="text-xs text-gray-500">Associa a contatto (opzionale)</label>
-                <input className="border rounded-lg p-2 w-full mt-1 text-sm" placeholder="Cerca per nome o telefono..."
-                  value={newTaskSearch}
-                  onChange={async e=>{
-                    setNewTaskSearch(e.target.value)
-                    if(e.target.value.length>=2){
-                      const {data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5)
-                      setNewTaskSearchResults(data||[])
-                    } else { setNewTaskSearchResults([]) }
-                  }} />
-                {newTaskSearchResults.length>0 && (
-                  <div className="border rounded-lg mt-1 bg-white shadow-lg max-h-40 overflow-y-auto">
-                    {newTaskSearchResults.map(d=>(
-                      <button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm, deal_id:d.id}); setNewTaskSearch(d.contact_name); setNewTaskSearchResults([])}}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0">
-                        <span className="font-medium">{d.contact_name}</span>
-                        {d.phone && <span className="text-gray-400 ml-2 text-xs">{d.phone}</span>}
-                        <span className="text-xs text-blue-400 ml-2">{d.stage}</span>
-                      </button>
-                    ))}
-                    <button onClick={()=>{setNewTaskForm({...newTaskForm, deal_id:''}); setNewTaskSearch(''); setNewTaskSearchResults([])}}
-                      className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50">✕ Nessuna associazione</button>
-                  </div>
-                )}
-                {newTaskForm.deal_id && <p className="text-xs text-green-600 mt-1">✓ Associata a: {newTaskSearch}</p>}
+                <input className="border rounded-lg p-2 w-full mt-1 text-sm" placeholder="Cerca per nome o telefono..." value={newTaskSearch} onChange={async e=>{setNewTaskSearch(e.target.value);if(e.target.value.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5);setNewTaskSearchResults(data||[])}else{setNewTaskSearchResults([])}}} />
+                {newTaskSearchResults.length>0&&(<div className="border rounded-lg mt-1 bg-white shadow-lg max-h-40 overflow-y-auto">{newTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:d.id});setNewTaskSearch(d.contact_name);setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0"><span className="font-medium">{d.contact_name}</span>{d.phone&&<span className="text-gray-400 ml-2 text-xs">{d.phone}</span>}<span className="text-xs text-blue-400 ml-2">{d.stage}</span></button>))}<button onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:''});setNewTaskSearch('');setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50">✕ Nessuna associazione</button></div>)}
+                {newTaskForm.deal_id&&<p className="text-xs text-green-600 mt-1">✓ Associata a: {newTaskSearch}</p>}
               </div>
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={async()=>{
-                if(!newTaskForm.title.trim()) return
-                await supabase.from('tasks').insert({
-                  title: newTaskForm.title.trim(),
-                  due_date: newTaskForm.due_date||null,
-                  deal_id: newTaskForm.deal_id||null,
-                  auto: false, done: false,
-                })
-                setNewTaskForm({title:'',due_date:'',deal_id:'',search:''}); setNewTaskSearch(''); setNewTaskSearchResults([]); setShowNewTask(false); fetchDeals()
-              }} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">Salva</button>
+              <button onClick={async()=>{if(!newTaskForm.title.trim())return;await supabase.from('tasks').insert({title:newTaskForm.title.trim(),due_date:newTaskForm.due_date||null,deal_id:newTaskForm.deal_id||null,auto:false,done:false});setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([]);setShowNewTask(false);fetchDeals()}} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">Salva</button>
               <button onClick={()=>{setShowNewTask(false);setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([])}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* LEAD FORM */}
       {showLeadForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
             <h2 className="text-lg font-bold mb-4">Nuovo Lead</h2>
             <div className="flex flex-col gap-3">
-              <div><label className="text-xs text-gray-500">Nome *</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.contact_name} onChange={e=>setLeadForm({...leadForm, contact_name:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Telefono</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.phone} onChange={e=>setLeadForm({...leadForm, phone:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Email</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.email} onChange={e=>setLeadForm({...leadForm, email:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Origine</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.origin} onChange={e=>setLeadForm({...leadForm, origin:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Nome *</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.contact_name} onChange={e=>setLeadForm({...leadForm,contact_name:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Telefono</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.phone} onChange={e=>setLeadForm({...leadForm,phone:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Email</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.email} onChange={e=>setLeadForm({...leadForm,email:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Origine</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.origin} onChange={e=>setLeadForm({...leadForm,origin:e.target.value})} /></div>
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={async()=>{
-                if(!leadForm.contact_name.trim()) return
-                const { data: newLead } = await supabase.from('deals').insert({
-                  title: leadForm.contact_name, contact_name: leadForm.contact_name,
-                  phone: leadForm.phone||null, email: leadForm.email||null, origin: leadForm.origin||null,
-                  stage: 'Qualificato', is_lead: true, lead_stage: 'Nuovo', probability: null,
-                }).select().single()
-                if (newLead) await createAutoTaskIfNeeded(newLead.id, 'Contattare il contatto')
-                setLeadForm({contact_name:'',phone:'',email:'',origin:''}); setShowLeadForm(false); fetchDeals()
-              }} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">Salva</button>
+              <button onClick={async()=>{if(!leadForm.contact_name.trim())return;const{data:newLead}=await supabase.from('deals').insert({title:leadForm.contact_name,contact_name:leadForm.contact_name,phone:leadForm.phone||null,email:leadForm.email||null,origin:leadForm.origin||null,stage:'Qualificato',is_lead:true,lead_stage:'Nuovo',probability:null}).select().single();if(newLead)await createAutoTaskIfNeeded(newLead.id,'Contattare il contatto');setLeadForm({contact_name:'',phone:'',email:'',origin:''});setShowLeadForm(false);fetchDeals()}} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">Salva</button>
               <button onClick={()=>{setShowLeadForm(false);setLeadForm({contact_name:'',phone:'',email:'',origin:''})}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* CONVERTI LEAD */}
       {convertingLead && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
             <h2 className="text-lg font-bold mb-2">Converti in Contatto</h2>
             <p className="text-gray-600 text-sm mb-4"><strong>{convertingLead.contact_name}</strong> verrà aggiunto alla pipeline principale come <span className="text-blue-600 font-medium">Qualificato</span>.</p>
             <div className="flex gap-2">
-              <button onClick={async()=>{
-                await supabase.from('deals').update({ is_lead: false, lead_stage: null, stage: 'Qualificato', probability: 25 }).eq('id', convertingLead.id)
-                setConvertingLead(null); fetchDeals()
-              }} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Converti</button>
+              <button onClick={async()=>{await supabase.from('deals').update({is_lead:false,lead_stage:null,stage:'Qualificato',probability:25}).eq('id',convertingLead.id);await logStageChange(convertingLead.id,convertingLead.lead_stage||'Lead','Qualificato');setConvertingLead(null);fetchDeals()}} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Converti</button>
               <button onClick={()=>setConvertingLead(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
             </div>
           </div>
