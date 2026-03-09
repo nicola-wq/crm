@@ -166,6 +166,9 @@ export default function CrmContent() {
   const [newTaskForm, setNewTaskForm] = useState({title:'', due_date:'', deal_id:'', search:''})
   const [newTaskSearch, setNewTaskSearch] = useState('')
   const [newTaskSearchResults, setNewTaskSearchResults] = useState<Deal[]>([])
+  const [editingTask, setEditingTask] = useState<{id:string,title:string,due_date:string,deal_id:string,deal_name:string}|null>(null)
+  const [editTaskSearch, setEditTaskSearch] = useState('')
+  const [editTaskSearchResults, setEditTaskSearchResults] = useState<Deal[]>([])
   const [showLeadForm, setShowLeadForm] = useState(false)
   const [leadForm, setLeadForm] = useState({contact_name:'', phone:'', email:'', origin:''})
   const [convertingLead, setConvertingLead] = useState<Deal|null>(null)
@@ -1223,33 +1226,108 @@ export default function CrmContent() {
               </div>
             </div>
             {(() => {
+              const today = toYMD(new Date())
               const filtered = allTasks.filter(t =>
                 taskFilter === 'all' ? true :
                 taskFilter === 'todo' ? !t.done :
                 t.done
-              )
+              ).sort((a,b) => {
+                const da = a.due_date || a.created_at.split('T')[0]
+                const db = b.due_date || b.created_at.split('T')[0]
+                return da < db ? -1 : da > db ? 1 : 0
+              })
               if (filtered.length === 0) return <p className="text-gray-400 text-sm text-center py-8">Nessun task</p>
+              // Group by due_date or created_at date
+              const groups: Record<string, typeof filtered> = {}
+              filtered.forEach(t => {
+                const day = t.due_date || t.created_at.split('T')[0]
+                if (!groups[day]) groups[day] = []
+                groups[day].push(t)
+              })
               return (
-                <div className="flex flex-col divide-y">
-                  {filtered.map(task => (
-                    <div key={task.id} className="flex items-start gap-3 py-3">
-                      <input type="checkbox" checked={task.done} onChange={async()=>{
-                        await supabase.from('tasks').update({done:!task.done}).eq('id',task.id)
-                        fetchDeals()
-                      }} className="mt-0.5 cursor-pointer" />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${task.done?'line-through text-gray-400':'text-gray-800'}`}>{task.title}</p>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {task.deals?.contact_name && (
-                            <button onClick={()=>window.location.href=`/deal/${task.deal_id}`}
-                              className="text-xs text-blue-500 hover:underline">{task.deals.contact_name}</button>
-                          )}
-                          {task.deals?.stage && <span className="text-xs text-gray-400">{task.deals.stage}</span>}
-                          {task.due_date && <span className="text-xs text-orange-500">{formatDate(task.due_date)}</span>}
-                          {task.auto && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
-                        </div>
+                <div className="flex flex-col gap-4 mt-2">
+                  {Object.entries(groups).map(([day, tasks]) => (
+                    <div key={day}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${day === today ? 'bg-orange-100 text-orange-600' : day < today ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-500'}`}>
+                          {day === today ? `${formatDate(day)} (oggi)` : formatDate(day)}
+                        </span>
+                        <div className="flex-1 h-px bg-gray-100"/>
                       </div>
-                      <p className="text-xs text-gray-400 flex-shrink-0">{formatDate(task.created_at.split('T')[0])}</p>
+                      <div className="flex flex-col divide-y border rounded-lg overflow-hidden">
+                        {(tasks as any[]).map(task => (
+                          <div key={task.id} className="flex items-start gap-3 px-3 py-2.5 bg-white hover:bg-gray-50 group">
+                            <input type="checkbox" checked={task.done} onChange={async()=>{
+                              await supabase.from('tasks').update({done:!task.done}).eq('id',task.id)
+                              fetchDeals()
+                            }} className="mt-0.5 cursor-pointer flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              {editingTask?.id === task.id ? (
+                                <div className="flex flex-col gap-2 py-1">
+                                  <input className="border rounded p-1.5 text-sm w-full" value={editingTask!.title}
+                                    onChange={e=>setEditingTask(t=>t?{...t, title:e.target.value}:t)} autoFocus />
+                                  <div className="flex items-center gap-2">
+                                    <input type="date" className="border rounded p-1 text-xs flex-1" value={editingTask!.due_date}
+                                      onChange={e=>setEditingTask(t=>t?{...t, due_date:e.target.value}:t)} />
+                                  </div>
+                                  <div className="relative">
+                                    <input className="border rounded p-1.5 text-xs w-full" placeholder="Associa contatto (cerca)..."
+                                      value={editTaskSearch}
+                                      onChange={async e=>{
+                                        setEditTaskSearch(e.target.value)
+                                        if(e.target.value.length>=2){
+                                          const {data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5)
+                                          setEditTaskSearchResults(data||[])
+                                        } else setEditTaskSearchResults([])
+                                      }} />
+                                    {editTaskSearchResults.length>0 && (
+                                      <div className="absolute z-10 left-0 right-0 border rounded bg-white shadow-lg mt-0.5 max-h-32 overflow-y-auto">
+                                        {editTaskSearchResults.map(d=>(
+                                          <button key={d.id} onClick={()=>{setEditingTask(t=>t?{...t,deal_id:d.id,deal_name:d.contact_name}:t);setEditTaskSearch(d.contact_name);setEditTaskSearchResults([])}}
+                                            className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 border-b last:border-0">
+                                            <span className="font-medium">{d.contact_name}</span>
+                                            <span className="text-gray-400 ml-2">{d.stage}</span>
+                                          </button>
+                                        ))}
+                                        <button onClick={()=>{setEditingTask(t=>t?{...t,deal_id:'',deal_name:''}:t);setEditTaskSearch('');setEditTaskSearchResults([])}}
+                                          className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-50">✕ Rimuovi associazione</button>
+                                      </div>
+                                    )}
+                                    {editingTask!.deal_name && !editTaskSearchResults.length && <p className="text-xs text-green-600 mt-0.5">✓ {editingTask!.deal_name}</p>}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button onClick={async()=>{
+                                      const et = editingTask!
+                                      await supabase.from('tasks').update({title:et.title, due_date:et.due_date||null, deal_id:et.deal_id||null}).eq('id',task.id)
+                                      setEditingTask(null); setEditTaskSearch(''); setEditTaskSearchResults([]); fetchDeals()
+                                    }} className="text-xs bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600">Salva</button>
+                                    <button onClick={()=>{setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([])}} className="text-xs text-gray-400 hover:text-gray-600">Annulla</button>
+                                    <button onClick={async()=>{
+                                      if(confirm('Eliminare questa task?')){ await supabase.from('tasks').delete().eq('id',task.id); setEditingTask(null); fetchDeals() }
+                                    }} className="text-xs text-red-400 hover:text-red-600 ml-auto">Elimina</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <p className={`text-sm ${task.done?'line-through text-gray-400':'text-gray-800'}`}>{task.title}</p>
+                                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                    {task.deals?.contact_name && (
+                                      <button onClick={()=>window.location.href=`/deal/${task.deal_id}`}
+                                        className="text-xs text-blue-500 hover:underline">{task.deals.contact_name}</button>
+                                    )}
+                                    {task.deals?.stage && <span className="text-xs text-gray-400">{task.deals.stage}</span>}
+                                    {task.auto && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                            {editingTask?.id !== task.id && (
+                              <button onClick={()=>{setEditingTask({id:task.id,title:task.title,due_date:task.due_date||'',deal_id:task.deal_id||'',deal_name:task.deals?.contact_name||''}); setEditTaskSearch(task.deals?.contact_name||''); setEditTaskSearchResults([])}}
+                                className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-orange-400 text-xs mt-0.5 transition-opacity">✎</button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
