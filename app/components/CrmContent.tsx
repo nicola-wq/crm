@@ -555,12 +555,17 @@ export default function CrmContent() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-800">PENSARE CASA C.so Regina</h1>
+        <div className="flex items-center gap-3">
+          <button onClick={()=>window.location.href='/'} className="text-gray-400 hover:text-blue-600 transition-colors" title="Homepage">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+          </button>
+          <h1 className="text-xl font-bold text-gray-800">PENSARE CASA C.so Regina</h1>
+        </div>
         <div className="flex gap-2 items-center">
           <button onClick={()=>setView('tasks')} className={`px-3 py-2 text-sm rounded-lg border mr-1 ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300 hover:bg-orange-50'}`}>Task</button>
           <button onClick={()=>setView('leads')} className={`px-3 py-2 text-sm rounded-lg border mr-3 ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'}`}>Lead</button>
           <div className="flex border rounded-lg overflow-hidden mr-2">
-            <button onClick={()=>setView('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Kanban</button>
+            <button onClick={()=>setView('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Pipeline</button>
             <button onClick={()=>setView('list')} className={`px-3 py-2 text-sm ${view==='list'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Lista</button>
             <button onClick={()=>setView('dashboard')} className={`px-3 py-2 text-sm ${view==='dashboard'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Dashboard</button>
           </div>

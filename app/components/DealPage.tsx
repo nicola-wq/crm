@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
-const STAGES = ['Nuovo Lead', 'Qualificato', 'Appuntamento fissato', 'Ingresso', 'Preventivo', 'Vendita', 'Non convertito']
+const STAGES = ['Qualificato', 'Appuntamento fissato', 'Ingresso', 'Preventivo', 'Vendita', 'Non convertito']
 const ENVIRONMENTS = ['Cucina', 'Soggiorno', 'Camera da letto', 'Cameretta', 'Tavoli e sedie', 'Altro']
 const PROB_OPTIONS = [0, 25, 50, 75, 90, 100]
 const PROB_COLORS: Record<number, string> = {
@@ -36,9 +36,6 @@ function formatDateTime(dateStr: string) {
   if (!dateStr) return '-'
   const d = new Date(dateStr)
   return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
-}
-function toYMD(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 }
 
 function EnvSelect({ value, onChange }: { value: string, onChange: (v: string) => void }) {
@@ -161,7 +158,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
     if (!files || files.length === 0) return
     setUploading(true)
     for (const file of Array.from(files)) {
-      const ext = file.name.split('.').pop()
       const path = `${dealId}/${Date.now()}_${file.name}`
       const { data, error } = await supabase.storage.from('attachments').upload(path, file, { upsert: true })
       if (!error && data) {
@@ -192,7 +188,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
     </div>
   )
 
-  // Build timeline
   const timeline: TimelineItem[] = [
     ...notes.map(n => ({ type: 'note' as const, data: n })),
     ...tasks.map(t => ({ type: 'task' as const, data: t })),
@@ -205,7 +200,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
     : timeline.filter(i => i.type === 'attachment')
 
   const isImage = (type: string) => type?.startsWith('image/')
-  const isPDF = (type: string) => type === 'application/pdf'
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -225,13 +219,13 @@ export default function DealPage({ dealId }: { dealId: string }) {
             {deal.estimate > 0 && <span className="text-green-600 text-sm font-semibold">€ {deal.estimate.toLocaleString()}</span>}
           </div>
         </div>
-        <button onClick={() => window.location.href = '/'} className="text-sm text-gray-500 hover:text-gray-700">
-          PENSARE CASA C.so Regina
+        <button onClick={() => window.location.href = '/'} className="text-gray-400 hover:text-blue-600 transition-colors" title="Homepage">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
         </button>
       </div>
 
       <div className="max-w-5xl mx-auto p-6 grid grid-cols-3 gap-6">
-        {/* LEFT — Info contatto */}
+        {/* LEFT */}
         <div className="col-span-1">
           <div className="bg-white rounded-xl shadow p-5">
             <div className="flex justify-between items-center mb-4">
@@ -317,7 +311,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
         {/* RIGHT — Cronologia */}
         <div className="col-span-2">
-          {/* Aggiungi nota */}
           <div className="bg-white rounded-xl shadow p-5 mb-4">
             <h2 className="font-bold text-gray-700 mb-3">Aggiungi nota</h2>
             <textarea className="border rounded-lg p-3 w-full text-sm resize-none" rows={3}
@@ -335,7 +328,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
             </div>
           </div>
 
-          {/* Cronologia */}
           <div className="bg-white rounded-xl shadow p-5">
             <div className="flex items-center gap-1 mb-5 border-b pb-3">
               <h2 className="font-bold text-gray-700 mr-3">Cronologia</h2>
@@ -354,7 +346,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
             <div className="flex flex-col gap-0">
               {filteredTimeline.map((item, idx) => (
                 <div key={item.data.id} className="flex gap-3">
-                  {/* Timeline line */}
                   <div className="flex flex-col items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${
                       item.type === 'note' ? 'bg-yellow-100 text-yellow-600' :
@@ -368,7 +359,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
                     {idx < filteredTimeline.length - 1 && <div className="w-0.5 bg-gray-200 flex-1 my-1" style={{minHeight:'24px'}} />}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 pb-4">
                     <p className="text-xs text-gray-400 mb-1">{formatDateTime(item.data.created_at)}</p>
 
@@ -438,12 +428,11 @@ export default function DealPage({ dealId }: { dealId: string }) {
         </div>
       </div>
 
-      {/* Confirm delete modals */}
       {confirmDeleteNote && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-bold mb-2">Elimina nota?</h3>
-            <p className="text-gray-600 text-sm mb-4">L'operazione è irreversibile.</p>
+            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile.</p>
             <div className="flex gap-2">
               <button onClick={() => deleteNote(confirmDeleteNote)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
               <button onClick={() => setConfirmDeleteNote(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
@@ -455,7 +444,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-bold mb-2">Elimina task?</h3>
-            <p className="text-gray-600 text-sm mb-4">L'operazione è irreversibile.</p>
+            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile.</p>
             <div className="flex gap-2">
               <button onClick={() => deleteTask(confirmDeleteTask)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
               <button onClick={() => setConfirmDeleteTask(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
@@ -467,7 +456,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-bold mb-2">Elimina allegato?</h3>
-            <p className="text-gray-600 text-sm mb-4">L'operazione è irreversibile.</p>
+            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile.</p>
             <div className="flex gap-2">
               <button onClick={() => { const att = attachments.find(a => a.id === confirmDeleteAttachment); if (att) deleteAttachment(att) }} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
               <button onClick={() => setConfirmDeleteAttachment(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
