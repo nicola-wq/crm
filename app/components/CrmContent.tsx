@@ -555,7 +555,10 @@ export default function CrmContent() {
           <button onClick={()=>router.push('/')} className="text-gray-400 hover:text-blue-600 transition-colors" title="Homepage">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
           </button>
-          <h1 className="text-xl font-bold text-gray-800">PENSARE CASA C.so Regina</h1>
+          <div className="flex items-center gap-2">
+  <img src="/logo.png" alt="Pensare Casa" className="h-7 object-contain" />
+  <span className="text-base font-semibold text-gray-700">C.so Regina</span>
+</div>
         </div>
         <div className="flex gap-2 items-center">
           <button onClick={()=>navigateTo('tasks')} className={`px-3 py-2 text-sm rounded-lg border mr-1 ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300 hover:bg-orange-50'}`}>Task</button>
