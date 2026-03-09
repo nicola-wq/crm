@@ -173,9 +173,8 @@ export default function CrmContent() {
   const [leadForm, setLeadForm] = useState({contact_name:'', phone:'', email:'', origin:''})
   const [convertingLead, setConvertingLead] = useState<Deal|null>(null)
   // Dashboard
-  const dashWeek = getRangeForQuick('week')
-  const [dateFrom, setDateFrom] = useState(dashWeek.from)
-  const [dateTo, setDateTo] = useState(dashWeek.to)
+  const [dateFrom, setDateFrom] = useState(monthRange.from)
+  const [dateTo, setDateTo] = useState(monthRange.to)
 
   useEffect(() => {
     async function init() {
@@ -507,22 +506,21 @@ export default function CrmContent() {
 
   // ---- DASHBOARD CALCS ----
   const ingressiPeriod = filteredDeals.filter(d => ['Ingresso','Preventivo','Vendita'].includes(d.stage))
-  const vendite = deals.filter(d => d.stage === 'Vendita')
-  const preventivi = deals.filter(d => d.stage === 'Preventivo')
-  const prevConValore = deals.filter(d => d.estimate > 0)
+  const vendite = filteredDeals.filter(d => d.stage === 'Vendita')
+  const preventivi = filteredDeals.filter(d => d.stage === 'Preventivo')
+  const prevConValore = filteredDeals.filter(d => d.estimate > 0)
   const venditeCerte = vendite.reduce((s,d)=>s+(d.estimate||0),0)
-  const pipelineWeighted = deals
+  const pipelineWeighted = filteredDeals
     .filter(d=>d.probability!=null && d.probability>0)
     .reduce((s,d)=>s+(d.estimate||0)*(d.probability||0)/100, 0)
-  const pipelineTotal = deals.filter(d=>d.probability!=null && d.probability>0).reduce((s,d)=>s+(d.estimate||0)*(d.probability||0)/100,0)
+  const pipelineTotal = pipelineWeighted
   const ingressiCount = filteredDeals.length
-  const ingressiStage = deals.filter(d => d.stage === 'Ingresso')
-  const tuttiIngressi = deals.filter(d => !!d.entry_date)
+  const tuttiIngressi = filteredDeals.filter(d => !!d.entry_date)
   const totaleVenduto = vendite.reduce((s,d)=>s+(d.estimate||0),0)
   const avgIngresso = tuttiIngressi.length > 0 ? Math.round(totaleVenduto/tuttiIngressi.length) : 0
   const avgVendita = vendite.length > 0 ? Math.round(vendite.reduce((s,d)=>s+(d.estimate||0),0)/vendite.length) : 0
   const avgPreventivo = prevConValore.length > 0 ? Math.round(prevConValore.reduce((s,d)=>s+(d.estimate||0),0)/prevConValore.length) : 0
-  const tuttiConPreventivo = deals.filter(d => d.stage === 'Preventivo' || d.stage === 'Vendita')
+  const tuttiConPreventivo = filteredDeals.filter(d => d.stage === 'Preventivo' || d.stage === 'Vendita')
   const tassoConvIngresso = tuttiIngressi.length > 0 ? Math.round((vendite.length/tuttiIngressi.length)*100) : 0
   const tassoConvPreventivo = tuttiConPreventivo.length > 0 ? Math.round((vendite.length/tuttiConPreventivo.length)*100) : 0
 
@@ -539,7 +537,7 @@ export default function CrmContent() {
   const envSoldMap: Record<string,number> = {}
   const envPipeMap: Record<string,number> = {}
   const envCountMap: Record<string,number> = {}
-  deals.forEach(d => {
+  filteredDeals.forEach(d => {
     const envs = d.environment ? d.environment.split(',').map((e:string)=>e.trim()).filter(Boolean) : ['Non specificato']
     envs.forEach(env => {
       if (d.stage==='Vendita') envSoldMap[env] = (envSoldMap[env]||0) + (d.estimate||0)
