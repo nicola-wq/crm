@@ -92,6 +92,7 @@ export default function CrmContent() {
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as View | null
   const [view, setView] = useState<View>(tabParam || 'kanban')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     const t = searchParams.get('tab') as View | null
@@ -99,6 +100,7 @@ export default function CrmContent() {
   }, [searchParams])
 
   function navigateTo(v: View) {
+    setMobileMenuOpen(false)
     if (v === 'kanban') router.push('/')
     else router.push(`/?tab=${v}`)
   }
@@ -362,7 +364,7 @@ export default function CrmContent() {
   }
 
   function btnClass(type: QuickRange) {
-    return `px-3 py-1 rounded-lg text-sm font-medium transition-colors ${activeQuick===type?'bg-blue-600 text-white':'bg-gray-100 hover:bg-gray-200 text-gray-700'}`
+    return `px-2 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${activeQuick===type?'bg-blue-600 text-white':'bg-gray-100 hover:bg-gray-200 text-gray-700'}`
   }
 
   function goToDeal(deal: Deal) { router.push(`/deal/${deal.id}`) }
@@ -490,12 +492,11 @@ export default function CrmContent() {
           <div className="w-px h-6 bg-blue-200 mx-1" />
           <div className="relative">
             <button onClick={()=>setShowBulkEnvPicker(p=>!p)} className="border rounded-lg px-3 py-2 text-sm bg-white hover:bg-gray-50 flex items-center gap-1">
-              {bulkEnv.length>0 ? <span className="text-blue-700 font-medium">{bulkEnv.join(', ')}</span> : <span className="text-gray-500">Cambia ambiente...</span>}
+              {bulkEnv.length>0 ? <span className="text-blue-700 font-medium">{bulkEnv.join(', ')}</span> : <span className="text-gray-500">Ambiente...</span>}
               <span className="text-gray-400 text-xs ml-1">▾</span>
             </button>
             {showBulkEnvPicker && (
               <div className="absolute top-full left-0 mt-1 bg-white border rounded-xl shadow-lg p-3 z-20" style={{minWidth:'240px'}}>
-                <p className="text-xs text-gray-500 mb-2 font-semibold">Seleziona ambienti:</p>
                 <div className="flex flex-wrap gap-1 mb-3">
                   {ENVIRONMENTS.map(env=>{const active=bulkEnv.includes(env);return <button key={env} type="button" onClick={()=>setBulkEnv(prev=>active?prev.filter(e=>e!==env):[...prev,env])} className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>{env}</button>})}
                 </div>
@@ -506,15 +507,12 @@ export default function CrmContent() {
               </div>
             )}
           </div>
-          <div className="w-px h-6 bg-blue-200 mx-1" />
           <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-600">Data ingresso:</span>
             <input type="date" className="border rounded-lg p-2 text-sm bg-white" value={bulkEntryDate} onChange={e=>setBulkEntryDate(e.target.value)} />
             {bulkEntryDate && <button onClick={bulkChangeEntryDate} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700">Applica</button>}
           </div>
-          <div className="w-px h-6 bg-blue-200 mx-1" />
           <button onClick={()=>setConfirmBulkDelete(true)} className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-600">Elimina</button>
-          <button onClick={()=>{setSelectedIds(new Set());setBulkStage('');setBulkEnv([]);setBulkEntryDate('');setShowBulkEnvPicker(false)}} className="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-300 ml-auto">Deseleziona tutto</button>
+          <button onClick={()=>{setSelectedIds(new Set());setBulkStage('');setBulkEnv([]);setBulkEntryDate('');setShowBulkEnvPicker(false)}} className="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-300 ml-auto">✕</button>
         </div>
       </div>
     ) : null
@@ -550,17 +548,19 @@ export default function CrmContent() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <button onClick={()=>router.push('/')} className="text-gray-400 hover:text-blue-600 transition-colors" title="Homepage">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+
+      {/* ── HEADER ── */}
+      <div className="bg-white shadow px-3 sm:px-6 py-3 flex justify-between items-center sticky top-0 z-40">
+        <div className="flex items-center gap-2">
+          <button onClick={()=>router.push('/')} className="text-gray-400 hover:text-blue-600 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
           </button>
-          <div className="flex items-center gap-2">
           <img src="/logo.png" alt="Pensare Casa" className="h-5 object-contain" />
-  <span className="text-base font-semibold text-gray-700">C.so Regina</span>
-</div>
+          <span className="text-sm font-semibold text-gray-700">C.so Regina</span>
         </div>
-        <div className="flex gap-2 items-center">
+
+        {/* Desktop nav */}
+        <div className="hidden md:flex gap-2 items-center">
           <button onClick={()=>navigateTo('tasks')} className={`px-3 py-2 text-sm rounded-lg border mr-1 ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300 hover:bg-orange-50'}`}>Task</button>
           <button onClick={()=>navigateTo('leads')} className={`px-3 py-2 text-sm rounded-lg border mr-3 ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'}`}>Lead</button>
           <div className="flex border rounded-lg overflow-hidden mr-2">
@@ -573,21 +573,73 @@ export default function CrmContent() {
           {view!=='leads' && <button onClick={()=>setShowForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Nuovo Affare</button>}
           <button onClick={()=>setConfirmLogout(true)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Esci</button>
         </div>
+
+        {/* Mobile: azione rapida + hamburger */}
+        <div className="flex md:hidden items-center gap-2">
+          {view==='leads'
+            ? <button onClick={()=>setShowLeadForm(true)} className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium">+ Lead</button>
+            : <button onClick={()=>setShowIngressoForm(true)} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium">+ Ingresso</button>
+          }
+          <button onClick={()=>setMobileMenuOpen(p=>!p)} className="p-2 rounded-lg bg-gray-100 text-gray-600">
+            {mobileMenuOpen
+              ? <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+              : <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
+            }
+          </button>
+        </div>
       </div>
 
+      {/* Mobile dropdown menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white border-b shadow-lg z-30 px-4 py-3 flex flex-col gap-2">
+          <div className="grid grid-cols-3 gap-1 mb-1">
+            <button onClick={()=>navigateTo('kanban')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='kanban'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Pipeline</button>
+            <button onClick={()=>navigateTo('list')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='list'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Lista</button>
+            <button onClick={()=>navigateTo('dashboard')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='dashboard'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Dashboard</button>
+          </div>
+          <div className="grid grid-cols-2 gap-1 mb-1">
+            <button onClick={()=>navigateTo('tasks')} className={`py-2.5 rounded-lg text-sm font-medium border ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300'}`}>Task</button>
+            <button onClick={()=>navigateTo('leads')} className={`py-2.5 rounded-lg text-sm font-medium border ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300'}`}>Lead</button>
+          </div>
+          <div className="border-t pt-2 flex flex-col gap-1">
+            {view!=='leads' && <button onClick={()=>{setShowForm(true);setMobileMenuOpen(false)}} className="bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium">+ Nuovo Affare</button>}
+            <button onClick={()=>{setConfirmLogout(true);setMobileMenuOpen(false)}} className="bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm">Esci</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── BOTTOM NAV (mobile only) ── */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-40 flex safe-bottom">
+        {[
+          {v:'kanban' as View, label:'Pipeline', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>, color:'text-blue-600'},
+          {v:'list' as View, label:'Lista', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>, color:'text-blue-600'},
+          {v:'tasks' as View, label:'Task', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>, color:'text-orange-500'},
+          {v:'leads' as View, label:'Lead', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, color:'text-purple-600'},
+          {v:'dashboard' as View, label:'Stats', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>, color:'text-blue-600'},
+        ].map(({v,label,icon,color})=>(
+          <button key={v} onClick={()=>navigateTo(v)} className={`flex-1 py-2 flex flex-col items-center gap-0.5 text-xs ${view===v?color:'text-gray-400'}`}>
+            {icon}{label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── MAIN CONTENT ── */}
+      <div className="pb-20 md:pb-0">
+
+      {/* ── KANBAN ── */}
       {view==='kanban' && (
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="p-4 pb-0">
-            <div className="bg-white rounded-xl shadow px-4 py-3 flex items-center gap-3 text-sm flex-wrap">
-              <span className="font-semibold text-gray-600">Colonna Vendita — periodo:</span>
-              <input type="date" className="border rounded-lg p-1.5 text-sm" value={kanbanVenditaFrom} onChange={e=>setKanbanVenditaFrom(e.target.value)} />
+          <div className="p-3 sm:p-4 pb-0">
+            <div className="bg-white rounded-xl shadow px-3 py-2 flex items-center gap-2 text-xs sm:text-sm flex-wrap">
+              <span className="font-semibold text-gray-600">Vendita:</span>
+              <input type="date" className="border rounded-lg p-1.5 text-xs" value={kanbanVenditaFrom} onChange={e=>setKanbanVenditaFrom(e.target.value)} />
               <span className="text-gray-400">→</span>
-              <input type="date" className="border rounded-lg p-1.5 text-sm" value={kanbanVenditaTo} onChange={e=>setKanbanVenditaTo(e.target.value)} />
-              <button onClick={()=>{const r=getCurrentMonthRange();setKanbanVenditaFrom(r.from);setKanbanVenditaTo(r.to)}} className="text-xs text-blue-600 underline">Mese corrente</button>
+              <input type="date" className="border rounded-lg p-1.5 text-xs" value={kanbanVenditaTo} onChange={e=>setKanbanVenditaTo(e.target.value)} />
+              <button onClick={()=>{const r=getCurrentMonthRange();setKanbanVenditaFrom(r.from);setKanbanVenditaTo(r.to)}} className="text-xs text-blue-600 underline">Mese</button>
             </div>
           </div>
-          <div className="overflow-x-auto p-4">
-            <div className="flex gap-4" style={{minWidth:'max-content'}}>
+          <div className="overflow-x-auto p-3 sm:p-4" style={{WebkitOverflowScrolling:'touch'}}>
+            <div className="flex gap-3" style={{minWidth:'max-content'}}>
               {STAGES.map(stage => {
                 const stageDeals = kanbanDeals(stage)
                 const total = stageDeals.reduce((sum,d)=>sum+(d.estimate||0),0)
@@ -595,8 +647,10 @@ export default function CrmContent() {
                 return (
                   <Droppable droppableId={stage} key={stage}>
                     {(provided,snapshot) => (
-                      <div ref={provided.innerRef} {...provided.droppableProps} className={`rounded-xl p-3 w-64 flex flex-col ${snapshot.isDraggingOver?'bg-blue-100':'bg-gray-200'}`}>
-                        <h2 className="font-semibold text-gray-700 text-sm">{stage}</h2>
+                      <div ref={provided.innerRef} {...provided.droppableProps}
+                        className={`rounded-xl p-2.5 flex flex-col ${snapshot.isDraggingOver?'bg-blue-100':'bg-gray-200'}`}
+                        style={{width:'185px',minWidth:'185px'}}>
+                        <h2 className="font-semibold text-gray-700 text-xs leading-tight">{stage}</h2>
                         <p className="text-xs text-gray-500">{stageDeals.length} affari</p>
                         {total>0 && <p className="text-xs text-green-700 font-semibold">€ {total.toLocaleString()}</p>}
                         {weighted>0 && weighted!==total && <p className="text-xs text-blue-600">pond. € {Math.round(weighted).toLocaleString()}</p>}
@@ -606,11 +660,11 @@ export default function CrmContent() {
                               {(provided,snapshot) => (
                                 <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
                                   onClick={()=>goToDeal(deal)}
-                                  className={`bg-white rounded-lg p-3 cursor-pointer ${snapshot.isDragging?'shadow-xl rotate-1':'shadow hover:shadow-md'}`}>
-                                  <p className="font-semibold text-sm text-gray-800">{deal.contact_name||deal.title}</p>
+                                  className={`bg-white rounded-lg p-2.5 cursor-pointer ${snapshot.isDragging?'shadow-xl rotate-1':'shadow hover:shadow-md'}`}>
+                                  <p className="font-semibold text-xs text-gray-800 leading-tight">{deal.contact_name||deal.title}</p>
                                   {deal.estimate>0 && <p className="text-xs text-green-600 mt-0.5">€ {deal.estimate.toLocaleString()}</p>}
                                   {deal.appointment_date && <p className="text-xs text-orange-500">📅 {formatDate(deal.appointment_date)}</p>}
-                                  {deal.environment && <p className="text-xs text-blue-500">{deal.environment}</p>}
+                                  {deal.environment && <p className="text-xs text-blue-500 truncate">{deal.environment}</p>}
                                   {deal.probability !== null && deal.probability !== undefined && (
                                     <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${PROB_COLORS[deal.probability]||'bg-gray-100 text-gray-600'}`}>{deal.probability}%</span>
                                   )}
@@ -620,9 +674,7 @@ export default function CrmContent() {
                           ))}
                           {provided.placeholder}
                         </div>
-                        <button onClick={()=>{setQuickAddStage(stage);setQuickForm({...emptyDeal,stage})}} className="mt-3 w-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg py-1 text-sm transition-colors">
-                          <span className="text-lg leading-none">+</span>
-                        </button>
+                        <button onClick={()=>{setQuickAddStage(stage);setQuickForm({...emptyDeal,stage})}} className="mt-2 w-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg py-1 text-sm transition-colors">+</button>
                       </div>
                     )}
                   </Droppable>
@@ -633,182 +685,193 @@ export default function CrmContent() {
         </DragDropContext>
       )}
 
+      {/* ── LISTA ── */}
       {view==='list' && (
-        <div className="p-6">
-          <div className="bg-white rounded-xl shadow p-4 mb-4 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-semibold text-gray-700">Raggruppa per:</label>
-              <select className="border rounded-lg p-2 text-sm" value={groupBy} onChange={e=>setGroupBy(e.target.value)}>
-                <option value="none">Nessuno</option><option value="stage">Fase</option><option value="origin">Origine</option><option value="environment">Ambiente</option><option value="project_timeline">Tempi progettuali</option>
+        <div className="p-3 sm:p-6">
+          <div className="bg-white rounded-xl shadow p-3 sm:p-4 mb-4 flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <label className="text-xs font-semibold text-gray-700 whitespace-nowrap">Raggruppa:</label>
+              <select className="border rounded-lg p-2 text-xs flex-1 sm:flex-none" value={groupBy} onChange={e=>setGroupBy(e.target.value)}>
+                <option value="none">Nessuno</option><option value="stage">Fase</option><option value="origin">Origine</option><option value="environment">Ambiente</option><option value="project_timeline">Tempi</option>
               </select>
             </div>
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-            <div className="flex items-center gap-2 flex-wrap">
-              <label className="text-sm font-semibold text-gray-700">Periodo:</label>
-              <input type="date" className="border rounded-lg p-2 text-sm" value={listDateFrom} onChange={e=>{setListDateFrom(e.target.value);setListDateActive(true)}} />
-              <span className="text-gray-400">→</span>
-              <input type="date" className="border rounded-lg p-2 text-sm" value={listDateTo} onChange={e=>{setListDateTo(e.target.value);setListDateActive(true)}} />
-              {listDateActive && <button onClick={()=>setListDateActive(false)} className="text-xs text-gray-500 underline hover:text-gray-700">Mostra tutti</button>}
-              {!listDateActive && <button onClick={()=>{const r=getLast30Days();setListDateFrom(r.from);setListDateTo(r.to);setListDateActive(true)}} className="text-xs text-blue-600 underline hover:text-blue-800">Ultimi 30 giorni</button>}
+            <div className="flex items-center gap-1 w-full sm:w-auto">
+              <label className="text-xs font-semibold text-gray-700 whitespace-nowrap">Periodo:</label>
+              <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={listDateFrom} onChange={e=>{setListDateFrom(e.target.value);setListDateActive(true)}} />
+              <span className="text-gray-400 text-xs">→</span>
+              <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={listDateTo} onChange={e=>{setListDateTo(e.target.value);setListDateActive(true)}} />
+              {listDateActive && <button onClick={()=>setListDateActive(false)} className="text-xs text-gray-400 underline whitespace-nowrap">Tutti</button>}
             </div>
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-            <div className="flex items-center gap-2 flex-wrap">
-              <label className="text-sm font-semibold text-gray-700">Ambiente:</label>
-              {ENVIRONMENTS.map(env=>{const active=listEnvFilter.includes(env);return <button key={env} type="button" onClick={()=>setListEnvFilter(prev=>active?prev.filter(e=>e!==env):[...prev,env])} className={`px-3 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>{env}</button>})}
-              {listEnvFilter.length>0 && <button onClick={()=>setListEnvFilter([])} className="text-xs text-gray-400 underline hover:text-gray-600">Rimuovi filtro</button>}
+            <div className="flex items-center gap-1 flex-wrap">
+              {ENVIRONMENTS.map(env=>{const active=listEnvFilter.includes(env);return <button key={env} type="button" onClick={()=>setListEnvFilter(prev=>active?prev.filter(e=>e!==env):[...prev,env])} className={`px-2 py-1 rounded-full text-xs border ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300'}`}>{env}</button>})}
+              {listEnvFilter.length>0 && <button onClick={()=>setListEnvFilter([])} className="text-xs text-gray-400 underline">✕</button>}
             </div>
-            <div className="w-px h-6 bg-gray-200 mx-1" />
-            <button onClick={()=>setFilterAggiudicati(p=>!p)} className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${filterAggiudicati?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-300 hover:border-green-400'}`}>🏆 Aggiudicati</button>
-            <div className="flex items-center gap-3 ml-auto">
-              <span className="text-xs text-gray-400">{listDeals.length} contatti</span>
-              <button onClick={downloadCSV} className="flex items-center gap-1.5 bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-900 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                Download CSV
-              </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
+              <button onClick={()=>setFilterAggiudicati(p=>!p)} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${filterAggiudicati?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-300'}`}>🏆 Aggiudicati</button>
+              <div className="flex items-center gap-2 ml-auto sm:ml-0">
+                <span className="text-xs text-gray-400">{listDeals.length}</span>
+                <button onClick={downloadCSV} className="flex items-center gap-1 bg-gray-800 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  CSV
+                </button>
+              </div>
             </div>
           </div>
           <BulkActionBar dealsInView={listDeals} />
           {Object.entries(getGroupedDeals(listDeals)).map(([group,groupDeals]) => (
             <div key={group} className="mb-6">
-              {groupBy!=='none' && <h2 className="font-bold text-gray-700 mb-2">{group} <span className="text-gray-400 font-normal text-sm">({groupDeals.length})</span></h2>}
+              {groupBy!=='none' && <h2 className="font-bold text-gray-700 mb-2 text-sm">{group} <span className="text-gray-400 font-normal">({groupDeals.length})</span></h2>}
               <div className="bg-white rounded-xl shadow overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 text-gray-600">
-                    <tr>
-                      <th className="p-3 w-8"><input type="checkbox" onChange={()=>toggleSelectAll(groupDeals)} checked={groupDeals.length>0&&groupDeals.every(d=>selectedIds.has(d.id))} /></th>
-                      <th className="text-left p-3 font-semibold cursor-pointer select-none hover:bg-gray-100 whitespace-nowrap" onClick={()=>toggleListSort('contact_name')}>
-                        Contatto {listSortCol==='contact_name'?(listSortDir==='asc'?'↑':'↓'):<span className="text-gray-300">↕</span>}
-                      </th>
-                      {listCols.map(({label,col},idx)=>(
-                        <th key={col} draggable onDragStart={()=>setDragColIdx(idx)} onDragOver={e=>e.preventDefault()}
-                          onDrop={()=>{if(dragColIdx===null||dragColIdx===idx)return;const next=[...listCols];const[moved]=next.splice(dragColIdx,1);next.splice(idx,0,moved);setListCols(next);setDragColIdx(null)}}
-                          onDragEnd={()=>setDragColIdx(null)}
-                          className={`text-left p-3 cursor-pointer select-none hover:bg-gray-100 whitespace-nowrap ${dragColIdx===idx?'opacity-40':''}`}
-                          onClick={()=>toggleListSort(col)}>
-                          <span className="inline-flex items-center gap-1">
-                            <span className="text-gray-300 cursor-grab text-xs mr-1">⠿</span>
-                            {label} {listSortCol===col?(listSortDir==='asc'?'↑':'↓'):<span className="text-gray-300">↕</span>}
-                          </span>
+                <div className="overflow-x-auto" style={{WebkitOverflowScrolling:'touch'}}>
+                  <table className="w-full text-xs" style={{minWidth:'480px'}}>
+                    <thead className="bg-gray-50 text-gray-600">
+                      <tr>
+                        <th className="p-2 w-8"><input type="checkbox" onChange={()=>toggleSelectAll(groupDeals)} checked={groupDeals.length>0&&groupDeals.every(d=>selectedIds.has(d.id))} /></th>
+                        <th className="text-left p-2 font-semibold cursor-pointer select-none hover:bg-gray-100 whitespace-nowrap" onClick={()=>toggleListSort('contact_name')}>
+                          Contatto {listSortCol==='contact_name'?(listSortDir==='asc'?'↑':'↓'):<span className="text-gray-300">↕</span>}
                         </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groupDeals.map(deal => (
-                      <tr key={deal.id} className={`border-t hover:bg-gray-50 ${selectedIds.has(deal.id)?'bg-blue-50':''}`}>
-                        <td className="p-3" onClick={e=>{e.stopPropagation();toggleSelect(deal.id)}}><input type="checkbox" checked={selectedIds.has(deal.id)} onChange={()=>toggleSelect(deal.id)} /></td>
-                        <td className="p-3 font-medium whitespace-nowrap">
-                          {inlineEdit?.id===deal.id&&inlineEdit.col==='contact_name'?(
-                            <input autoFocus className="border rounded px-2 py-1 text-sm w-36 font-medium" value={inlineEdit.val}
-                              onChange={e=>setInlineEdit({...inlineEdit,val:e.target.value})} onBlur={saveInlineEdit}
-                              onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />
-                          ):(
-                            <span className="cursor-pointer hover:text-blue-600 hover:underline rounded px-1 py-0.5" onClick={()=>goToDeal(deal)}>{deal.contact_name||<span className="text-gray-300 italic">—</span>}</span>
-                          )}
-                        </td>
-                        {listCols.map(({col})=>{
-                          const readonly = col==='created_at'||col==='weighted'
-                          const rawVal: any = (deal as any)[col]
-                          let display: any = rawVal
-                          if(col==='entry_date'||col==='appointment_date') display=formatDate(rawVal||'')
-                          else if(col==='created_at') display=formatDate((rawVal||'').split('T')[0])
-                          else if(col==='estimate') display=Number(rawVal)>0?`€ ${Number(rawVal).toLocaleString()}`:'-'
-                          else if(col==='probability') display=rawVal!=null?`${rawVal}%`:'-'
-                          else if(col==='weighted') { const w=deal.estimate&&deal.probability!=null?Math.round(deal.estimate*deal.probability/100):null; display=w!=null&&w>0?`€ ${w.toLocaleString()}`:'-' }
-                          else display=rawVal||'-'
-                          const isEditing=inlineEdit?.id===deal.id&&inlineEdit.col===col
-                          const editVal=inlineEdit?.val??''
-                          return (
-                            <td key={col} className={`p-3 whitespace-nowrap relative ${readonly?'text-gray-400':col==='estimate'||col==='weighted'?'text-green-600':col==='created_at'||col==='entry_date'||col==='appointment_date'?'text-gray-500':'text-gray-600'} ${readonly?'cursor-default':'cursor-text'}`}
-                              onClick={e=>{e.stopPropagation();if(readonly)return;const current=col==='entry_date'||col==='appointment_date'?rawVal||'':col==='estimate'||col==='probability'?String(rawVal||''):rawVal||'';setInlineEdit({id:deal.id,col,val:current})}}>
-                              {isEditing?(
-                                col==='stage'?(<select autoFocus className="border rounded px-2 py-1 text-xs" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>)
-                                :col==='probability'?(<select autoFocus className="border rounded px-2 py-1 text-xs" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()}><option value="">—</option>{PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select>)
-                                :col==='entry_date'||col==='appointment_date'?(<input autoFocus type="date" className="border rounded px-2 py-1 text-sm" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
-                                :col==='estimate'?(<input autoFocus type="number" className="border rounded px-2 py-1 text-sm w-28" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
-                                :col==='environment'?(
-                                  <div className="flex flex-wrap gap-1 bg-white border rounded-lg p-2 shadow-lg z-10 absolute" onClick={e=>e.stopPropagation()} style={{minWidth:'220px'}}>
-                                    {ENVIRONMENTS.map(env=>{const sel=editVal.split(',').map((s:string)=>s.trim()).filter(Boolean);const active=sel.includes(env);return <button key={env} type="button" className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`} onClick={e=>{e.stopPropagation();const next=active?sel.filter((x:string)=>x!==env):[...sel,env];setInlineEdit({...inlineEdit!,val:next.join(', ')})}}>{env}</button>})}
-                                    <div className="w-full flex justify-end gap-1 mt-1 pt-1 border-t">
-                                      <button className="text-xs text-gray-500 px-2 py-1 hover:text-gray-700" onClick={e=>{e.stopPropagation();setInlineEdit(null)}}>Annulla</button>
-                                      <button className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700" onClick={e=>{e.stopPropagation();saveInlineEdit()}}>OK</button>
-                                    </div>
-                                  </div>
-                                ):(<input autoFocus className="border rounded px-2 py-1 text-sm w-32" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
-                              ):(
-                                col==='stage'?<span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200">{display}</span>
-                                :col==='probability'&&rawVal!=null?<span className={`px-2 py-0.5 rounded-full text-xs font-medium ${PROB_COLORS[rawVal]||'bg-gray-100 text-gray-600'}`}>{display}</span>
-                                :<span className={`rounded px-1 py-0.5 ${readonly?'':'hover:bg-blue-50'}`}>{display}</span>
-                              )}
-                            </td>
-                          )
-                        })}
+                        {listCols.map(({label,col},idx)=>(
+                          <th key={col} draggable onDragStart={()=>setDragColIdx(idx)} onDragOver={e=>e.preventDefault()}
+                            onDrop={()=>{if(dragColIdx===null||dragColIdx===idx)return;const next=[...listCols];const[moved]=next.splice(dragColIdx,1);next.splice(idx,0,moved);setListCols(next);setDragColIdx(null)}}
+                            onDragEnd={()=>setDragColIdx(null)}
+                            className={`text-left p-2 cursor-pointer select-none hover:bg-gray-100 whitespace-nowrap ${dragColIdx===idx?'opacity-40':''}`}
+                            onClick={()=>toggleListSort(col)}>
+                            <span className="inline-flex items-center gap-0.5">
+                              {label} {listSortCol===col?(listSortDir==='asc'?'↑':'↓'):<span className="text-gray-300">↕</span>}
+                            </span>
+                          </th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {groupDeals.length===0 && <p className="text-center text-gray-400 py-8">Nessun contatto nel periodo selezionato</p>}
+                    </thead>
+                    <tbody>
+                      {groupDeals.map(deal => (
+                        <tr key={deal.id} className={`border-t hover:bg-gray-50 ${selectedIds.has(deal.id)?'bg-blue-50':''}`}>
+                          <td className="p-2" onClick={e=>{e.stopPropagation();toggleSelect(deal.id)}}><input type="checkbox" checked={selectedIds.has(deal.id)} onChange={()=>toggleSelect(deal.id)} /></td>
+                          <td className="p-2 font-medium whitespace-nowrap">
+                            {inlineEdit?.id===deal.id&&inlineEdit.col==='contact_name'?(
+                              <input autoFocus className="border rounded px-2 py-1 text-xs w-28 font-medium" value={inlineEdit.val}
+                                onChange={e=>setInlineEdit({...inlineEdit,val:e.target.value})} onBlur={saveInlineEdit}
+                                onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />
+                            ):(
+                              <span className="cursor-pointer hover:text-blue-600 hover:underline" onClick={()=>goToDeal(deal)}>{deal.contact_name||<span className="text-gray-300 italic">—</span>}</span>
+                            )}
+                          </td>
+                          {listCols.map(({col})=>{
+                            const readonly = col==='created_at'||col==='weighted'
+                            const rawVal: any = (deal as any)[col]
+                            let display: any = rawVal
+                            if(col==='entry_date'||col==='appointment_date') display=formatDate(rawVal||'')
+                            else if(col==='created_at') display=formatDate((rawVal||'').split('T')[0])
+                            else if(col==='estimate') display=Number(rawVal)>0?`€ ${Number(rawVal).toLocaleString()}`:'-'
+                            else if(col==='probability') display=rawVal!=null?`${rawVal}%`:'-'
+                            else if(col==='weighted') { const w=deal.estimate&&deal.probability!=null?Math.round(deal.estimate*deal.probability/100):null; display=w!=null&&w>0?`€ ${w.toLocaleString()}`:'-' }
+                            else display=rawVal||'-'
+                            const isEditing=inlineEdit?.id===deal.id&&inlineEdit.col===col
+                            const editVal=inlineEdit?.val??''
+                            return (
+                              <td key={col} className={`p-2 whitespace-nowrap relative ${readonly?'text-gray-400':col==='estimate'||col==='weighted'?'text-green-600':col==='created_at'||col==='entry_date'||col==='appointment_date'?'text-gray-500':'text-gray-600'} ${readonly?'cursor-default':'cursor-text'}`}
+                                onClick={e=>{e.stopPropagation();if(readonly)return;const current=col==='entry_date'||col==='appointment_date'?rawVal||'':col==='estimate'||col==='probability'?String(rawVal||''):rawVal||'';setInlineEdit({id:deal.id,col,val:current})}}>
+                                {isEditing?(
+                                  col==='stage'?(<select autoFocus className="border rounded px-2 py-1 text-xs" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>)
+                                  :col==='probability'?(<select autoFocus className="border rounded px-2 py-1 text-xs" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()}><option value="">—</option>{PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select>)
+                                  :col==='entry_date'||col==='appointment_date'?(<input autoFocus type="date" className="border rounded px-2 py-1 text-xs" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
+                                  :col==='estimate'?(<input autoFocus type="number" className="border rounded px-2 py-1 text-xs w-20" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
+                                  :col==='environment'?(
+                                    <div className="flex flex-wrap gap-1 bg-white border rounded-lg p-2 shadow-lg z-10 absolute" onClick={e=>e.stopPropagation()} style={{minWidth:'200px'}}>
+                                      {ENVIRONMENTS.map(env=>{const sel=editVal.split(',').map((s:string)=>s.trim()).filter(Boolean);const active=sel.includes(env);return <button key={env} type="button" className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`} onClick={e=>{e.stopPropagation();const next=active?sel.filter((x:string)=>x!==env):[...sel,env];setInlineEdit({...inlineEdit!,val:next.join(', ')})}}>{env}</button>})}
+                                      <div className="w-full flex justify-end gap-1 mt-1 pt-1 border-t">
+                                        <button className="text-xs text-gray-500 px-2 py-1" onClick={e=>{e.stopPropagation();setInlineEdit(null)}}>Annulla</button>
+                                        <button className="text-xs bg-blue-600 text-white px-2 py-1 rounded" onClick={e=>{e.stopPropagation();saveInlineEdit()}}>OK</button>
+                                      </div>
+                                    </div>
+                                  ):(<input autoFocus className="border rounded px-2 py-1 text-xs w-24" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
+                                ):(
+                                  col==='stage'?<span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs">{display}</span>
+                                  :col==='probability'&&rawVal!=null?<span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${PROB_COLORS[rawVal]||'bg-gray-100 text-gray-600'}`}>{display}</span>
+                                  :<span className={`rounded ${readonly?'':'hover:bg-blue-50'}`}>{display}</span>
+                                )}
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {groupDeals.length===0 && <p className="text-center text-gray-400 py-8 text-sm">Nessun contatto nel periodo</p>}
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* ── DASHBOARD ── */}
       {view==='dashboard' && (
-        <div className="p-6">
-          <div className="bg-white rounded-xl shadow p-4 mb-6">
-            <div className="flex flex-wrap gap-2 items-center">
+        <div className="p-3 sm:p-6">
+          <div className="bg-white rounded-xl shadow p-3 mb-4">
+            <div className="flex flex-wrap gap-1.5">
               <button onClick={()=>applyQuick('today')} className={btnClass('today')}>Oggi</button>
-              <button onClick={()=>applyQuick('week')} className={btnClass('week')}>Questa settimana</button>
-              <button onClick={()=>applyQuick('month')} className={btnClass('month')}>Questo mese</button>
-              <button onClick={()=>applyQuick('lastmonth')} className={btnClass('lastmonth')}>Scorso mese</button>
-              <button onClick={()=>applyQuick('alltime')} className={btnClass('alltime')}>Dall'inizio</button>
+              <button onClick={()=>applyQuick('week')} className={btnClass('week')}>Settimana</button>
+              <button onClick={()=>applyQuick('month')} className={btnClass('month')}>Mese</button>
+              <button onClick={()=>applyQuick('lastmonth')} className={btnClass('lastmonth')}>Scorso</button>
+              <button onClick={()=>applyQuick('alltime')} className={btnClass('alltime')}>Tutto</button>
               {activeQuick!=='alltime' && (
-                <div className="flex items-center gap-2 ml-2">
-                  <input type="date" className="border rounded-lg p-2 text-sm" value={dateFrom} onChange={e=>{setActiveQuick('custom');setDateFrom(e.target.value)}} />
-                  <span className="text-gray-500">→</span>
-                  <input type="date" className="border rounded-lg p-2 text-sm" value={dateTo} onChange={e=>{setActiveQuick('custom');setDateTo(e.target.value)}} />
+                <div className="flex items-center gap-1 w-full mt-1">
+                  <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={dateFrom} onChange={e=>{setActiveQuick('custom');setDateFrom(e.target.value)}} />
+                  <span className="text-gray-400 text-xs">→</span>
+                  <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={dateTo} onChange={e=>{setActiveQuick('custom');setDateTo(e.target.value)}} />
                 </div>
               )}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-green-500"><p className="text-gray-500 text-sm font-medium">Vendite certe (100%)</p><p className="text-3xl font-bold text-green-600 mt-1">€ {venditeCerte.toLocaleString()}</p><p className="text-xs text-gray-400 mt-1">{vendite.length} vendite</p></div>
-            <div className="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500"><p className="text-gray-500 text-sm font-medium">Pipeline ponderata</p><p className="text-3xl font-bold text-blue-600 mt-1">€ {Math.round(pipelineTotal).toLocaleString()}</p><p className="text-xs text-gray-400 mt-1">vendite + preventivi × probabilità</p></div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="col-span-2 bg-white rounded-xl shadow p-5">
-              <p className="font-semibold text-gray-700 mb-4">Ingressi per giorno</p>
-              {days.length===0?<p className="text-gray-400 text-sm">Nessun dato nel periodo</p>:(
-                <div className="flex items-end gap-1" style={{height:'120px'}}>
-                  {days.map(day=>{const count=dayMap[day];const parts=day.split('-');const label=`${parts[2]}/${parts[1]}`;return(
-                    <div key={day} className="flex flex-col items-center flex-1 min-w-0" title={`${formatDate(day)}: ${count} ingressi`}>
-                      <div className="w-full flex flex-col justify-end" style={{height:'100px'}}><div style={{height:`${Math.round((count/maxDay)*100)}px`}} className="bg-blue-400 w-full rounded-t-sm"/></div>
-                      <span className="text-gray-400 mt-1 truncate w-full text-center" style={{fontSize:'9px'}}>{label}</span>
-                    </div>
-                  )})}
-                </div>
-              )}
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-white rounded-xl shadow p-3 sm:p-5 border-l-4 border-green-500">
+              <p className="text-gray-500 text-xs">Vendite certe</p>
+              <p className="text-xl sm:text-3xl font-bold text-green-600 mt-1">€ {venditeCerte.toLocaleString()}</p>
+              <p className="text-xs text-gray-400">{vendite.length} vendite</p>
             </div>
-            <div className="flex flex-col gap-3">
-              <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">N° ingressi periodo</p><p className="text-2xl font-bold text-gray-800">{ingressiCount}</p></div>
-              <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Valore medio ingresso</p><p className="text-2xl font-bold text-gray-800">€ {avgIngresso.toLocaleString()}</p></div>
-              <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Valore medio vendita</p><p className="text-2xl font-bold text-green-600">€ {avgVendita.toLocaleString()}</p></div>
+            <div className="bg-white rounded-xl shadow p-3 sm:p-5 border-l-4 border-blue-500">
+              <p className="text-gray-500 text-xs">Pipeline pond.</p>
+              <p className="text-xl sm:text-3xl font-bold text-blue-600 mt-1">€ {Math.round(pipelineTotal).toLocaleString()}</p>
+              <p className="text-xs text-gray-400">× probabilità</p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Valore medio preventivo</p><p className="text-2xl font-bold text-blue-600">€ {avgPreventivo.toLocaleString()}</p><p className="text-xs text-gray-400">{preventivi.length} preventivi</p></div>
-            <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Tasso conv. all'ingresso</p><p className="text-2xl font-bold text-purple-600">{tassoConvIngresso}%</p><p className="text-xs text-gray-400">vendite / contatti con data ingresso</p></div>
-            <div className="bg-white rounded-xl shadow p-4"><p className="text-xs text-gray-500">Tasso conv. al preventivo</p><p className="text-2xl font-bold text-orange-500">{tassoConvPreventivo}%</p><p className="text-xs text-gray-400">vendite / (preventivi + vendite)</p></div>
+
+          <div className="bg-white rounded-xl shadow p-3 sm:p-5 mb-4">
+            <p className="font-semibold text-gray-700 text-sm mb-3">Ingressi per giorno</p>
+            {days.length===0?<p className="text-gray-400 text-sm">Nessun dato</p>:(
+              <div className="flex items-end gap-1" style={{height:'80px'}}>
+                {days.map(day=>{const count=dayMap[day];const parts=day.split('-');const label=`${parts[2]}/${parts[1]}`;return(
+                  <div key={day} className="flex flex-col items-center flex-1 min-w-0">
+                    <div className="w-full flex flex-col justify-end" style={{height:'65px'}}><div style={{height:`${Math.round((count/maxDay)*65)}px`}} className="bg-blue-400 w-full rounded-t-sm"/></div>
+                    <span className="text-gray-400 mt-0.5 truncate w-full text-center" style={{fontSize:'7px'}}>{label}</span>
+                  </div>
+                )})}
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            {[{title:'Valore venduto per ambiente',data:envSoldData,fmt:(v:number)=>`€ ${v.toLocaleString()}`},{title:'Ingressi per ambiente',data:envCountData,fmt:(v:number)=>`${v}`}].map(({title,data,fmt})=>(
-              <div key={title} className="bg-white rounded-xl shadow p-5">
-                <p className="font-semibold text-gray-700 text-sm mb-4">{title}</p>
-                <div className="flex items-center gap-4">
-                  <PieChart data={data} size={140}/>
-                  <div className="flex flex-col gap-1.5 text-xs flex-1 min-w-0">
-                    {data.filter(d=>d.value>0).map(d=>(<div key={d.label} className="flex items-center gap-1.5 min-w-0"><span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background:d.color}}/><span className="text-gray-600 truncate">{d.label}</span><span className="text-gray-400 ml-auto flex-shrink-0">{fmt(d.value)}</span></div>))}
+
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Ingressi</p><p className="text-xl font-bold text-gray-800">{ingressiCount}</p></div>
+            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Medio ingresso</p><p className="text-base font-bold text-gray-800">€ {avgIngresso.toLocaleString()}</p></div>
+            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Medio vendita</p><p className="text-base font-bold text-green-600">€ {avgVendita.toLocaleString()}</p></div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Medio prev.</p><p className="text-base font-bold text-blue-600">€ {avgPreventivo.toLocaleString()}</p></div>
+            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Conv. ingresso</p><p className="text-xl font-bold text-purple-600">{tassoConvIngresso}%</p></div>
+            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Conv. prev.</p><p className="text-xl font-bold text-orange-500">{tassoConvPreventivo}%</p></div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[{title:'Venduto per ambiente',data:envSoldData,fmt:(v:number)=>`€ ${v.toLocaleString()}`},{title:'Ingressi per ambiente',data:envCountData,fmt:(v:number)=>`${v}`}].map(({title,data,fmt})=>(
+              <div key={title} className="bg-white rounded-xl shadow p-3 sm:p-5">
+                <p className="font-semibold text-gray-700 text-sm mb-3">{title}</p>
+                <div className="flex items-center gap-3">
+                  <PieChart data={data} size={100}/>
+                  <div className="flex flex-col gap-1 text-xs flex-1 min-w-0">
+                    {data.filter(d=>d.value>0).map(d=>(<div key={d.label} className="flex items-center gap-1.5 min-w-0"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{background:d.color}}/><span className="text-gray-600 truncate">{d.label}</span><span className="text-gray-400 ml-auto flex-shrink-0">{fmt(d.value)}</span></div>))}
                     {data.every(d=>d.value===0)&&<p className="text-gray-400">Nessun dato</p>}
                   </div>
                 </div>
@@ -818,32 +881,29 @@ export default function CrmContent() {
         </div>
       )}
 
+      {/* ── LEAD ── */}
       {view==='leads' && (
-        <div className="p-6">
-          <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="p-3 sm:p-6">
+          <div className="flex gap-3 overflow-x-auto pb-4" style={{WebkitOverflowScrolling:'touch'}}>
             {(['Nuovo','Contattato','Qualificato','Non Qualificato'] as const).map(stage => {
               const stageLeads = leads.filter(l => (l.lead_stage||'Nuovo')===stage)
-              const isQualificato = stage==='Qualificato'
               return (
-                <div key={stage} className="flex-shrink-0 w-72">
-                  <div className={`rounded-t-xl px-4 py-3 flex items-center justify-between ${stage==='Nuovo'?'bg-gray-700':stage==='Contattato'?'bg-blue-600':stage==='Qualificato'?'bg-green-600':'bg-red-500'}`}>
+                <div key={stage} className="flex-shrink-0" style={{width:'220px'}}>
+                  <div className={`rounded-t-xl px-3 py-2.5 flex items-center justify-between ${stage==='Nuovo'?'bg-gray-700':stage==='Contattato'?'bg-blue-600':stage==='Qualificato'?'bg-green-600':'bg-red-500'}`}>
                     <span className="text-white font-semibold text-sm">{stage}</span>
                     <span className="bg-white bg-opacity-20 text-white text-xs px-2 py-0.5 rounded-full">{stageLeads.length}</span>
                   </div>
-                  <div className="bg-gray-100 rounded-b-xl p-2 flex flex-col gap-2 min-h-32" onDragOver={e=>e.preventDefault()} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData('leadId');if(id){await supabase.from('deals').update({lead_stage:stage}).eq('id',id);fetchDeals()}}}>
+                  <div className="bg-gray-100 rounded-b-xl p-2 flex flex-col gap-2 min-h-24" onDragOver={e=>e.preventDefault()} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData('leadId');if(id){await supabase.from('deals').update({lead_stage:stage}).eq('id',id);fetchDeals()}}}>
                     {stageLeads.map(lead => (
-                      <div key={lead.id} draggable onDragStart={e=>{e.dataTransfer.setData('leadId',lead.id)}} className="bg-white rounded-lg p-3 shadow hover:shadow-md cursor-grab active:cursor-grabbing group relative" onClick={()=>goToDeal(lead)}>
+                      <div key={lead.id} draggable onDragStart={e=>{e.dataTransfer.setData('leadId',lead.id)}} className="bg-white rounded-lg p-2.5 shadow cursor-grab active:cursor-grabbing" onClick={()=>goToDeal(lead)}>
                         <p className="font-semibold text-sm text-gray-800">{lead.contact_name}</p>
                         {lead.phone&&<p className="text-xs text-gray-500 mt-0.5">{lead.phone}</p>}
-                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                          {lead.origin&&<p className="text-xs text-blue-400">{lead.origin}</p>}
-                          {lead.environment&&<p className="text-xs text-green-600">{lead.environment}</p>}
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1">{formatDate(lead.created_at.split('T')[0])}</p>
-                        {isQualificato&&(<button onClick={e=>{e.stopPropagation();setConvertingLead(lead)}} className="mt-2 w-full text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">⇒ Converti in Pipeline</button>)}
+                        {(lead.origin||lead.environment)&&<div className="flex gap-2 mt-0.5">{lead.origin&&<p className="text-xs text-blue-400">{lead.origin}</p>}{lead.environment&&<p className="text-xs text-green-600">{lead.environment}</p>}</div>}
+                        <p className="text-xs text-gray-400 mt-0.5">{formatDate(lead.created_at.split('T')[0])}</p>
+                        {stage==='Qualificato'&&(<button onClick={e=>{e.stopPropagation();setConvertingLead(lead)}} className="mt-1.5 w-full text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">⇒ Converti</button>)}
                       </div>
                     ))}
-                    <button onClick={()=>setShowLeadForm(true)} className="text-xs text-gray-400 hover:text-gray-600 py-2 text-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">+ Aggiungi lead</button>
+                    <button onClick={()=>setShowLeadForm(true)} className="text-xs text-gray-400 py-2 text-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400">+ Aggiungi</button>
                   </div>
                 </div>
               )
@@ -852,140 +912,19 @@ export default function CrmContent() {
         </div>
       )}
 
-      {/* Modal Nuovo Affare */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Nuovo Affare</h2>
-            <div className="flex flex-col gap-3">
-              <input className="border rounded-lg p-2" placeholder="Nome contatto *" value={form.contact_name} onChange={e=>setForm({...form,contact_name:e.target.value})} />
-              <input className="border rounded-lg p-2" placeholder="Telefono" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} />
-              <input className="border rounded-lg p-2" placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} />
-              <input className="border rounded-lg p-2" placeholder="Origine (es. Meta Ads)" value={form.origin} onChange={e=>setForm({...form,origin:e.target.value})} />
-              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={form.environment} onChange={v=>setForm({...form,environment:v})} />
-              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-2" type="date" value={form.entry_date} onChange={e=>setForm({...form,entry_date:e.target.value})} />
-              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-2" type="date" value={form.appointment_date} onChange={e=>setForm({...form,appointment_date:e.target.value})} />
-              <input className="border rounded-lg p-2" type="number" placeholder="Preventivo (€)" value={form.estimate||''} onChange={e=>setForm({...form,estimate:Number(e.target.value)})} />
-              <input className="border rounded-lg p-2" placeholder="Tempi progettuali" value={form.project_timeline} onChange={e=>setForm({...form,project_timeline:e.target.value})} />
-              <select className="border rounded-lg p-2" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
-              {(form.stage==='Preventivo'||form.stage==='Vendita')&&(<div><label className="text-xs text-gray-500">Probabilità</label><select className="border rounded-lg p-2 w-full mt-1" value={form.probability??''} onChange={e=>setForm({...form,probability:e.target.value?Number(e.target.value):null})} disabled={form.stage==='Vendita'}>{form.stage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
-            </div>
-            <div className="flex gap-2 mt-4"><button onClick={addDeal} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Salva</button><button onClick={()=>setShowForm(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Quick Add */}
-      {quickAddStage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-            <h2 className="text-xl font-bold mb-1">Nuovo contatto</h2>
-            <p className="text-sm text-blue-600 mb-4 font-medium">Fase: {quickAddStage}</p>
-            <div className="flex flex-col gap-3">
-              <input className="border rounded-lg p-2" placeholder="Nome contatto *" value={quickForm.contact_name} onChange={e=>setQuickForm({...quickForm,contact_name:e.target.value})} />
-              <input className="border rounded-lg p-2" placeholder="Telefono" value={quickForm.phone} onChange={e=>setQuickForm({...quickForm,phone:e.target.value})} />
-              <input className="border rounded-lg p-2" placeholder="Email" value={quickForm.email} onChange={e=>setQuickForm({...quickForm,email:e.target.value})} />
-              <input className="border rounded-lg p-2" placeholder="Origine" value={quickForm.origin} onChange={e=>setQuickForm({...quickForm,origin:e.target.value})} />
-              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={quickForm.environment} onChange={v=>setQuickForm({...quickForm,environment:v})} />
-              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-2" type="date" value={quickForm.entry_date} onChange={e=>setQuickForm({...quickForm,entry_date:e.target.value})} />
-              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-2" type="date" value={quickForm.appointment_date} onChange={e=>setQuickForm({...quickForm,appointment_date:e.target.value})} />
-              <input className="border rounded-lg p-2" type="number" placeholder="Preventivo (€)" value={quickForm.estimate||''} onChange={e=>setQuickForm({...quickForm,estimate:Number(e.target.value)})} />
-              <input className="border rounded-lg p-2" placeholder="Tempi progettuali" value={quickForm.project_timeline} onChange={e=>setQuickForm({...quickForm,project_timeline:e.target.value})} />
-              {(quickAddStage==='Preventivo'||quickAddStage==='Vendita')&&(<div><label className="text-xs text-gray-500">Probabilità</label><select className="border rounded-lg p-2 w-full mt-1" value={quickForm.probability??''} onChange={e=>setQuickForm({...quickForm,probability:e.target.value?Number(e.target.value):null})} disabled={quickAddStage==='Vendita'}>{quickAddStage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
-            </div>
-            <div className="flex gap-2 mt-4"><button onClick={addQuickDeal} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Salva</button><button onClick={()=>setQuickAddStage(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Nuovo Ingresso */}
-      {showIngressoForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-screen overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Nuovo Ingresso</h2>
-            <div className="flex gap-2 mb-4">
-              <button onClick={()=>setIsNewContact(false)} className={`px-4 py-2 rounded-lg text-sm ${!isNewContact?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}`}>Contatto esistente</button>
-              <button onClick={()=>setIsNewContact(true)} className={`px-4 py-2 rounded-lg text-sm ${isNewContact?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}`}>Nuovo contatto</button>
-            </div>
-            {!isNewContact && (
-              <div className="relative mb-4">
-                <input className="border rounded-lg p-2 w-full" placeholder="Cerca per nome o telefono..." value={searchQuery} onChange={e=>searchContacts(e.target.value)} />
-                {searchResults.length>0&&(<div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">{searchResults.map(d=>(<div key={d.id} onClick={()=>selectExistingContact(d)} className="p-3 hover:bg-gray-50 cursor-pointer border-b"><p className="font-semibold text-sm">{d.contact_name}</p><p className="text-xs text-gray-500">{d.phone} · {d.email}</p></div>))}</div>)}
-                {searchQuery.length>=2&&searchResults.length===0&&<p className="text-sm text-gray-500 mt-2">Nessun contatto trovato. <button onClick={()=>setIsNewContact(true)} className="text-blue-600 underline">Crea nuovo</button></p>}
-              </div>
-            )}
-            <div className="flex flex-col gap-3">
-              <input className="border rounded-lg p-2" placeholder="Nome contatto *" value={ingressoForm.contact_name} onChange={e=>setIngressoForm({...ingressoForm,contact_name:e.target.value})} />
-              <input className="border rounded-lg p-2" placeholder="Telefono" value={ingressoForm.phone||''} onChange={e=>setIngressoForm({...ingressoForm,phone:e.target.value})} />
-              <input className="border rounded-lg p-2" placeholder="Email" value={ingressoForm.email||''} onChange={e=>setIngressoForm({...ingressoForm,email:e.target.value})} />
-              <input className="border rounded-lg p-2" placeholder="Origine (es. Meta Ads)" value={ingressoForm.origin||''} onChange={e=>setIngressoForm({...ingressoForm,origin:e.target.value})} />
-              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={ingressoForm.environment} onChange={v=>setIngressoForm({...ingressoForm,environment:v})} />
-              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-2" type="date" value={ingressoForm.entry_date} onChange={e=>setIngressoForm({...ingressoForm,entry_date:e.target.value})} />
-              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-2" type="date" value={ingressoForm.appointment_date} onChange={e=>setIngressoForm({...ingressoForm,appointment_date:e.target.value})} />
-              <input className="border rounded-lg p-2" type="number" placeholder="Preventivo (€)" value={ingressoForm.estimate||''} onChange={e=>setIngressoForm({...ingressoForm,estimate:Number(e.target.value)})} />
-              <input className="border rounded-lg p-2" placeholder="Tempi progettuali" value={ingressoForm.project_timeline||''} onChange={e=>setIngressoForm({...ingressoForm,project_timeline:e.target.value})} />
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={addIngresso} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Salva Ingresso</button>
-              <button onClick={()=>{setShowIngressoForm(false);setSearchQuery('');setSearchResults([]);setIsNewContact(false)}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {saleDatePopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[70]">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="text-lg font-bold mb-1">Contatto aggiudicato! 🏆</h3>
-            <p className="text-gray-600 text-sm mb-4">Inserisci la data di vendita:</p>
-            <input type="date" className="border rounded-lg p-2 w-full mb-4" value={saleDateValue} onChange={e=>setSaleDateValue(e.target.value)} />
-            <div className="flex gap-2">
-              <button onClick={confirmSaleDate} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-medium">Conferma</button>
-              <button onClick={()=>{setSaleDatePopup(null);fetchDeals()}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {confirmBulkDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="text-lg font-bold mb-2">Conferma eliminazione</h3>
-            <p className="text-gray-600 text-sm mb-5">Sei sicuro di voler eliminare <strong>{selectedIds.size} contatti</strong>? L'operazione è irreversibile.</p>
-            <div className="flex gap-2"><button onClick={bulkDelete} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Sì, elimina</button><button onClick={()=>setConfirmBulkDelete(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
-          </div>
-        </div>
-      )}
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="text-lg font-bold mb-2">Conferma eliminazione</h3>
-            <p className="text-gray-600 text-sm mb-5">Sei sicuro di voler eliminare questo contatto? L'operazione è irreversibile.</p>
-            <div className="flex gap-2"><button onClick={()=>deleteDeal(confirmDelete)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Sì, elimina</button><button onClick={()=>setConfirmDelete(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
-          </div>
-        </div>
-      )}
-      {confirmLogout && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="text-lg font-bold mb-2">Conferma uscita</h3>
-            <p className="text-gray-600 text-sm mb-5">Sei sicuro di voler uscire?</p>
-            <div className="flex gap-2"><button onClick={()=>{supabase.auth.signOut();window.location.replace('/login')}} className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900">Sì, esci</button><button onClick={()=>setConfirmLogout(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button></div>
-          </div>
-        </div>
-      )}
-
+      {/* ── TASK ── */}
       {view==='tasks' && (
-        <div className="p-6 max-w-4xl mx-auto">
-          <div className="bg-white rounded-xl shadow p-5">
+        <div className="p-3 sm:p-6 max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl shadow p-4">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg font-bold text-gray-800">Tutti i Task</h2>
-                <button onClick={()=>setShowNewTask(true)} className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-orange-600">+ Nuova Task</button>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-gray-800">Task</h2>
+                <button onClick={()=>setShowNewTask(true)} className="bg-orange-500 text-white px-2.5 py-1.5 rounded-lg text-xs hover:bg-orange-600">+ Nuova</button>
               </div>
               <div className="flex border rounded-lg overflow-hidden">
-                <button onClick={()=>setTaskFilter('todo')} className={`px-3 py-1.5 text-sm ${taskFilter==='todo'?'bg-orange-500 text-white':'bg-white text-gray-600 hover:bg-gray-50'}`}>Da fare</button>
-                <button onClick={()=>setTaskFilter('done')} className={`px-3 py-1.5 text-sm ${taskFilter==='done'?'bg-orange-500 text-white':'bg-white text-gray-600 hover:bg-gray-50'}`}>Completati</button>
-                <button onClick={()=>setTaskFilter('all')} className={`px-3 py-1.5 text-sm ${taskFilter==='all'?'bg-orange-500 text-white':'bg-white text-gray-600 hover:bg-gray-50'}`}>Tutti</button>
+                <button onClick={()=>setTaskFilter('todo')} className={`px-2.5 py-1.5 text-xs ${taskFilter==='todo'?'bg-orange-500 text-white':'bg-white text-gray-600'}`}>Da fare</button>
+                <button onClick={()=>setTaskFilter('done')} className={`px-2.5 py-1.5 text-xs ${taskFilter==='done'?'bg-orange-500 text-white':'bg-white text-gray-600'}`}>Fatti</button>
+                <button onClick={()=>setTaskFilter('all')} className={`px-2.5 py-1.5 text-xs ${taskFilter==='all'?'bg-orange-500 text-white':'bg-white text-gray-600'}`}>Tutti</button>
               </div>
             </div>
             {(()=>{
@@ -995,7 +934,7 @@ export default function CrmContent() {
               const groups: Record<string,typeof filtered>={}
               filtered.forEach(t=>{const day=t.due_date||t.created_at.split('T')[0];if(!groups[day])groups[day]=[];groups[day].push(t)})
               return (
-                <div className="flex flex-col gap-4 mt-2">
+                <div className="flex flex-col gap-4">
                   {Object.entries(groups).map(([day,tasks])=>(
                     <div key={day}>
                       <div className="flex items-center gap-2 mb-2">
@@ -1004,23 +943,23 @@ export default function CrmContent() {
                       </div>
                       <div className="flex flex-col divide-y border rounded-lg overflow-hidden">
                         {(tasks as any[]).map(task=>(
-                          <div key={task.id} className="flex items-start gap-3 px-3 py-2.5 bg-white hover:bg-gray-50 group">
+                          <div key={task.id} className="flex items-start gap-3 px-3 py-3 bg-white hover:bg-gray-50 group">
                             <input type="checkbox" checked={task.done} onChange={async()=>{await supabase.from('tasks').update({done:!task.done}).eq('id',task.id);fetchDeals()}} className="mt-0.5 cursor-pointer flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               {editingTask?.id===task.id?(
                                 <div className="flex flex-col gap-2 py-1">
-                                  <input className="border rounded p-1.5 text-sm w-full" value={editingTask!.title} onChange={e=>setEditingTask(t=>t?{...t,title:e.target.value}:t)} autoFocus />
-                                  <input type="date" className="border rounded p-1 text-xs" value={editingTask!.due_date} onChange={e=>setEditingTask(t=>t?{...t,due_date:e.target.value}:t)} />
+                                  <input className="border rounded p-2 text-sm w-full" value={editingTask!.title} onChange={e=>setEditingTask(t=>t?{...t,title:e.target.value}:t)} autoFocus />
+                                  <input type="date" className="border rounded p-2 text-xs" value={editingTask!.due_date} onChange={e=>setEditingTask(t=>t?{...t,due_date:e.target.value}:t)} />
                                   <div className="relative">
-                                    <input className="border rounded p-1.5 text-xs w-full" placeholder="Associa contatto..." value={editTaskSearch}
+                                    <input className="border rounded p-2 text-xs w-full" placeholder="Associa contatto..." value={editTaskSearch}
                                       onChange={async e=>{setEditTaskSearch(e.target.value);if(e.target.value.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5);setEditTaskSearchResults(data||[])}else setEditTaskSearchResults([])}} />
-                                    {editTaskSearchResults.length>0&&(<div className="absolute z-10 left-0 right-0 border rounded bg-white shadow-lg mt-0.5 max-h-32 overflow-y-auto">{editTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setEditingTask(t=>t?{...t,deal_id:d.id,deal_name:d.contact_name}:t);setEditTaskSearch(d.contact_name);setEditTaskSearchResults([])}} className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 border-b last:border-0"><span className="font-medium">{d.contact_name}</span><span className="text-gray-400 ml-2">{d.stage}</span></button>))}<button onClick={()=>{setEditingTask(t=>t?{...t,deal_id:'',deal_name:''}:t);setEditTaskSearch('');setEditTaskSearchResults([])}} className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-50">✕ Rimuovi</button></div>)}
+                                    {editTaskSearchResults.length>0&&(<div className="absolute z-10 left-0 right-0 border rounded bg-white shadow-lg mt-0.5 max-h-32 overflow-y-auto">{editTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setEditingTask(t=>t?{...t,deal_id:d.id,deal_name:d.contact_name}:t);setEditTaskSearch(d.contact_name);setEditTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b"><span className="font-medium">{d.contact_name}</span></button>))}</div>)}
                                     {editingTask!.deal_name&&!editTaskSearchResults.length&&<p className="text-xs text-green-600 mt-0.5">✓ {editingTask!.deal_name}</p>}
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <button onClick={async()=>{const et=editingTask!;await supabase.from('tasks').update({title:et.title,due_date:et.due_date||null,deal_id:et.deal_id||null}).eq('id',task.id);setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([]);fetchDeals()}} className="text-xs bg-orange-500 text-white px-2 py-1 rounded hover:bg-orange-600">Salva</button>
-                                    <button onClick={()=>{setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([])}} className="text-xs text-gray-400 hover:text-gray-600">Annulla</button>
-                                    <button onClick={async()=>{if(confirm('Eliminare questa task?')){await supabase.from('tasks').delete().eq('id',task.id);setEditingTask(null);fetchDeals()}}} className="text-xs text-red-400 hover:text-red-600 ml-auto">Elimina</button>
+                                    <button onClick={async()=>{const et=editingTask!;await supabase.from('tasks').update({title:et.title,due_date:et.due_date||null,deal_id:et.deal_id||null}).eq('id',task.id);setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([]);fetchDeals()}} className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded">Salva</button>
+                                    <button onClick={()=>{setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([])}} className="text-xs text-gray-400">Annulla</button>
+                                    <button onClick={async()=>{if(confirm('Eliminare?')){await supabase.from('tasks').delete().eq('id',task.id);setEditingTask(null);fetchDeals()}}} className="text-xs text-red-400 ml-auto">Elimina</button>
                                   </div>
                                 </div>
                               ):(
@@ -1029,12 +968,12 @@ export default function CrmContent() {
                                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                     {task.deals?.contact_name&&<button onClick={()=>router.push(`/deal/${task.deal_id}`)} className="text-xs text-blue-500 hover:underline">{task.deals.contact_name}</button>}
                                     {task.deals?.stage&&<span className="text-xs text-gray-400">{task.deals.stage}</span>}
-                                    {task.auto&&<span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
+                                    {task.auto&&<span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">auto</span>}
                                   </div>
                                 </>
                               )}
                             </div>
-                            {editingTask?.id!==task.id&&(<button onClick={()=>{setEditingTask({id:task.id,title:task.title,due_date:task.due_date||'',deal_id:task.deal_id||'',deal_name:task.deals?.contact_name||''});setEditTaskSearch(task.deals?.contact_name||'');setEditTaskSearchResults([])}} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-orange-400 text-xs mt-0.5 transition-opacity">✎</button>)}
+                            {editingTask?.id!==task.id&&(<button onClick={()=>{setEditingTask({id:task.id,title:task.title,due_date:task.due_date||'',deal_id:task.deal_id||'',deal_name:task.deals?.contact_name||''});setEditTaskSearch(task.deals?.contact_name||'');setEditTaskSearchResults([])}} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-orange-400 text-sm p-1">✎</button>)}
                           </div>
                         ))}
                       </div>
@@ -1047,58 +986,177 @@ export default function CrmContent() {
         </div>
       )}
 
+      {/* ── MODALI (sheet su mobile) ── */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Nuovo Affare</h2>
+            <div className="flex flex-col gap-3">
+              <input className="border rounded-lg p-3" placeholder="Nome contatto *" value={form.contact_name} onChange={e=>setForm({...form,contact_name:e.target.value})} />
+              <input className="border rounded-lg p-3" placeholder="Telefono" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} />
+              <input className="border rounded-lg p-3" placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} />
+              <input className="border rounded-lg p-3" placeholder="Origine" value={form.origin} onChange={e=>setForm({...form,origin:e.target.value})} />
+              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={form.environment} onChange={v=>setForm({...form,environment:v})} />
+              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-3" type="date" value={form.entry_date} onChange={e=>setForm({...form,entry_date:e.target.value})} />
+              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-3" type="date" value={form.appointment_date} onChange={e=>setForm({...form,appointment_date:e.target.value})} />
+              <input className="border rounded-lg p-3" type="number" placeholder="Preventivo (€)" value={form.estimate||''} onChange={e=>setForm({...form,estimate:Number(e.target.value)})} />
+              <input className="border rounded-lg p-3" placeholder="Tempi progettuali" value={form.project_timeline} onChange={e=>setForm({...form,project_timeline:e.target.value})} />
+              <select className="border rounded-lg p-3" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
+              {(form.stage==='Preventivo'||form.stage==='Vendita')&&(<div><label className="text-xs text-gray-500">Probabilità</label><select className="border rounded-lg p-3 w-full mt-1" value={form.probability??''} onChange={e=>setForm({...form,probability:e.target.value?Number(e.target.value):null})} disabled={form.stage==='Vendita'}>{form.stage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
+            </div>
+            <div className="flex gap-2 mt-5"><button onClick={addDeal} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium">Salva</button><button onClick={()=>setShowForm(false)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+          </div>
+        </div>
+      )}
+
+      {quickAddStage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-1">Nuovo contatto</h2>
+            <p className="text-sm text-blue-600 mb-4 font-medium">Fase: {quickAddStage}</p>
+            <div className="flex flex-col gap-3">
+              <input className="border rounded-lg p-3" placeholder="Nome contatto *" value={quickForm.contact_name} onChange={e=>setQuickForm({...quickForm,contact_name:e.target.value})} />
+              <input className="border rounded-lg p-3" placeholder="Telefono" value={quickForm.phone} onChange={e=>setQuickForm({...quickForm,phone:e.target.value})} />
+              <input className="border rounded-lg p-3" placeholder="Email" value={quickForm.email} onChange={e=>setQuickForm({...quickForm,email:e.target.value})} />
+              <input className="border rounded-lg p-3" placeholder="Origine" value={quickForm.origin} onChange={e=>setQuickForm({...quickForm,origin:e.target.value})} />
+              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={quickForm.environment} onChange={v=>setQuickForm({...quickForm,environment:v})} />
+              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-3" type="date" value={quickForm.entry_date} onChange={e=>setQuickForm({...quickForm,entry_date:e.target.value})} />
+              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-3" type="date" value={quickForm.appointment_date} onChange={e=>setQuickForm({...quickForm,appointment_date:e.target.value})} />
+              <input className="border rounded-lg p-3" type="number" placeholder="Preventivo (€)" value={quickForm.estimate||''} onChange={e=>setQuickForm({...quickForm,estimate:Number(e.target.value)})} />
+              <input className="border rounded-lg p-3" placeholder="Tempi progettuali" value={quickForm.project_timeline} onChange={e=>setQuickForm({...quickForm,project_timeline:e.target.value})} />
+              {(quickAddStage==='Preventivo'||quickAddStage==='Vendita')&&(<div><label className="text-xs text-gray-500">Probabilità</label><select className="border rounded-lg p-3 w-full mt-1" value={quickForm.probability??''} onChange={e=>setQuickForm({...quickForm,probability:e.target.value?Number(e.target.value):null})} disabled={quickAddStage==='Vendita'}>{quickAddStage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
+            </div>
+            <div className="flex gap-2 mt-5"><button onClick={addQuickDeal} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium">Salva</button><button onClick={()=>setQuickAddStage(null)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+          </div>
+        </div>
+      )}
+
+      {showIngressoForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">Nuovo Ingresso</h2>
+            <div className="flex gap-2 mb-4">
+              <button onClick={()=>setIsNewContact(false)} className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${!isNewContact?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}`}>Esistente</button>
+              <button onClick={()=>setIsNewContact(true)} className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${isNewContact?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}`}>Nuovo</button>
+            </div>
+            {!isNewContact && (
+              <div className="relative mb-4">
+                <input className="border rounded-lg p-3 w-full" placeholder="Cerca per nome o telefono..." value={searchQuery} onChange={e=>searchContacts(e.target.value)} />
+                {searchResults.length>0&&(<div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">{searchResults.map(d=>(<div key={d.id} onClick={()=>selectExistingContact(d)} className="p-3 hover:bg-gray-50 cursor-pointer border-b"><p className="font-semibold text-sm">{d.contact_name}</p><p className="text-xs text-gray-500">{d.phone}</p></div>))}</div>)}
+                {searchQuery.length>=2&&searchResults.length===0&&<p className="text-sm text-gray-500 mt-2">Nessuno. <button onClick={()=>setIsNewContact(true)} className="text-blue-600 underline">Crea nuovo</button></p>}
+              </div>
+            )}
+            <div className="flex flex-col gap-3">
+              <input className="border rounded-lg p-3" placeholder="Nome contatto *" value={ingressoForm.contact_name} onChange={e=>setIngressoForm({...ingressoForm,contact_name:e.target.value})} />
+              <input className="border rounded-lg p-3" placeholder="Telefono" value={ingressoForm.phone||''} onChange={e=>setIngressoForm({...ingressoForm,phone:e.target.value})} />
+              <input className="border rounded-lg p-3" placeholder="Email" value={ingressoForm.email||''} onChange={e=>setIngressoForm({...ingressoForm,email:e.target.value})} />
+              <input className="border rounded-lg p-3" placeholder="Origine" value={ingressoForm.origin||''} onChange={e=>setIngressoForm({...ingressoForm,origin:e.target.value})} />
+              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={ingressoForm.environment} onChange={v=>setIngressoForm({...ingressoForm,environment:v})} />
+              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-3" type="date" value={ingressoForm.entry_date} onChange={e=>setIngressoForm({...ingressoForm,entry_date:e.target.value})} />
+              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-3" type="date" value={ingressoForm.appointment_date} onChange={e=>setIngressoForm({...ingressoForm,appointment_date:e.target.value})} />
+              <input className="border rounded-lg p-3" type="number" placeholder="Preventivo (€)" value={ingressoForm.estimate||''} onChange={e=>setIngressoForm({...ingressoForm,estimate:Number(e.target.value)})} />
+              <input className="border rounded-lg p-3" placeholder="Tempi progettuali" value={ingressoForm.project_timeline||''} onChange={e=>setIngressoForm({...ingressoForm,project_timeline:e.target.value})} />
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={addIngresso} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Salva Ingresso</button>
+              <button onClick={()=>{setShowIngressoForm(false);setSearchQuery('');setSearchResults([]);setIsNewContact(false)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {saleDatePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[70]">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-1">Contatto aggiudicato! 🏆</h3>
+            <p className="text-gray-600 text-sm mb-4">Inserisci la data di vendita:</p>
+            <input type="date" className="border rounded-lg p-3 w-full mb-4" value={saleDateValue} onChange={e=>setSaleDateValue(e.target.value)} />
+            <div className="flex gap-2"><button onClick={confirmSaleDate} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Conferma</button><button onClick={()=>{setSaleDatePopup(null);fetchDeals()}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+          </div>
+        </div>
+      )}
+      {confirmBulkDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[60]">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-2">Conferma eliminazione</h3>
+            <p className="text-gray-600 text-sm mb-5">Eliminare <strong>{selectedIds.size} contatti</strong>? Irreversibile.</p>
+            <div className="flex gap-2"><button onClick={bulkDelete} className="flex-1 bg-red-500 text-white py-3 rounded-lg">Elimina</button><button onClick={()=>setConfirmBulkDelete(false)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+          </div>
+        </div>
+      )}
+      {confirmDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[60]">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-2">Conferma eliminazione</h3>
+            <p className="text-gray-600 text-sm mb-5">Eliminare questo contatto? Irreversibile.</p>
+            <div className="flex gap-2"><button onClick={()=>deleteDeal(confirmDelete)} className="flex-1 bg-red-500 text-white py-3 rounded-lg">Elimina</button><button onClick={()=>setConfirmDelete(null)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+          </div>
+        </div>
+      )}
+      {confirmLogout && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[60]">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-2">Conferma uscita</h3>
+            <p className="text-gray-600 text-sm mb-5">Sei sicuro di voler uscire?</p>
+            <div className="flex gap-2"><button onClick={()=>{supabase.auth.signOut();window.location.replace('/login')}} className="flex-1 bg-gray-800 text-white py-3 rounded-lg">Esci</button><button onClick={()=>setConfirmLogout(false)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+          </div>
+        </div>
+      )}
+
       {showNewTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-md shadow-xl">
             <h2 className="text-lg font-bold mb-4">Nuova Task</h2>
             <div className="flex flex-col gap-3">
-              <div><label className="text-xs text-gray-500">Titolo *</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" placeholder="Es. Richiamare cliente..." value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm,title:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Data scadenza</label><input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={newTaskForm.due_date} onChange={e=>setNewTaskForm({...newTaskForm,due_date:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Titolo *</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Es. Richiamare cliente..." value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm,title:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Data scadenza</label><input type="date" className="border rounded-lg p-3 w-full mt-1 text-sm" value={newTaskForm.due_date} onChange={e=>setNewTaskForm({...newTaskForm,due_date:e.target.value})} /></div>
               <div>
-                <label className="text-xs text-gray-500">Associa a contatto (opzionale)</label>
-                <input className="border rounded-lg p-2 w-full mt-1 text-sm" placeholder="Cerca per nome o telefono..." value={newTaskSearch} onChange={async e=>{setNewTaskSearch(e.target.value);if(e.target.value.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5);setNewTaskSearchResults(data||[])}else{setNewTaskSearchResults([])}}} />
-                {newTaskSearchResults.length>0&&(<div className="border rounded-lg mt-1 bg-white shadow-lg max-h-40 overflow-y-auto">{newTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:d.id});setNewTaskSearch(d.contact_name);setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0"><span className="font-medium">{d.contact_name}</span>{d.phone&&<span className="text-gray-400 ml-2 text-xs">{d.phone}</span>}<span className="text-xs text-blue-400 ml-2">{d.stage}</span></button>))}<button onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:''});setNewTaskSearch('');setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-xs text-gray-400 hover:bg-gray-50">✕ Nessuna associazione</button></div>)}
-                {newTaskForm.deal_id&&<p className="text-xs text-green-600 mt-1">✓ Associata a: {newTaskSearch}</p>}
+                <label className="text-xs text-gray-500">Associa a contatto</label>
+                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Cerca..." value={newTaskSearch} onChange={async e=>{setNewTaskSearch(e.target.value);if(e.target.value.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5);setNewTaskSearchResults(data||[])}else{setNewTaskSearchResults([])}}} />
+                {newTaskSearchResults.length>0&&(<div className="border rounded-lg mt-1 bg-white shadow-lg max-h-40 overflow-y-auto">{newTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:d.id});setNewTaskSearch(d.contact_name);setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0"><span className="font-medium">{d.contact_name}</span></button>))}</div>)}
+                {newTaskForm.deal_id&&<p className="text-xs text-green-600 mt-1">✓ {newTaskSearch}</p>}
               </div>
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={async()=>{if(!newTaskForm.title.trim())return;await supabase.from('tasks').insert({title:newTaskForm.title.trim(),due_date:newTaskForm.due_date||null,deal_id:newTaskForm.deal_id||null,auto:false,done:false});setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([]);setShowNewTask(false);fetchDeals()}} className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">Salva</button>
-              <button onClick={()=>{setShowNewTask(false);setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([])}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+              <button onClick={async()=>{if(!newTaskForm.title.trim())return;await supabase.from('tasks').insert({title:newTaskForm.title.trim(),due_date:newTaskForm.due_date||null,deal_id:newTaskForm.deal_id||null,auto:false,done:false});setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([]);setShowNewTask(false);fetchDeals()}} className="flex-1 bg-orange-500 text-white py-3 rounded-lg font-medium">Salva</button>
+              <button onClick={()=>{setShowNewTask(false);setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([])}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
             </div>
           </div>
         </div>
       )}
 
       {showLeadForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-md shadow-xl">
             <h2 className="text-lg font-bold mb-4">Nuovo Lead</h2>
             <div className="flex flex-col gap-3">
-              <div><label className="text-xs text-gray-500">Nome *</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.contact_name} onChange={e=>setLeadForm({...leadForm,contact_name:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Telefono</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.phone} onChange={e=>setLeadForm({...leadForm,phone:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Email</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.email} onChange={e=>setLeadForm({...leadForm,email:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Origine</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.origin} onChange={e=>setLeadForm({...leadForm,origin:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Nome *</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" value={leadForm.contact_name} onChange={e=>setLeadForm({...leadForm,contact_name:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Telefono</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" value={leadForm.phone} onChange={e=>setLeadForm({...leadForm,phone:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Email</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" value={leadForm.email} onChange={e=>setLeadForm({...leadForm,email:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Origine</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" value={leadForm.origin} onChange={e=>setLeadForm({...leadForm,origin:e.target.value})} /></div>
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={async()=>{if(!leadForm.contact_name.trim())return;const{data:newLead}=await supabase.from('deals').insert({title:leadForm.contact_name,contact_name:leadForm.contact_name,phone:leadForm.phone||null,email:leadForm.email||null,origin:leadForm.origin||null,stage:'Qualificato',is_lead:true,lead_stage:'Nuovo',probability:null}).select().single();if(newLead)await createAutoTaskIfNeeded(newLead.id,'Contattare il contatto');setLeadForm({contact_name:'',phone:'',email:'',origin:''});setShowLeadForm(false);fetchDeals()}} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">Salva</button>
-              <button onClick={()=>{setShowLeadForm(false);setLeadForm({contact_name:'',phone:'',email:'',origin:''})}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+              <button onClick={async()=>{if(!leadForm.contact_name.trim())return;const{data:newLead}=await supabase.from('deals').insert({title:leadForm.contact_name,contact_name:leadForm.contact_name,phone:leadForm.phone||null,email:leadForm.email||null,origin:leadForm.origin||null,stage:'Qualificato',is_lead:true,lead_stage:'Nuovo',probability:null}).select().single();if(newLead)await createAutoTaskIfNeeded(newLead.id,'Contattare il contatto');setLeadForm({contact_name:'',phone:'',email:'',origin:''});setShowLeadForm(false);fetchDeals()}} className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-medium">Salva</button>
+              <button onClick={()=>{setShowLeadForm(false);setLeadForm({contact_name:'',phone:'',email:'',origin:''})}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
             </div>
           </div>
         </div>
       )}
 
       {convertingLead && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-md shadow-xl">
             <h2 className="text-lg font-bold mb-2">Converti in Contatto</h2>
-            <p className="text-gray-600 text-sm mb-4"><strong>{convertingLead.contact_name}</strong> verrà aggiunto alla pipeline principale come <span className="text-blue-600 font-medium">Qualificato</span>.</p>
+            <p className="text-gray-600 text-sm mb-4"><strong>{convertingLead.contact_name}</strong> → Pipeline come <span className="text-blue-600 font-medium">Qualificato</span>.</p>
             <div className="flex gap-2">
-              <button onClick={async()=>{await supabase.from('deals').update({is_lead:false,lead_stage:null,stage:'Qualificato',probability:25}).eq('id',convertingLead.id);await logStageChange(convertingLead.id,convertingLead.lead_stage||'Lead','Qualificato');setConvertingLead(null);fetchDeals()}} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Converti</button>
-              <button onClick={()=>setConvertingLead(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+              <button onClick={async()=>{await supabase.from('deals').update({is_lead:false,lead_stage:null,stage:'Qualificato',probability:25}).eq('id',convertingLead.id);await logStageChange(convertingLead.id,convertingLead.lead_stage||'Lead','Qualificato');setConvertingLead(null);fetchDeals()}} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium">Converti</button>
+              <button onClick={()=>setConvertingLead(null)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
             </div>
           </div>
         </div>
       )}
+
+      </div>
     </div>
   )
 }
