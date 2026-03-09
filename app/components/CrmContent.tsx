@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 
-const STAGES = ['Nuovo Lead', 'Qualificato', 'Appuntamento fissato', 'Ingresso', 'Preventivo', 'Vendita', 'Non convertito']
+const STAGES = ['Qualificato', 'Appuntamento fissato', 'Ingresso', 'Preventivo', 'Vendita', 'Non convertito']
 const ENVIRONMENTS = ['Cucina', 'Soggiorno', 'Camera da letto', 'Cameretta', 'Tavoli e sedie', 'Altro']
 const PROB_OPTIONS = [0, 25, 50, 75, 90, 100]
 const PROB_COLORS: Record<number, string> = { 0: 'bg-gray-100 text-gray-500', 25: 'bg-red-100 text-red-700', 50: 'bg-orange-100 text-orange-700', 75: 'bg-yellow-100 text-yellow-700', 90: 'bg-blue-100 text-blue-700', 100: 'bg-green-100 text-green-700' }
@@ -13,11 +13,11 @@ interface Deal {
   id: string; title: string; contact_name: string; phone: string; email: string
   origin: string; environment: string; entry_date: string; appointment_date: string
   estimate: number; project_timeline: string; stage: string; created_at: string
-  probability: number | null
+  probability: number | null; is_lead: boolean; lead_stage: string
 }
 
-const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Nuovo Lead', probability: null as number | null }
-type View = 'kanban' | 'list' | 'dashboard'
+const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Qualificato', probability: null as number | null }
+type View = 'kanban' | 'list' | 'dashboard' | 'leads'
 type QuickRange = 'today' | 'week' | 'month' | 'lastmonth' | 'alltime' | 'custom'
 
 function formatDate(dateStr: string) {
@@ -158,6 +158,11 @@ export default function CrmContent() {
   const monthRange = getCurrentMonthRange()
   const [kanbanVenditaFrom, setKanbanVenditaFrom] = useState(monthRange.from)
   const [kanbanVenditaTo, setKanbanVenditaTo] = useState(monthRange.to)
+  // Leads
+  const [leads, setLeads] = useState<Deal[]>([])
+  const [showLeadForm, setShowLeadForm] = useState(false)
+  const [leadForm, setLeadForm] = useState({contact_name:'', phone:'', email:'', origin:''})
+  const [convertingLead, setConvertingLead] = useState<Deal|null>(null)
   // Dashboard
   const dashWeek = getRangeForQuick('week')
   const [dateFrom, setDateFrom] = useState(dashWeek.from)
@@ -173,8 +178,10 @@ export default function CrmContent() {
   }, [])
 
   async function fetchDeals() {
-    const { data } = await supabase.from('deals').select('*').order('created_at', { ascending: false })
+    const { data } = await supabase.from('deals').select('*').eq('is_lead', false).order('created_at', { ascending: false })
     setDeals(data || [])
+    const { data: ldata } = await supabase.from('deals').select('*').eq('is_lead', true).order('created_at', { ascending: false })
+    setLeads(ldata || [])
   }
 
   function buildRpcParams(f: typeof emptyDeal, stage?: string) {
@@ -525,13 +532,15 @@ export default function CrmContent() {
       <div className="bg-white shadow px-6 py-4 flex justify-between items-center">
         <h1 className="text-xl font-bold text-gray-800">PENSARE CASA C.so Regina</h1>
         <div className="flex gap-2 items-center">
+          <button onClick={()=>setView('leads')} className={`px-3 py-2 text-sm rounded-lg border mr-3 ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'}`}>Lead</button>
           <div className="flex border rounded-lg overflow-hidden mr-2">
             <button onClick={()=>setView('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Kanban</button>
             <button onClick={()=>setView('list')} className={`px-3 py-2 text-sm ${view==='list'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Lista</button>
             <button onClick={()=>setView('dashboard')} className={`px-3 py-2 text-sm ${view==='dashboard'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Dashboard</button>
           </div>
-          <button onClick={()=>setShowIngressoForm(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">+ Nuovo Ingresso</button>
-          <button onClick={()=>setShowForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Nuovo Affare</button>
+          {view==='leads' && <button onClick={()=>setShowLeadForm(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">+ Nuovo Lead</button>}
+          {view!=='leads' && <button onClick={()=>setShowIngressoForm(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">+ Nuovo Ingresso</button>}
+          {view!=='leads' && <button onClick={()=>setShowForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Nuovo Affare</button>}
           <button onClick={()=>setConfirmLogout(true)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Esci</button>
         </div>
       </div>
@@ -884,6 +893,58 @@ export default function CrmContent() {
         </div>
       )}
 
+      {/* LEADS */}
+      {view==='leads' && (
+        <div className="p-6">
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {(['Nuovo','Contattato','Qualificato','Non Qualificato'] as const).map(stage => {
+              const stageLeads = leads.filter(l => (l.lead_stage || 'Nuovo') === stage)
+              const isQualificato = stage === 'Qualificato'
+              return (
+                <div key={stage} className="flex-shrink-0 w-72">
+                  <div className={`rounded-t-xl px-4 py-3 flex items-center justify-between ${
+                    stage==='Nuovo' ? 'bg-gray-700' :
+                    stage==='Contattato' ? 'bg-blue-600' :
+                    stage==='Qualificato' ? 'bg-green-600' :
+                    'bg-red-500'
+                  }`}>
+                    <span className="text-white font-semibold text-sm">{stage}</span>
+                    <span className="bg-white bg-opacity-20 text-white text-xs px-2 py-0.5 rounded-full">{stageLeads.length}</span>
+                  </div>
+                  <div className="bg-gray-100 rounded-b-xl p-2 flex flex-col gap-2 min-h-32"
+                    onDragOver={e=>e.preventDefault()}
+                    onDrop={async e=>{e.preventDefault(); const id=e.dataTransfer.getData('leadId'); if(id){ await supabase.from('deals').update({lead_stage:stage}).eq('id',id); fetchDeals()}}}>
+                    {stageLeads.map(lead => (
+                      <div key={lead.id}
+                        draggable
+                        onDragStart={e=>{e.dataTransfer.setData('leadId',lead.id)}}
+                        className="bg-white rounded-lg p-3 shadow hover:shadow-md cursor-grab active:cursor-grabbing group relative"
+                        onClick={() => goToDeal(lead)}>
+                        <p className="font-semibold text-sm text-gray-800">{lead.contact_name}</p>
+                        {lead.phone && <p className="text-xs text-gray-500 mt-0.5">{lead.phone}</p>}
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                          {lead.origin && <p className="text-xs text-blue-400">{lead.origin}</p>}
+                          {lead.environment && <p className="text-xs text-green-600">{lead.environment}</p>}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">{formatDate(lead.created_at.split('T')[0])}</p>
+                        {isQualificato && (
+                          <button onClick={e=>{e.stopPropagation(); setConvertingLead(lead)}}
+                            className="mt-2 w-full text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">⇒ Converti in Pipeline</button>
+                        )}
+                      </div>
+                    ))}
+                    <button onClick={()=>setShowLeadForm(true)}
+                      className="text-xs text-gray-400 hover:text-gray-600 py-2 text-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
+                      + Aggiungi lead
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Modal Nuovo Affare */}
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1117,6 +1178,50 @@ export default function CrmContent() {
             <div className="flex gap-2">
               <button onClick={()=>{supabase.auth.signOut();window.location.replace('/login')}} className="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900">Sì, esci</button>
               <button onClick={()=>setConfirmLogout(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Annulla</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LEAD FORM */}
+      {showLeadForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-bold mb-4">Nuovo Lead</h2>
+            <div className="flex flex-col gap-3">
+              <div><label className="text-xs text-gray-500">Nome *</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.contact_name} onChange={e=>setLeadForm({...leadForm, contact_name:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Telefono</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.phone} onChange={e=>setLeadForm({...leadForm, phone:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Email</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.email} onChange={e=>setLeadForm({...leadForm, email:e.target.value})} /></div>
+              <div><label className="text-xs text-gray-500">Origine</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={leadForm.origin} onChange={e=>setLeadForm({...leadForm, origin:e.target.value})} /></div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={async()=>{
+                if(!leadForm.contact_name.trim()) return
+                await supabase.from('deals').insert({
+                  title: leadForm.contact_name, contact_name: leadForm.contact_name,
+                  phone: leadForm.phone||null, email: leadForm.email||null, origin: leadForm.origin||null,
+                  stage: 'Qualificato', is_lead: true, lead_stage: 'Nuovo', probability: null,
+                })
+                setLeadForm({contact_name:'',phone:'',email:'',origin:''}); setShowLeadForm(false); fetchDeals()
+              }} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">Salva</button>
+              <button onClick={()=>{setShowLeadForm(false);setLeadForm({contact_name:'',phone:'',email:'',origin:''})}} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONVERTI LEAD */}
+      {convertingLead && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-bold mb-2">Converti in Contatto</h2>
+            <p className="text-gray-600 text-sm mb-4"><strong>{convertingLead.contact_name}</strong> verrà aggiunto alla pipeline principale come <span className="text-blue-600 font-medium">Qualificato</span>.</p>
+            <div className="flex gap-2">
+              <button onClick={async()=>{
+                await supabase.from('deals').update({ is_lead: false, lead_stage: null, stage: 'Qualificato', probability: 25 }).eq('id', convertingLead.id)
+                setConvertingLead(null); fetchDeals()
+              }} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Converti</button>
+              <button onClick={()=>setConvertingLead(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
             </div>
           </div>
         </div>
