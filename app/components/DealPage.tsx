@@ -90,7 +90,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
   const [showSaleDatePopup, setShowSaleDatePopup] = useState(false)
   const [saleDateInput, setSaleDateInput] = useState(new Date().toISOString().split('T')[0])
   const [showMoveFromVenditaPopup, setShowMoveFromVenditaPopup] = useState(false)
-  const [pendingEditDeal, setPendingEditDeal] = useState<typeof editDeal>(null)
+  const [pendingEditDeal, setPendingEditDeal] = useState<Deal | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -141,19 +141,19 @@ export default function DealPage({ dealId }: { dealId: string }) {
     }
     // Se viene spostato da Vendita, chiedi cosa fare
     if (oldStage === 'Vendita' && editDeal.stage !== 'Vendita') {
-      setPendingEditDeal(editDeal)
+      setPendingEditDeal(editDeal as Deal)
       setShowMoveFromVenditaPopup(true)
       return
     }
-    await doSaveDeal(editDeal, oldStage)
+    await doSaveDeal(editDeal as Deal, oldStage)
   }
 
-  async function doSaveDeal(ed: NonNullable<typeof editDeal>, oldStage: string | undefined, overrideNewDeal?: boolean) {
+  async function doSaveDeal(ed: Deal, oldStage: string | undefined, overrideNewDeal?: boolean) {
     setSaving(true); setSaveError('')
     // Probabilità automatica per fase
     const prob = ed.stage === 'Vendita' ? 100
       : ed.stage === 'Non convertito' ? 0
-      : ed.stage === 'Preventivo' ? 50
+      : ed.stage === 'Preventivo' ? (ed.probability ?? 50)
       : null
     const saleDate = ed.stage === 'Vendita' ? (ed.sale_date || null) : null
     if (overrideNewDeal) {
