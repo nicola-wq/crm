@@ -9,9 +9,9 @@ const ENVIRONMENTS = ['Cucina', 'Soggiorno', 'Camera da letto', 'Cameretta', 'Ta
 const PROB_OPTIONS = [0, 25, 50, 75, 90, 100]
 const TIMELINES = ['Entro 3 mesi', 'Tra 3 mesi e 6 mesi', 'Oltre 6 mesi']
 const PROB_COLORS: Record<number, string> = {
-  0: 'bg-gray-100 text-gray-500', 25: 'bg-red-100 text-red-700',
-  50: 'bg-orange-100 text-orange-700', 75: 'bg-yellow-100 text-yellow-700',
-  90: 'bg-blue-100 text-blue-700', 100: 'bg-green-100 text-green-700'
+  0: 'bg-white/30 text-[#9490A0]', 25: 'bg-red-100/60 text-red-700',
+  50: 'bg-[#E76F51]/10 text-[#E76F51]', 75: 'bg-yellow-100/60 text-yellow-700',
+  90: 'bg-[#1D3557]/10 text-[#1D3557]', 100: 'bg-[#2A9D8F]/10 text-[#2A9D8F]'
 }
 
 interface Deal {
@@ -53,7 +53,7 @@ function EnvSelect({ value, onChange }: { value: string, onChange: (v: string) =
     <div className="flex flex-wrap gap-2 mt-1">
       {ENVIRONMENTS.map(env => (
         <button key={env} type="button" onClick={() => toggle(env)}
-          className={`px-3 py-1 rounded-full text-xs border transition-colors ${selected.includes(env) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
+          className={`px-3 py-1 rounded-full text-xs border transition-colors ${selected.includes(env) ? 'bg-[#1D3557] text-white border-[#1D3557]' : 'bg-white/50 text-[#5C5862] border-white/30 hover:border-[#1D3557]/40'}`}>
           {env}
         </button>
       ))}
@@ -62,8 +62,8 @@ function EnvSelect({ value, onChange }: { value: string, onChange: (v: string) =
 }
 
 const stageColor: Record<string, string> = {
-  'Qualificato': 'bg-gray-100 text-gray-600',
-  'Appuntamento fissato': 'bg-blue-100 text-blue-700',
+  'Qualificato': 'bg-white/40 text-[#5C5862]',
+  'Appuntamento fissato': 'bg-[#1D3557]/10 text-[#1D3557]',
   'Ingresso': 'bg-cyan-100 text-cyan-700',
   'Preventivo': 'bg-yellow-100 text-yellow-700',
   'Vendita': 'bg-green-100 text-green-700',
@@ -296,8 +296,8 @@ export default function DealPage({ dealId }: { dealId: string }) {
   }
 
   if (!deal) return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <p className="text-gray-500">Caricamento...</p>
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-[#9490A0]">Caricamento...</p>
     </div>
   )
 
@@ -322,29 +322,29 @@ export default function DealPage({ dealId }: { dealId: string }) {
   const isIngresso = deal.stage === 'Ingresso'
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-white shadow px-3 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-4">
-        <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 flex items-center gap-1 text-sm">
+    <div className="min-h-screen">
+      <div className="px-3 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-4 sticky top-0 z-40" style={{background:"rgba(255,255,255,0.55)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:"1px solid rgba(255,255,255,0.3)"}}>
+        <button onClick={() => router.back()} className="text-[#9490A0] hover:text-[#1A1A1A] flex items-center gap-1 text-sm">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Indietro
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-gray-800">{deal.title || deal.contact_name || '—'}</h1>
+          <h1 className="text-xl font-bold text-[#1A1A1A]">{deal.title || deal.contact_name || '—'}</h1>
           {deal.contact_id && (
-            <button onClick={() => router.push(`/contact/${deal.contact_id}`)} className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-0.5">
+            <button onClick={() => router.push(`/contact/${deal.contact_id}`)} className="text-xs text-[#1D3557] hover:underline flex items-center gap-1 mt-0.5">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
               Scheda contatto
             </button>
           )}
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">{deal.stage}</span>
+            <span className="bg-[#1D3557]/10 text-[#1D3557] px-2 py-0.5 rounded text-xs">{deal.stage}</span>
             {deal.probability != null && (
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PROB_COLORS[deal.probability] || 'bg-gray-100 text-gray-600'}`}>{deal.probability}%</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PROB_COLORS[deal.probability] || 'bg-white/40 text-[#5C5862]'}`}>{deal.probability}%</span>
             )}
-            {deal.estimate > 0 && <span className="text-green-600 text-sm font-semibold">€ {deal.estimate.toLocaleString()}</span>}
+            {deal.estimate > 0 && <span className="text-[#2A9D8F] text-sm font-semibold">€ {deal.estimate.toLocaleString()}</span>}
           </div>
         </div>
-        <button onClick={() => router.push('/')} className="text-gray-400 hover:text-blue-600 transition-colors" title="Homepage">
+        <button onClick={() => router.push('/')} className="text-[#9490A0] hover:text-[#1D3557] transition-colors" title="Homepage">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
         </button>
       </div>
@@ -352,14 +352,14 @@ export default function DealPage({ dealId }: { dealId: string }) {
       <div className="max-w-5xl mx-auto p-3 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         {/* LEFT */}
         <div className="col-span-1">
-          <div className="bg-white rounded-xl shadow p-5">
+          <div className="card p-5">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-bold text-gray-700">Informazioni</h2>
+              <h2 className="font-bold text-[#5C5862]">Informazioni</h2>
               {!editMode
-                ? <button onClick={() => setEditMode(true)} className="text-xs text-blue-600 hover:underline">Modifica</button>
+                ? <button onClick={() => setEditMode(true)} className="text-xs text-[#1D3557] hover:underline">Modifica</button>
                 : <div className="flex gap-2">
-                    <button onClick={saveDeal} disabled={saving} className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">{saving ? '...' : 'Salva'}</button>
-                    <button onClick={() => { setEditMode(false); setEditDeal({ ...deal }) }} className="text-xs text-gray-500 hover:underline">Annulla</button>
+                    <button onClick={saveDeal} disabled={saving} className="text-xs text-white bg-[#1D3557] px-3 py-1 rounded hover:bg-[#2A4A7F]">{saving ? '...' : 'Salva'}</button>
+                    <button onClick={() => { setEditMode(false); setEditDeal({ ...deal }) }} className="text-xs text-[#9490A0] hover:underline">Annulla</button>
                   </div>
               }
             </div>
@@ -367,39 +367,39 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
             {!editMode ? (
               <div className="flex flex-col gap-2 text-sm">
-                {deal.phone && <div><span className="text-gray-400 text-xs">Telefono</span><p className="text-gray-800">{deal.phone}</p></div>}
-                {deal.email && <div><span className="text-gray-400 text-xs">Email</span><p className="text-gray-800">{deal.email}</p></div>}
-                {deal.origin && <div><span className="text-gray-400 text-xs">Origine</span><p className="text-gray-800">{deal.origin}</p></div>}
-                {deal.environment && <div><span className="text-gray-400 text-xs">Ambiente</span><p className="text-gray-800">{deal.environment}</p></div>}
-                {deal.entry_date && <div><span className="text-gray-400 text-xs">Data ingresso</span><p className="text-gray-800">{formatDate(deal.entry_date)}</p></div>}
-                {deal.appointment_date && <div><span className="text-gray-400 text-xs">Appuntamento</span><p className="text-gray-800">{formatDate(deal.appointment_date)}</p></div>}
-                {deal.sale_date && <div><span className="text-gray-400 text-xs">Data vendita</span><p className="text-green-600 font-semibold">{formatDate(deal.sale_date)}</p></div>}
-                {deal.estimate > 0 && <div><span className="text-gray-400 text-xs">Preventivo</span><p className="text-green-600 font-semibold">€ {deal.estimate.toLocaleString()}</p></div>}
+                {deal.phone && <div><span className="text-[#9490A0] text-xs">Telefono</span><p className="text-[#1A1A1A]">{deal.phone}</p></div>}
+                {deal.email && <div><span className="text-[#9490A0] text-xs">Email</span><p className="text-[#1A1A1A]">{deal.email}</p></div>}
+                {deal.origin && <div><span className="text-[#9490A0] text-xs">Origine</span><p className="text-[#1A1A1A]">{deal.origin}</p></div>}
+                {deal.environment && <div><span className="text-[#9490A0] text-xs">Ambiente</span><p className="text-[#1A1A1A]">{deal.environment}</p></div>}
+                {deal.entry_date && <div><span className="text-[#9490A0] text-xs">Data ingresso</span><p className="text-[#1A1A1A]">{formatDate(deal.entry_date)}</p></div>}
+                {deal.appointment_date && <div><span className="text-[#9490A0] text-xs">Appuntamento</span><p className="text-[#1A1A1A]">{formatDate(deal.appointment_date)}</p></div>}
+                {deal.sale_date && <div><span className="text-[#9490A0] text-xs">Data vendita</span><p className="text-[#2A9D8F] font-semibold">{formatDate(deal.sale_date)}</p></div>}
+                {deal.estimate > 0 && <div><span className="text-[#9490A0] text-xs">Preventivo</span><p className="text-[#2A9D8F] font-semibold">€ {deal.estimate.toLocaleString()}</p></div>}
                 {deal.estimate > 0 && deal.probability != null && (
-                  <div><span className="text-gray-400 text-xs">Valore ponderato</span><p className="text-blue-600 font-semibold">€ {Math.round(deal.estimate * deal.probability / 100).toLocaleString()}</p></div>
+                  <div><span className="text-[#9490A0] text-xs">Valore ponderato</span><p className="text-[#1D3557] font-semibold">€ {Math.round(deal.estimate * deal.probability / 100).toLocaleString()}</p></div>
                 )}
-                {deal.project_timeline && <div><span className="text-gray-400 text-xs">Tempi progettuali</span><p className="text-gray-800">{deal.project_timeline}</p></div>}
-                <div><span className="text-gray-400 text-xs">Inserito il</span><p className="text-gray-600">{formatDateTime(deal.created_at)}</p></div>
+                {deal.project_timeline && <div><span className="text-[#9490A0] text-xs">Tempi progettuali</span><p className="text-[#1A1A1A]">{deal.project_timeline}</p></div>}
+                <div><span className="text-[#9490A0] text-xs">Inserito il</span><p className="text-[#5C5862]">{formatDateTime(deal.created_at)}</p></div>
               </div>
             ) : (
               <div className="flex flex-col gap-3 text-sm">
-                <div><label className="text-xs text-gray-400">Nome affare</label><input className="border rounded-lg p-2 w-full mt-1 text-sm font-medium" value={editDeal?.title || ''} onChange={e => setEditDeal({ ...editDeal!, title: e.target.value })} placeholder="Es. Mario Rossi | Cucina" /></div>
-                <div><label className="text-xs text-gray-400">Contatto</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.contact_name || ''} onChange={e => setEditDeal({ ...editDeal!, contact_name: e.target.value })} /></div>
-                <div><label className="text-xs text-gray-400">Telefono</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.phone || ''} onChange={e => setEditDeal({ ...editDeal!, phone: e.target.value })} /></div>
-                <div><label className="text-xs text-gray-400">Email</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.email || ''} onChange={e => setEditDeal({ ...editDeal!, email: e.target.value })} /></div>
-                <div><label className="text-xs text-gray-400">Origine</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.origin || ''} onChange={e => setEditDeal({ ...editDeal!, origin: e.target.value })} /></div>
-                <div><label className="text-xs text-gray-400">Ambiente</label><EnvSelect value={editDeal?.environment || ''} onChange={v => setEditDeal({ ...editDeal!, environment: v })} /></div>
-                <div><label className="text-xs text-gray-400">Data ingresso</label><input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.entry_date || ''} onChange={e => setEditDeal({ ...editDeal!, entry_date: e.target.value })} /></div>
-                <div><label className="text-xs text-gray-400">Data appuntamento</label><input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.appointment_date || ''} onChange={e => setEditDeal({ ...editDeal!, appointment_date: e.target.value })} /></div>
-                <div><label className="text-xs text-gray-400">Preventivo (€)</label><input type="number" className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.estimate || ''} onChange={e => setEditDeal({ ...editDeal!, estimate: Number(e.target.value) })} /></div>
-                <div><label className="text-xs text-gray-400">Tempi progettuali</label>
-                  <select className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.project_timeline || ''} onChange={e => setEditDeal({ ...editDeal!, project_timeline: e.target.value })}>
+                <div><label className="text-xs text-[#9490A0]">Nome affare</label><input className="border rounded-xl p-2 w-full mt-1 text-sm font-medium" value={editDeal?.title || ''} onChange={e => setEditDeal({ ...editDeal!, title: e.target.value })} placeholder="Es. Mario Rossi | Cucina" /></div>
+                <div><label className="text-xs text-[#9490A0]">Contatto</label><input className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.contact_name || ''} onChange={e => setEditDeal({ ...editDeal!, contact_name: e.target.value })} /></div>
+                <div><label className="text-xs text-[#9490A0]">Telefono</label><input className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.phone || ''} onChange={e => setEditDeal({ ...editDeal!, phone: e.target.value })} /></div>
+                <div><label className="text-xs text-[#9490A0]">Email</label><input className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.email || ''} onChange={e => setEditDeal({ ...editDeal!, email: e.target.value })} /></div>
+                <div><label className="text-xs text-[#9490A0]">Origine</label><input className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.origin || ''} onChange={e => setEditDeal({ ...editDeal!, origin: e.target.value })} /></div>
+                <div><label className="text-xs text-[#9490A0]">Ambiente</label><EnvSelect value={editDeal?.environment || ''} onChange={v => setEditDeal({ ...editDeal!, environment: v })} /></div>
+                <div><label className="text-xs text-[#9490A0]">Data ingresso</label><input type="date" className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.entry_date || ''} onChange={e => setEditDeal({ ...editDeal!, entry_date: e.target.value })} /></div>
+                <div><label className="text-xs text-[#9490A0]">Data appuntamento</label><input type="date" className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.appointment_date || ''} onChange={e => setEditDeal({ ...editDeal!, appointment_date: e.target.value })} /></div>
+                <div><label className="text-xs text-[#9490A0]">Preventivo (€)</label><input type="number" className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.estimate || ''} onChange={e => setEditDeal({ ...editDeal!, estimate: Number(e.target.value) })} /></div>
+                <div><label className="text-xs text-[#9490A0]">Tempi progettuali</label>
+                  <select className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.project_timeline || ''} onChange={e => setEditDeal({ ...editDeal!, project_timeline: e.target.value })}>
                     <option value="">—</option>
                     {TIMELINES.map(t => <option key={t}>{t}</option>)}
                   </select>
                 </div>
-                <div><label className="text-xs text-gray-400">Fase</label>
-                  <select className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.stage} onChange={e => {
+                <div><label className="text-xs text-[#9490A0]">Fase</label>
+                  <select className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.stage} onChange={e => {
                     const s = e.target.value
                     const autoProb = s === 'Vendita' ? 100 : s === 'Non convertito' ? 0 : s === 'Preventivo' ? 50 : (editDeal?.probability ?? null)
                     setEditDeal({ ...editDeal!, stage: s, probability: autoProb })
@@ -407,8 +407,8 @@ export default function DealPage({ dealId }: { dealId: string }) {
                     {STAGES.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
-                <div><label className="text-xs text-gray-400">Probabilità</label>
-                  <select className="border rounded-lg p-2 w-full mt-1 text-sm"
+                <div><label className="text-xs text-[#9490A0]">Probabilità</label>
+                  <select className="border rounded-xl p-2 w-full mt-1 text-sm"
                     value={editDeal?.probability ?? ''}
                     disabled={editDeal?.stage === 'Vendita' || editDeal?.stage === 'Non convertito'}
                     onChange={e => setEditDeal({ ...editDeal!, probability: e.target.value !== '' ? Number(e.target.value) : null })}>
@@ -416,14 +416,14 @@ export default function DealPage({ dealId }: { dealId: string }) {
                     {PROB_OPTIONS.map(p => <option key={p} value={p}>{p}%</option>)}
                   </select>
                   {(editDeal?.stage === 'Vendita' || editDeal?.stage === 'Non convertito' || editDeal?.stage === 'Preventivo') && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-[#9490A0] mt-1">
                       {editDeal.stage === 'Vendita' ? '✓ Automatico: 100%' : editDeal.stage === 'Non convertito' ? '✓ Automatico: 0%' : '✓ Default: 50%'}
                     </p>
                   )}
                 </div>
                 {editDeal?.stage === 'Vendita' && (
-                  <div><label className="text-xs text-gray-400">Data vendita</label>
-                    <input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.sale_date || ''} onChange={e => setEditDeal({ ...editDeal!, sale_date: e.target.value })} />
+                  <div><label className="text-xs text-[#9490A0]">Data vendita</label>
+                    <input type="date" className="border rounded-xl p-2 w-full mt-1 text-sm" value={editDeal?.sale_date || ''} onChange={e => setEditDeal({ ...editDeal!, sale_date: e.target.value })} />
                   </div>
                 )}
               </div>
@@ -431,51 +431,51 @@ export default function DealPage({ dealId }: { dealId: string }) {
           </div>
 
           {/* Task */}
-          <div className="bg-white rounded-xl shadow p-5 mt-4">
-            <h2 className="font-bold text-gray-700 mb-3">Task</h2>
+          <div className="card p-5 mt-4">
+            <h2 className="font-bold text-[#5C5862] mb-3">Task</h2>
             <div className="flex flex-col gap-2 mb-4">
-              {tasks.length === 0 && <p className="text-gray-400 text-sm">Nessun task</p>}
+              {tasks.length === 0 && <p className="text-[#9490A0] text-sm">Nessun task</p>}
               {tasks.map(task => (
-                <div key={task.id} className={`rounded-lg border ${task.done ? 'bg-gray-50 border-gray-100' : 'bg-white border-gray-200'}`}>
+                <div key={task.id} className={`rounded-xl border ${task.done ? 'bg-white/20 border-white/20' : 'bg-white border-white/20'}`}>
                   {editingTaskId === task.id ? (
                     <div className="flex flex-col gap-2 p-3">
-                      <input className="border rounded-lg p-2 text-sm w-full" value={editingTaskTitle} onChange={e => setEditingTaskTitle(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') setEditingTaskId(null) }} />
-                      <input type="date" className="border rounded-lg p-2 text-sm w-full" value={editingTaskDue} onChange={e => setEditingTaskDue(e.target.value)} />
+                      <input className="border rounded-xl p-2 text-sm w-full" value={editingTaskTitle} onChange={e => setEditingTaskTitle(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') setEditingTaskId(null) }} />
+                      <input type="date" className="border rounded-xl p-2 text-sm w-full" value={editingTaskDue} onChange={e => setEditingTaskDue(e.target.value)} />
                       <div className="flex gap-2 mt-1">
-                        <button onClick={async () => { await supabase.from('tasks').update({ title: editingTaskTitle.trim(), due_date: editingTaskDue || null }).eq('id', task.id); setEditingTaskId(null); fetchAll() }} className="flex-1 bg-orange-500 text-white py-2 rounded-lg text-sm font-medium">Salva</button>
-                        <button onClick={() => setEditingTaskId(null)} className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm">Annulla</button>
+                        <button onClick={async () => { await supabase.from('tasks').update({ title: editingTaskTitle.trim(), due_date: editingTaskDue || null }).eq('id', task.id); setEditingTaskId(null); fetchAll() }} className="flex-1 text-white bg-[#E76F51] py-2 rounded-xl text-sm font-medium">Salva</button>
+                        <button onClick={() => setEditingTaskId(null)} className="flex-1 bg-white/40 text-[#5C5862] py-2 rounded-xl text-sm">Annulla</button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-start gap-2 p-2.5">
                       <input type="checkbox" checked={task.done} onChange={() => toggleTask(task.id, task.done)} className="mt-0.5 cursor-pointer flex-shrink-0" />
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { setEditingTaskId(task.id); setEditingTaskTitle(task.title); setEditingTaskDue(task.due_date || '') }}>
-                        <p className={`text-sm ${task.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.title}</p>
+                        <p className={`text-sm ${task.done ? 'line-through text-[#9490A0]' : 'text-[#5C5862]'}`}>{task.title}</p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {task.due_date && <p className="text-xs text-orange-500">{formatDate(task.due_date)}</p>}
-                          {task.auto && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
-                          {!task.done && <span className="text-xs text-gray-300">✎ modifica</span>}
+                          {task.due_date && <p className="text-xs text-[#E76F51]">{formatDate(task.due_date)}</p>}
+                          {task.auto && <span className="text-xs bg-[#7B2D8B]/10 text-[#7B2D8B] px-1.5 py-0.5 rounded">automatico</span>}
+                          {!task.done && <span className="text-xs text-[#9490A0]">✎ modifica</span>}
                         </div>
                       </div>
-                      <button onClick={() => setConfirmDeleteTask(task.id)} className="text-gray-300 hover:text-red-400 text-sm p-1 flex-shrink-0">✕</button>
+                      <button onClick={() => setConfirmDeleteTask(task.id)} className="text-[#9490A0] hover:text-red-400 text-sm p-1 flex-shrink-0">✕</button>
                     </div>
                   )}
                 </div>
               ))}
             </div>
             <div className="flex flex-col gap-2">
-              <input className="border rounded-lg p-2 text-sm" placeholder="Nuovo task..." value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addTask() }} />
+              <input className="border rounded-xl p-2 text-sm" placeholder="Nuovo task..." value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addTask() }} />
               <div className="flex gap-2">
-                <input type="date" className="border rounded-lg p-2 text-sm flex-1" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} />
-                <button onClick={addTask} className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-900">Aggiungi</button>
+                <input type="date" className="border rounded-xl p-2 text-sm flex-1" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} />
+                <button onClick={addTask} className="text-white bg-[#1D3557] px-3 py-2 rounded-xl text-sm hover:bg-[#2A4A7F]">Aggiungi</button>
               </div>
             </div>
           </div>
 
           {/* Sezione affari/ingressi correlati */}
           {deal.contact_id && relatedDeals.length > 0 && (
-            <div className="bg-white rounded-xl shadow p-5 mt-4">
-              <h2 className="font-bold text-gray-700 mb-3">
+            <div className="card p-5 mt-4">
+              <h2 className="font-bold text-[#5C5862] mb-3">
                 {isIngresso ? 'Affari collegati' : 'Ingressi e affari collegati'}
               </h2>
 
@@ -484,16 +484,16 @@ export default function DealPage({ dealId }: { dealId: string }) {
                 <div className="flex flex-col gap-2">
                   {relatedAffari.map(d => (
                     <div key={d.id} onClick={() => router.push(`/deal/${d.id}`)}
-                      className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-colors">
+                      className="flex items-center gap-3 p-2.5 rounded-xl border border-white/20 hover:border-[#1D3557]/20 hover:bg-[#1D3557]/5 cursor-pointer transition-colors">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 truncate">{d.title || d.contact_name}</p>
+                        <p className="text-sm font-semibold text-[#1A1A1A] truncate">{d.title || d.contact_name}</p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stageColor[d.stage] || 'bg-gray-100 text-gray-600'}`}>{d.stage}</span>
-                          {d.environment && <span className="text-xs text-gray-500">{d.environment}</span>}
-                          {d.estimate > 0 && <span className="text-xs text-green-600 font-semibold">€ {d.estimate.toLocaleString()}</span>}
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stageColor[d.stage] || 'bg-white/40 text-[#5C5862]'}`}>{d.stage}</span>
+                          {d.environment && <span className="text-xs text-[#9490A0]">{d.environment}</span>}
+                          {d.estimate > 0 && <span className="text-xs text-[#2A9D8F] font-semibold">€ {d.estimate.toLocaleString()}</span>}
                         </div>
                       </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-[#9490A0] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
                     </div>
                   ))}
                 </div>
@@ -504,19 +504,19 @@ export default function DealPage({ dealId }: { dealId: string }) {
                 <>
                   {relatedIngressi.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Ingressi</p>
+                      <p className="text-xs font-semibold text-[#9490A0] uppercase tracking-wide mb-2">Ingressi</p>
                       <div className="flex flex-col gap-2">
                         {relatedIngressi.map(d => (
                           <div key={d.id} onClick={() => router.push(`/deal/${d.id}`)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl border border-cyan-100 hover:border-cyan-300 hover:bg-cyan-50 cursor-pointer transition-colors">
+                            className="flex items-center gap-3 p-2.5 rounded-xl border border-[#2A9D8F]/15 hover:border-[#2A9D8F]/30 hover:bg-[#2A9D8F]/5 cursor-pointer transition-colors">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-800 truncate">{d.title || d.contact_name}</p>
+                              <p className="text-sm font-semibold text-[#1A1A1A] truncate">{d.title || d.contact_name}</p>
                               <div className="flex items-center gap-2 mt-0.5">
-                                {d.environment && <span className="text-xs text-gray-500">{d.environment}</span>}
-                                {d.entry_date && <span className="text-xs text-gray-400">{formatDate(d.entry_date)}</span>}
+                                {d.environment && <span className="text-xs text-[#9490A0]">{d.environment}</span>}
+                                {d.entry_date && <span className="text-xs text-[#9490A0]">{formatDate(d.entry_date)}</span>}
                               </div>
                             </div>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-[#9490A0] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
                           </div>
                         ))}
                       </div>
@@ -524,20 +524,20 @@ export default function DealPage({ dealId }: { dealId: string }) {
                   )}
                   {relatedAffari.length > 0 && (
                     <div>
-                      {relatedIngressi.length > 0 && <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Altri affari</p>}
+                      {relatedIngressi.length > 0 && <p className="text-xs font-semibold text-[#9490A0] uppercase tracking-wide mb-2">Altri affari</p>}
                       <div className="flex flex-col gap-2">
                         {relatedAffari.map(d => (
                           <div key={d.id} onClick={() => router.push(`/deal/${d.id}`)}
-                            className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-colors">
+                            className="flex items-center gap-3 p-2.5 rounded-xl border border-white/20 hover:border-[#1D3557]/20 hover:bg-[#1D3557]/5 cursor-pointer transition-colors">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-800 truncate">{d.title || d.contact_name}</p>
+                              <p className="text-sm font-semibold text-[#1A1A1A] truncate">{d.title || d.contact_name}</p>
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stageColor[d.stage] || 'bg-gray-100 text-gray-600'}`}>{d.stage}</span>
-                                {d.environment && <span className="text-xs text-gray-500">{d.environment}</span>}
-                                {d.estimate > 0 && <span className="text-xs text-green-600 font-semibold">€ {d.estimate.toLocaleString()}</span>}
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stageColor[d.stage] || 'bg-white/40 text-[#5C5862]'}`}>{d.stage}</span>
+                                {d.environment && <span className="text-xs text-[#9490A0]">{d.environment}</span>}
+                                {d.estimate > 0 && <span className="text-xs text-[#2A9D8F] font-semibold">€ {d.estimate.toLocaleString()}</span>}
                               </div>
                             </div>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-[#9490A0] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
                           </div>
                         ))}
                       </div>
@@ -551,16 +551,16 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
         {/* RIGHT — Cronologia */}
         <div className="col-span-1 sm:col-span-2">
-          <div className="bg-white rounded-xl shadow p-5 mb-4">
-            <h2 className="font-bold text-gray-700 mb-3">Aggiungi nota</h2>
-            <textarea className="border rounded-lg p-3 w-full text-sm resize-none" rows={3}
+          <div className="card p-5 mb-4">
+            <h2 className="font-bold text-[#5C5862] mb-3">Aggiungi nota</h2>
+            <textarea className="border rounded-xl p-3 w-full text-sm resize-none" rows={3}
               placeholder="Scrivi una nota..." value={newNote} onChange={e => setNewNote(e.target.value)} />
             <div className="flex items-center gap-3 mt-2">
-              <button onClick={addNote} disabled={!newNote.trim()} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-40">Salva nota</button>
+              <button onClick={addNote} disabled={!newNote.trim()} className="text-white bg-[#1D3557] px-4 py-2 rounded-xl text-sm hover:bg-[#2A4A7F] disabled:opacity-40">Salva nota</button>
               <div className="flex items-center gap-2">
                 <input ref={fileInputRef} type="file" accept="image/*,.pdf" multiple className="hidden" onChange={uploadFile} />
                 <button onClick={() => fileInputRef.current?.click()} disabled={uploading}
-                  className="flex items-center gap-1.5 border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-sm hover:bg-gray-50">
+                  className="flex items-center gap-1.5 border border-white/30 text-[#5C5862] px-3 py-2 rounded-xl text-sm hover:bg-white/20">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
                   {uploading ? 'Caricamento...' : 'Allega file'}
                 </button>
@@ -568,85 +568,85 @@ export default function DealPage({ dealId }: { dealId: string }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow p-5">
+          <div className="card p-5">
             <div className="flex items-center gap-1 mb-5 border-b pb-3">
-              <h2 className="font-bold text-gray-700 mr-3">Cronologia</h2>
+              <h2 className="font-bold text-[#5C5862] mr-3">Cronologia</h2>
               {(['tutti', 'note', 'task', 'allegati'] as const).map(tab => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors capitalize ${activeTab === tab ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors capitalize ${activeTab === tab ? 'text-white bg-[#1D3557]' : 'bg-white/40 text-[#5C5862] hover:bg-white/40'}`}>
                   {tab === 'tutti' ? 'Tutti' : tab === 'note' ? `Note (${notes.length})` : tab === 'task' ? `Task (${tasks.length})` : `Allegati (${attachments.length})`}
                 </button>
               ))}
             </div>
 
-            {filteredTimeline.length === 0 && <p className="text-gray-400 text-sm text-center py-8">Nessun elemento</p>}
+            {filteredTimeline.length === 0 && <p className="text-[#9490A0] text-sm text-center py-8">Nessun elemento</p>}
 
             <div className="flex flex-col gap-0">
               {filteredTimeline.map((item, idx) => (
                 <div key={item.data.id} className="flex gap-3">
                   <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${item.type === 'note' ? 'bg-yellow-100 text-yellow-600' : item.type === 'task' ? 'bg-purple-100 text-purple-600' : item.type === 'stage_change' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${item.type === 'note' ? 'bg-amber-100/60 text-amber-600' : item.type === 'task' ? 'bg-[#7B2D8B]/10 text-[#7B2D8B]' : item.type === 'stage_change' ? 'bg-green-100 text-[#2A9D8F]' : 'bg-[#1D3557]/10 text-[#1D3557]'}`}>
                       {item.type === 'note' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>}
                       {item.type === 'task' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>}
                       {item.type === 'attachment' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>}
                       {item.type === 'stage_change' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>}
                     </div>
-                    {idx < filteredTimeline.length - 1 && <div className="w-0.5 bg-gray-200 flex-1 my-1" style={{minHeight:'24px'}} />}
+                    {idx < filteredTimeline.length - 1 && <div className="w-0.5 bg-white/40 flex-1 my-1" style={{minHeight:'24px'}} />}
                   </div>
 
                   <div className="flex-1 pb-4">
-                    <p className="text-xs text-gray-400 mb-1">{formatDateTime(item.data.created_at)}</p>
+                    <p className="text-xs text-[#9490A0] mb-1">{formatDateTime(item.data.created_at)}</p>
                     {item.type === 'note' && (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 relative group">
+                      <div className="bg-amber-50/60 border border-amber-200/40 rounded-xl p-3 relative group">
                         {editingNoteId === item.data.id ? (
                           <div className="flex flex-col gap-2">
-                            <textarea className="border rounded-lg p-2 text-sm w-full resize-none bg-white" rows={3} value={editingNoteText} onChange={e => setEditingNoteText(e.target.value)} autoFocus />
+                            <textarea className="border rounded-xl p-2 text-sm w-full resize-none bg-white" rows={3} value={editingNoteText} onChange={e => setEditingNoteText(e.target.value)} autoFocus />
                             <div className="flex gap-2">
-                              <button onClick={() => saveNoteEdit(item.data.id)} className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Salva</button>
-                              <button onClick={() => { setEditingNoteId(null); setEditingNoteText('') }} className="text-xs text-gray-500 hover:underline">Annulla</button>
+                              <button onClick={() => saveNoteEdit(item.data.id)} className="text-xs text-white bg-[#1D3557] px-3 py-1 rounded hover:bg-[#2A4A7F]">Salva</button>
+                              <button onClick={() => { setEditingNoteId(null); setEditingNoteText('') }} className="text-xs text-[#9490A0] hover:underline">Annulla</button>
                             </div>
                           </div>
                         ) : (
                           <>
-                            <p className="text-sm text-gray-800 whitespace-pre-wrap cursor-text" onClick={() => { setEditingNoteId(item.data.id); setEditingNoteText((item.data as Note).text) }}>{(item.data as Note).text}</p>
-                            {(item.data as Note).created_by && <p className="text-xs text-gray-400 mt-1">{(item.data as Note).created_by}</p>}
+                            <p className="text-sm text-[#1A1A1A] whitespace-pre-wrap cursor-text" onClick={() => { setEditingNoteId(item.data.id); setEditingNoteText((item.data as Note).text) }}>{(item.data as Note).text}</p>
+                            {(item.data as Note).created_by && <p className="text-xs text-[#9490A0] mt-1">{(item.data as Note).created_by}</p>}
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
-                              <button onClick={() => { setEditingNoteId(item.data.id); setEditingNoteText((item.data as Note).text) }} className="text-gray-300 hover:text-blue-400 text-xs">✎</button>
-                              <button onClick={() => setConfirmDeleteNote(item.data.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                              <button onClick={() => { setEditingNoteId(item.data.id); setEditingNoteText((item.data as Note).text) }} className="text-[#9490A0] hover:text-blue-400 text-xs">✎</button>
+                              <button onClick={() => setConfirmDeleteNote(item.data.id)} className="text-[#9490A0] hover:text-red-400 text-xs">✕</button>
                             </div>
                           </>
                         )}
                       </div>
                     )}
                     {item.type === 'task' && (
-                      <div className={`border rounded-lg relative group ${(item.data as Task).done ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
+                      <div className={`border rounded-xl relative group ${(item.data as Task).done ? 'bg-white/20 border-white/20' : 'bg-white border-white/20'}`}>
                         {editingTaskId === item.data.id ? (
                           <div className="flex flex-col gap-2 p-3">
-                            <input className="border rounded-lg p-2 text-sm w-full" value={editingTaskTitle} onChange={e => setEditingTaskTitle(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') setEditingTaskId(null) }} />
-                            <input type="date" className="border rounded-lg p-2 text-sm w-full" value={editingTaskDue} onChange={e => setEditingTaskDue(e.target.value)} />
+                            <input className="border rounded-xl p-2 text-sm w-full" value={editingTaskTitle} onChange={e => setEditingTaskTitle(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') setEditingTaskId(null) }} />
+                            <input type="date" className="border rounded-xl p-2 text-sm w-full" value={editingTaskDue} onChange={e => setEditingTaskDue(e.target.value)} />
                             <div className="flex gap-2 mt-1">
-                              <button onClick={async () => { await supabase.from('tasks').update({ title: editingTaskTitle.trim(), due_date: editingTaskDue || null }).eq('id', item.data.id); setEditingTaskId(null); fetchAll() }} className="flex-1 bg-orange-500 text-white py-2 rounded-lg text-sm font-medium">Salva</button>
-                              <button onClick={() => setEditingTaskId(null)} className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm">Annulla</button>
+                              <button onClick={async () => { await supabase.from('tasks').update({ title: editingTaskTitle.trim(), due_date: editingTaskDue || null }).eq('id', item.data.id); setEditingTaskId(null); fetchAll() }} className="flex-1 text-white bg-[#E76F51] py-2 rounded-xl text-sm font-medium">Salva</button>
+                              <button onClick={() => setEditingTaskId(null)} className="flex-1 bg-white/40 text-[#5C5862] py-2 rounded-xl text-sm">Annulla</button>
                             </div>
                           </div>
                         ) : (
                           <div className="flex items-start gap-2 p-3">
                             <input type="checkbox" checked={(item.data as Task).done} onChange={() => toggleTask(item.data.id, (item.data as Task).done)} className="mt-0.5 cursor-pointer flex-shrink-0" />
                             <div className="flex-1 cursor-pointer" onClick={() => { setEditingTaskId(item.data.id); setEditingTaskTitle((item.data as Task).title); setEditingTaskDue((item.data as Task).due_date || '') }}>
-                              <p className={`text-sm ${(item.data as Task).done ? 'line-through text-gray-400' : 'text-gray-700'}`}>{(item.data as Task).title}</p>
+                              <p className={`text-sm ${(item.data as Task).done ? 'line-through text-[#9490A0]' : 'text-[#5C5862]'}`}>{(item.data as Task).title}</p>
                               <div className="flex gap-2 mt-1 flex-wrap">
-                                {(item.data as Task).due_date && <span className="text-xs text-orange-500">{formatDate((item.data as Task).due_date)}</span>}
-                                {(item.data as Task).auto && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
-                                {!(item.data as Task).done && <span className="text-xs text-gray-300">✎ modifica</span>}
+                                {(item.data as Task).due_date && <span className="text-xs text-[#E76F51]">{formatDate((item.data as Task).due_date)}</span>}
+                                {(item.data as Task).auto && <span className="text-xs bg-[#7B2D8B]/10 text-[#7B2D8B] px-1.5 py-0.5 rounded">automatico</span>}
+                                {!(item.data as Task).done && <span className="text-xs text-[#9490A0]">✎ modifica</span>}
                               </div>
                             </div>
-                            <button onClick={() => setConfirmDeleteTask(item.data.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-sm transition-opacity flex-shrink-0">✕</button>
+                            <button onClick={() => setConfirmDeleteTask(item.data.id)} className="opacity-0 group-hover:opacity-100 text-[#9490A0] hover:text-red-400 text-sm transition-opacity flex-shrink-0">✕</button>
                           </div>
                         )}
                       </div>
                     )}
                     {item.type === 'attachment' && (
-                      <div className="border border-gray-200 rounded-lg p-3 relative group flex items-center gap-3">
+                      <div className="border border-white/20 rounded-xl p-3 relative group flex items-center gap-3">
                         {isImage((item.data as Attachment).file_type) ? (
                           <img src={(item.data as Attachment).file_url} alt={(item.data as Attachment).file_name} className="w-12 h-12 object-cover rounded" />
                         ) : (
@@ -655,20 +655,20 @@ export default function DealPage({ dealId }: { dealId: string }) {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-700 truncate">{(item.data as Attachment).file_name}</p>
-                          <a href={(item.data as Attachment).file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">Apri file</a>
-                          {(item.data as Attachment).created_by && <p className="text-xs text-gray-400">{(item.data as Attachment).created_by}</p>}
+                          <p className="text-sm font-medium text-[#5C5862] truncate">{(item.data as Attachment).file_name}</p>
+                          <a href={(item.data as Attachment).file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#1D3557] hover:underline">Apri file</a>
+                          {(item.data as Attachment).created_by && <p className="text-xs text-[#9490A0]">{(item.data as Attachment).created_by}</p>}
                         </div>
-                        <button onClick={() => setConfirmDeleteAttachment(item.data.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-xs transition-opacity">✕</button>
+                        <button onClick={() => setConfirmDeleteAttachment(item.data.id)} className="opacity-0 group-hover:opacity-100 text-[#9490A0] hover:text-red-400 text-xs transition-opacity">✕</button>
                       </div>
                     )}
                     {item.type === 'stage_change' && (
-                      <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 flex items-center gap-2">
-                        <span className="text-xs text-gray-500">Fase cambiata:</span>
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{(item.data as ActivityLog).from_value}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2">
+                        <span className="text-xs text-[#9490A0]">Fase cambiata:</span>
+                        <span className="text-xs bg-white/40 text-[#5C5862] px-2 py-0.5 rounded">{(item.data as ActivityLog).from_value}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-[#9490A0] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded font-medium">{(item.data as ActivityLog).to_value}</span>
-                        {(item.data as ActivityLog).created_by && <span className="text-xs text-gray-400 ml-auto">{(item.data as ActivityLog).created_by}</span>}
+                        {(item.data as ActivityLog).created_by && <span className="text-xs text-[#9490A0] ml-auto">{(item.data as ActivityLog).created_by}</span>}
                       </div>
                     )}
                   </div>
@@ -678,11 +678,11 @@ export default function DealPage({ dealId }: { dealId: string }) {
           </div>
 
           <div className="flex flex-col gap-2 mt-4">
-            <button onClick={() => setConfirmDeleteDeal(true)} className="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg py-2 transition-colors">
+            <button onClick={() => setConfirmDeleteDeal(true)} className="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-xl py-2 transition-colors">
               Elimina affare
             </button>
             {deal.is_lead && deal.lead_viewed_at && (
-              <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:null}).eq('id',deal.id);fetchAll()}} className="w-full text-xs text-purple-500 hover:text-purple-700 border border-purple-200 hover:border-purple-400 rounded-lg py-2 transition-colors">
+              <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:null}).eq('id',deal.id);fetchAll()}} className="w-full text-xs text-purple-500 hover:text-purple-700 border border-purple-200 hover:border-purple-400 rounded-xl py-2 transition-colors">
                 ↩ Segna come NEW
               </button>
             )}
@@ -691,35 +691,35 @@ export default function DealPage({ dealId }: { dealId: string }) {
       </div>
 
       {confirmDeleteNote && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="card p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-bold mb-2">Elimina nota?</h3>
-            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile.</p>
+            <p className="text-[#5C5862] text-sm mb-4">L&apos;operazione è irreversibile.</p>
             <div className="flex gap-2">
-              <button onClick={() => deleteNote(confirmDeleteNote)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
-              <button onClick={() => setConfirmDeleteNote(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+              <button onClick={() => deleteNote(confirmDeleteNote)} className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600">Elimina</button>
+              <button onClick={() => setConfirmDeleteNote(null)} className="bg-white/50 text-[#5C5862] px-4 py-2 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
       )}
       {confirmDeleteTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="card p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-bold mb-2">Elimina task?</h3>
-            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile.</p>
+            <p className="text-[#5C5862] text-sm mb-4">L&apos;operazione è irreversibile.</p>
             <div className="flex gap-2">
-              <button onClick={() => deleteTask(confirmDeleteTask)} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
-              <button onClick={() => setConfirmDeleteTask(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+              <button onClick={() => deleteTask(confirmDeleteTask)} className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600">Elimina</button>
+              <button onClick={() => setConfirmDeleteTask(null)} className="bg-white/50 text-[#5C5862] px-4 py-2 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
       )}
       {showSaleDatePopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-50">
-          <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-end sm:items-center justify-center z-50">
+          <div className="modal-content p-6 w-full max-w-sm shadow-xl">
             <h3 className="text-lg font-bold mb-1">Contatto aggiudicato! 🏆</h3>
-            <p className="text-gray-500 text-sm mb-4">Inserisci la data di vendita:</p>
-            <input type="date" className="border rounded-lg p-3 w-full mb-4" value={saleDateInput} onChange={e => setSaleDateInput(e.target.value)} autoFocus />
+            <p className="text-[#9490A0] text-sm mb-4">Inserisci la data di vendita:</p>
+            <input type="date" className="border rounded-xl p-3 w-full mb-4" value={saleDateInput} onChange={e => setSaleDateInput(e.target.value)} autoFocus />
             <div className="flex gap-2">
               <button onClick={async () => {
                 if (!editDeal) return
@@ -737,46 +737,46 @@ export default function DealPage({ dealId }: { dealId: string }) {
                   await supabase.from('activity_log').insert({ deal_id: dealId, type: 'stage_change', from_value: oldStage, to_value: 'Vendita', created_by: userEmail })
                 }
                 setSaving(false); setShowSaleDatePopup(false); setEditMode(false); fetchAll()
-              }} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Conferma</button>
-              <button onClick={() => setShowSaleDatePopup(false)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              }} className="flex-1 text-white bg-[#2A9D8F] py-3 rounded-xl font-medium">Conferma</button>
+              <button onClick={() => setShowSaleDatePopup(false)} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
       )}
       {showMoveFromVenditaPopup && pendingEditDeal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-50">
-          <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-end sm:items-center justify-center z-50">
+          <div className="modal-content p-6 w-full max-w-sm shadow-xl">
             <h3 className="text-lg font-bold mb-1">Sposta da Vendita</h3>
-            <p className="text-gray-600 text-sm mb-1"><strong>{pendingEditDeal.contact_name}</strong> è attualmente venduto.</p>
-            <p className="text-gray-500 text-sm mb-5">Come vuoi procedere?</p>
+            <p className="text-[#5C5862] text-sm mb-1"><strong>{pendingEditDeal.contact_name}</strong> è attualmente venduto.</p>
+            <p className="text-[#9490A0] text-sm mb-5">Come vuoi procedere?</p>
             <div className="flex flex-col gap-2">
-              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, true)} className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium text-sm">🆕 Crea nuovo affare con questo contatto</button>
-              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, false)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium text-sm">↩ Sposta questo affare (rimuovi da Vendita)</button>
-              <button onClick={() => { setShowMoveFromVenditaPopup(false); setPendingEditDeal(null) }} className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg text-sm">Annulla</button>
+              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, true)} className="w-full text-white bg-[#1D3557] py-3 rounded-xl font-medium text-sm">🆕 Crea nuovo affare con questo contatto</button>
+              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, false)} className="w-full text-white bg-[#E76F51] py-3 rounded-xl font-medium text-sm">↩ Sposta questo affare (rimuovi da Vendita)</button>
+              <button onClick={() => { setShowMoveFromVenditaPopup(false); setPendingEditDeal(null) }} className="w-full bg-white/40 text-[#5C5862] py-3 rounded-xl text-sm">Annulla</button>
             </div>
           </div>
         </div>
       )}
       {confirmDeleteDeal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="card p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-bold mb-2">Elimina affare?</h3>
-            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile. Verranno eliminate anche tutte le note, task e allegati collegati a questo affare. Il contatto non verrà eliminato.</p>
+            <p className="text-[#5C5862] text-sm mb-4">L&apos;operazione è irreversibile. Verranno eliminate anche tutte le note, task e allegati collegati a questo affare. Il contatto non verrà eliminato.</p>
             <div className="flex gap-2">
-              <button onClick={deleteDeal} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
-              <button onClick={() => setConfirmDeleteDeal(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+              <button onClick={deleteDeal} className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600">Elimina</button>
+              <button onClick={() => setConfirmDeleteDeal(false)} className="bg-white/50 text-[#5C5862] px-4 py-2 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
       )}
       {confirmDeleteAttachment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="card p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-bold mb-2">Elimina allegato?</h3>
-            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile.</p>
+            <p className="text-[#5C5862] text-sm mb-4">L&apos;operazione è irreversibile.</p>
             <div className="flex gap-2">
-              <button onClick={() => { const att = attachments.find(a => a.id === confirmDeleteAttachment); if (att) deleteAttachment(att) }} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
-              <button onClick={() => setConfirmDeleteAttachment(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
+              <button onClick={() => { const att = attachments.find(a => a.id === confirmDeleteAttachment); if (att) deleteAttachment(att) }} className="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600">Elimina</button>
+              <button onClick={() => setConfirmDeleteAttachment(null)} className="bg-white/50 text-[#5C5862] px-4 py-2 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
