@@ -14,7 +14,7 @@ interface Deal {
   id: string; title: string; contact_name: string; phone: string; email: string
   origin: string; environment: string; entry_date: string; appointment_date: string
   estimate: number; project_timeline: string; stage: string; created_at: string
-  probability: number | null; is_lead: boolean; lead_stage: string
+  probability: number | null; is_lead: boolean; lead_stage: string; lead_stage_updated_at?: string
 }
 
 const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Qualificato', probability: null as number | null }
@@ -928,7 +928,7 @@ export default function CrmContent() {
         <div className="p-3 sm:p-6 overflow-x-auto sm:overflow-x-visible" style={{WebkitOverflowScrolling:'touch', minHeight:'calc(100vh - 120px)'}}>
           {/* Filtro date */}
           <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <span className="text-sm text-gray-500">Inserimento:</span>
+            <span className="text-sm text-gray-500">Ultima modifica fase:</span>
             <input type="date" className="border rounded-lg px-2 py-1.5 text-sm" value={leadFrom} onChange={e=>setLeadFrom(e.target.value)} />
             <span className="text-gray-400">→</span>
             <input type="date" className="border rounded-lg px-2 py-1.5 text-sm" value={leadTo} onChange={e=>setLeadTo(e.target.value)} />
@@ -938,7 +938,7 @@ export default function CrmContent() {
             {(['Nuovo','Contattato','Qualificato','Non Qualificato'] as const).map(stage => {
               const stageLeads = leads.filter(l => {
                 if ((l.lead_stage||'Nuovo') !== stage) return false
-                const d = l.created_at?.split('T')[0] || ''
+                const d = (l.lead_stage_updated_at || l.created_at)?.split('T')[0] || ''
                 if (leadFrom && d < leadFrom) return false
                 if (leadTo && d > leadTo) return false
                 return true
@@ -949,7 +949,7 @@ export default function CrmContent() {
                     <span className="text-white font-semibold text-sm">{stage}</span>
                     <span className="bg-white bg-opacity-20 text-white text-xs px-2 py-0.5 rounded-full">{stageLeads.length}</span>
                   </div>
-                  <div className="bg-gray-100 rounded-b-xl p-2 flex flex-col gap-2 min-h-24" onDragOver={e=>e.preventDefault()} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData('leadId');if(id){await supabase.from('deals').update({lead_stage:stage}).eq('id',id);fetchDeals()}}}>
+                  <div className="bg-gray-100 rounded-b-xl p-2 flex flex-col gap-2 min-h-24" onDragOver={e=>e.preventDefault()} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData('leadId');if(id){await supabase.from('deals').update({lead_stage:stage, lead_stage_updated_at: new Date().toISOString()}).eq('id',id);fetchDeals()}}}>
                     {stageLeads.map(lead => (
                       <div key={lead.id} draggable onDragStart={e=>{e.dataTransfer.setData('leadId',lead.id)}} className="bg-white rounded-lg p-2.5 shadow cursor-grab active:cursor-grabbing" onClick={()=>goToDeal(lead)}>
                         <p className="font-semibold text-sm text-gray-800">{lead.contact_name}</p>
