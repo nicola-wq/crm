@@ -176,6 +176,9 @@ export default function CrmContent() {
   const [kanbanVenditaFrom, setKanbanVenditaFrom] = useState(monthRange.from)
   const [kanbanVenditaTo, setKanbanVenditaTo] = useState(monthRange.to)
   const [leads, setLeads] = useState<Deal[]>([])
+  const leadDefault30 = () => { const to = new Date(); const from = new Date(); from.setDate(from.getDate()-30); return {from: toYMD(from), to: toYMD(to)} }
+  const [leadFrom, setLeadFrom] = useState(() => leadDefault30().from)
+  const [leadTo, setLeadTo] = useState(() => leadDefault30().to)
   const [allTasks, setAllTasks] = useState<any[]>([])
   const [taskFilter, setTaskFilter] = useState<'all'|'todo'|'done'>('todo')
   const [showNewTask, setShowNewTask] = useState(false)
@@ -923,9 +926,23 @@ export default function CrmContent() {
       {/* ── LEAD ── */}
       {view==='leads' && (
         <div className="p-3 sm:p-6 overflow-x-auto sm:overflow-x-visible" style={{WebkitOverflowScrolling:'touch', minHeight:'calc(100vh - 120px)'}}>
+          {/* Filtro date */}
+          <div className="flex items-center gap-2 mb-4 flex-wrap">
+            <span className="text-sm text-gray-500">Inserimento:</span>
+            <input type="date" className="border rounded-lg px-2 py-1.5 text-sm" value={leadFrom} onChange={e=>setLeadFrom(e.target.value)} />
+            <span className="text-gray-400">→</span>
+            <input type="date" className="border rounded-lg px-2 py-1.5 text-sm" value={leadTo} onChange={e=>setLeadTo(e.target.value)} />
+            <button onClick={()=>{const d=leadDefault30();setLeadFrom(d.from);setLeadTo(d.to)}} className="text-xs text-blue-600 underline">30 giorni</button>
+          </div>
           <div className="flex gap-3 pb-4 sm:pb-0 h-full" style={{minWidth:'max-content'} as React.CSSProperties}>
             {(['Nuovo','Contattato','Qualificato','Non Qualificato'] as const).map(stage => {
-              const stageLeads = leads.filter(l => (l.lead_stage||'Nuovo')===stage)
+              const stageLeads = leads.filter(l => {
+                if ((l.lead_stage||'Nuovo') !== stage) return false
+                const d = l.created_at?.split('T')[0] || ''
+                if (leadFrom && d < leadFrom) return false
+                if (leadTo && d > leadTo) return false
+                return true
+              })
               return (
                 <div key={stage} className="sm:flex-1" style={{width:'220px', minWidth:'220px'} as React.CSSProperties}>
                   <div className={`rounded-t-xl px-3 py-2.5 flex items-center justify-between ${stage==='Nuovo'?'bg-gray-700':stage==='Contattato'?'bg-blue-600':stage==='Qualificato'?'bg-green-600':'bg-red-500'}`}>
