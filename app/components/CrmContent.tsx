@@ -502,6 +502,21 @@ export default function CrmContent() {
     const {id, stage, prob, fromStage} = saleDatePopup
     await supabase.from('deals').update({stage, probability: prob ?? 100, sale_date: saleDateValue}).eq('id', id)
     if (fromStage && fromStage !== stage) await logStageChange(id, fromStage, stage)
+    // Invia notifica email
+    const deal = deals.find(d => d.id === id)
+    if (deal) {
+      fetch('/api/notify-sale', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          contact_name: deal.contact_name || deal.title,
+          estimate: deal.estimate,
+          environment: deal.environment,
+          sale_date: saleDateValue,
+          user_email: userEmail,
+        })
+      }).catch(() => {}) // silenzioso, non blocca l'UI
+    }
     setSaleDatePopup(null); fetchDeals()
     setSelectedDeal(null); setEditMode(false); setEditDeal(null)
   }
