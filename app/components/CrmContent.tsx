@@ -1062,9 +1062,6 @@ export default function CrmContent() {
               <input className="border rounded-lg p-3" placeholder="Origine" value={ingressoForm.origin||''} onChange={e=>setIngressoForm({...ingressoForm,origin:e.target.value})} />
               <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={ingressoForm.environment} onChange={v=>setIngressoForm({...ingressoForm,environment:v})} />
               <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-3" type="date" value={ingressoForm.entry_date} onChange={e=>setIngressoForm({...ingressoForm,entry_date:e.target.value})} />
-              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-3" type="date" value={ingressoForm.appointment_date} onChange={e=>setIngressoForm({...ingressoForm,appointment_date:e.target.value})} />
-              <input className="border rounded-lg p-3" type="number" placeholder="Preventivo (€)" value={ingressoForm.estimate||''} onChange={e=>setIngressoForm({...ingressoForm,estimate:Number(e.target.value)})} />
-              <input className="border rounded-lg p-3" placeholder="Tempi progettuali" value={ingressoForm.project_timeline||''} onChange={e=>setIngressoForm({...ingressoForm,project_timeline:e.target.value})} />
             </div>
             <div className="flex gap-2 mt-5">
               <button onClick={addIngresso} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Salva Ingresso</button>
