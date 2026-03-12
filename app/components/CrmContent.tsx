@@ -711,9 +711,9 @@ export default function CrmContent() {
       {view==='home' && (() => {
         const today = toYMD(new Date())
         const monthRange = getCurrentMonthRange()
-        const venditeM = deals.filter(d => d.stage==='Vendita' && (d.sale_date||d.created_at.split('T')[0]) >= monthRange.from && (d.sale_date||d.created_at.split('T')[0]) <= monthRange.to)
+        const venditeM = deals.filter(d => d.stage==='Vendita' && d.entry_date && d.entry_date >= monthRange.from && d.entry_date <= monthRange.to)
         const valoreVendite = venditeM.reduce((s,d)=>s+(d.estimate||0),0)
-        const valorePonderato = deals.filter(d=>d.probability!=null&&d.probability>0&&d.stage!=='Vendita'&&d.stage!=='Non convertito').reduce((s,d)=>s+(d.estimate||0)*(d.probability||0)/100,0)
+        const valorePonderato = deals.filter(d=>d.probability!=null&&d.probability>0).reduce((s,d)=>s+(d.estimate||0)*(d.probability||0)/100,0)
         const leadNonVisteLista = leads.filter(l=>!l.lead_viewed_at)
         const taskScaduteList = allTasks.filter(t=>!t.done&&t.due_date&&t.due_date<today)
         const taskOggiList = allTasks.filter(t=>!t.done&&t.due_date&&t.due_date===today)
