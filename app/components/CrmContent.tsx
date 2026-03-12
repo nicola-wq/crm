@@ -762,12 +762,13 @@ export default function CrmContent() {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {leadNonVisteLista.slice(0,5).map(lead=>(
-                      <div key={lead.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-purple-50 border border-purple-100">
+                      <div key={lead.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-purple-50 border border-purple-100 hover:bg-purple-100 transition-colors">
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals();goToDeal(lead)}}>
                           <p className="font-semibold text-sm text-gray-800 truncate">{lead.contact_name}</p>
                           <p className="text-xs text-gray-400">{lead.lead_stage||'Nuovo'} · {formatDate(lead.created_at.split('T')[0])}</p>
                         </div>
                         <button onClick={async(e)=>{e.stopPropagation();await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals()}} className="text-[10px] text-gray-400 border border-gray-200 rounded px-2 py-1 hover:bg-gray-50 flex-shrink-0">✓ Letto</button>
+                        <span className="text-gray-300 text-xs flex-shrink-0 cursor-pointer" onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals();goToDeal(lead)}}>→</span>
                       </div>
                     ))}
                     {leadNonVisteLista.length>5 && <p className="text-xs text-center text-gray-400 mt-1">+{leadNonVisteLista.length-5} altre</p>}
@@ -786,30 +787,33 @@ export default function CrmContent() {
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     {taskScaduteList.slice(0,3).map(t=>(
-                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-red-50 border border-red-100">
-                        <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onChange={async()=>{await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-800 truncate">{t.title}</p>
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-red-50 border border-red-100 hover:bg-red-100 transition-colors">
+                        <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onClick={e=>e.stopPropagation()} onChange={async(e)=>{e.stopPropagation();await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={()=>t.deal_id&&router.push(`/deal/${t.deal_id}`)}>
+                          <p className="text-sm font-medium text-gray-800 truncate">{t.title}</p>
                           <p className="text-xs text-red-400">{t.deals?.contact_name} · scad. {formatDate(t.due_date)}</p>
                         </div>
+                        {t.deal_id && <span className="text-gray-300 text-xs flex-shrink-0 cursor-pointer" onClick={()=>router.push(`/deal/${t.deal_id}`)}>→</span>}
                       </div>
                     ))}
                     {taskOggiList.slice(0,3).map(t=>(
-                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100">
-                        <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onChange={async()=>{await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-800 truncate">{t.title}</p>
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100 hover:bg-orange-100 transition-colors">
+                        <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onClick={e=>e.stopPropagation()} onChange={async(e)=>{e.stopPropagation();await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={()=>t.deal_id&&router.push(`/deal/${t.deal_id}`)}>
+                          <p className="text-sm font-medium text-gray-800 truncate">{t.title}</p>
                           <p className="text-xs text-orange-400">{t.deals?.contact_name} · oggi</p>
                         </div>
+                        {t.deal_id && <span className="text-gray-300 text-xs flex-shrink-0 cursor-pointer" onClick={()=>router.push(`/deal/${t.deal_id}`)}>→</span>}
                       </div>
                     ))}
                     {taskFuture.slice(0,2).map(t=>(
-                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100">
-                        <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onChange={async()=>{await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-800 truncate">{t.title}</p>
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors">
+                        <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onClick={e=>e.stopPropagation()} onChange={async(e)=>{e.stopPropagation();await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={()=>t.deal_id&&router.push(`/deal/${t.deal_id}`)}>
+                          <p className="text-sm font-medium text-gray-800 truncate">{t.title}</p>
                           <p className="text-xs text-gray-400">{t.deals?.contact_name}{t.due_date?` · ${formatDate(t.due_date)}`:''}</p>
                         </div>
+                        {t.deal_id && <span className="text-gray-300 text-xs flex-shrink-0 cursor-pointer" onClick={()=>router.push(`/deal/${t.deal_id}`)}>→</span>}
                       </div>
                     ))}
                   </div>
