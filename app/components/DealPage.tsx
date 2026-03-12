@@ -159,7 +159,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
     if (overrideNewDeal) {
       // Crea nuovo affare con stesso contatto
       await supabase.from('deals').insert({
-        contact_name: ed.contact_name, title: ed.contact_name,
+        contact_name: ed.contact_name, title: ed.title || ed.contact_name,
         phone: ed.phone, email: ed.email, origin: ed.origin,
         environment: ed.environment, entry_date: ed.entry_date || null,
         appointment_date: ed.appointment_date || null, estimate: ed.estimate || 0,
@@ -172,7 +172,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
       return
     }
     const { error } = await supabase.from('deals').update({
-      contact_name: ed.contact_name, title: ed.contact_name,
+      contact_name: ed.contact_name, title: ed.title || ed.contact_name,
       phone: ed.phone, email: ed.email, origin: ed.origin,
       environment: ed.environment, entry_date: ed.entry_date || null,
       appointment_date: ed.appointment_date || null, estimate: ed.estimate || 0,
@@ -285,7 +285,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
           Indietro
         </button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-gray-800">{deal.contact_name || '—'}</h1>
+          <h1 className="text-xl font-bold text-gray-800">{deal.title || deal.contact_name || '—'}</h1>
           {deal.contact_id && (
             <button onClick={() => router.push(`/contact/${deal.contact_id}`)} className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-0.5">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
@@ -339,6 +339,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
               </div>
             ) : (
               <div className="flex flex-col gap-3 text-sm">
+                <div><label className="text-xs text-gray-400">Nome affare</label><input className="border rounded-lg p-2 w-full mt-1 text-sm font-medium" value={editDeal?.title || ''} onChange={e => setEditDeal({ ...editDeal!, title: e.target.value })} placeholder="Es. Mario Rossi | Cucina" /></div>
                 <div><label className="text-xs text-gray-400">Contatto</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.contact_name || ''} onChange={e => setEditDeal({ ...editDeal!, contact_name: e.target.value })} /></div>
                 <div><label className="text-xs text-gray-400">Telefono</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.phone || ''} onChange={e => setEditDeal({ ...editDeal!, phone: e.target.value })} /></div>
                 <div><label className="text-xs text-gray-400">Email</label><input className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.email || ''} onChange={e => setEditDeal({ ...editDeal!, email: e.target.value })} /></div>
@@ -636,7 +637,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
                 setSaving(true)
                 const oldStage = deal?.stage
                 await supabase.from('deals').update({
-                  contact_name: editDeal.contact_name, title: editDeal.contact_name,
+                  contact_name: editDeal.contact_name, title: editDeal.title || editDeal.contact_name,
                   phone: editDeal.phone, email: editDeal.email, origin: editDeal.origin,
                   environment: editDeal.environment, entry_date: editDeal.entry_date || null,
                   appointment_date: editDeal.appointment_date || null, estimate: editDeal.estimate || 0,
