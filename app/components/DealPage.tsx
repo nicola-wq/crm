@@ -154,7 +154,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
     const prob = ed.stage === 'Vendita' ? 100
       : ed.stage === 'Non convertito' ? 0
       : ed.stage === 'Preventivo' ? (ed.probability ?? 50)
-      : null
+      : (ed.probability ?? null)
     const saleDate = ed.stage === 'Vendita' ? (ed.sale_date || null) : null
     if (overrideNewDeal) {
       // Crea nuovo affare con stesso contatto
@@ -350,7 +350,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
                 <div><label className="text-xs text-gray-400">Fase</label>
                   <select className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.stage} onChange={e => {
                     const s = e.target.value
-                    const autoProb = s === 'Vendita' ? 100 : s === 'Non convertito' ? 0 : s === 'Preventivo' ? 50 : null
+                    const autoProb = s === 'Vendita' ? 100 : s === 'Non convertito' ? 0 : s === 'Preventivo' ? 50 : (editDeal?.probability ?? null)
                     setEditDeal({ ...editDeal!, stage: s, probability: autoProb })
                   }}>
                     {STAGES.map(s => <option key={s}>{s}</option>)}
