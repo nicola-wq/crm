@@ -225,6 +225,11 @@ export default function CrmContent() {
   const [formContactId, setFormContactId] = useState<string|null>(null)
   const [formTitle, setFormTitle] = useState('')
   const [formEnvError, setFormEnvError] = useState(false)
+  const [ingressoContactSearch, setIngressoContactSearch] = useState('')
+  const [ingressoContactResults, setIngressoContactResults] = useState<any[]>([])
+  const [ingressoContactId, setIngressoContactId] = useState<string|null>(null)
+  const [ingressoTitle, setIngressoTitle] = useState('')
+  const [ingressoEnvError, setIngressoEnvError] = useState(false)
   const [groupBy, setGroupBy] = useState('none')
   const [activeQuick, setActiveQuick] = useState<QuickRange>('month')
   const [saveError, setSaveError] = useState('')
@@ -399,7 +404,9 @@ export default function CrmContent() {
 
   async function addIngresso() {
     if (!ingressoForm.contact_name) return
-    let contactId = existingContactId
+    if (!ingressoForm.environment) { setIngressoEnvError(true); return }
+    setIngressoEnvError(false)
+    let contactId = ingressoContactId
     if (!contactId) {
       const { data: newContact } = await supabase.from('contacts').insert({
         name: ingressoForm.contact_name, phone: ingressoForm.phone||null,
@@ -407,8 +414,9 @@ export default function CrmContent() {
       }).select().single()
       if (newContact) contactId = newContact.id
     }
+    const dealTitle = ingressoTitle || buildDealTitle(ingressoForm.contact_name, ingressoForm.environment)
     const { error } = await supabase.from('deals').insert({
-      title: ingressoForm.contact_name, contact_name: ingressoForm.contact_name,
+      title: dealTitle, contact_name: ingressoForm.contact_name,
       phone: ingressoForm.phone||null, email: ingressoForm.email||null,
       origin: ingressoForm.origin||null, environment: ingressoForm.environment||null,
       entry_date: ingressoForm.entry_date||null, stage: 'Ingresso',
@@ -416,8 +424,9 @@ export default function CrmContent() {
     })
     if (!error) {
       setIngressoForm({...emptyDeal, stage:'Ingresso', entry_date:toYMD(new Date())})
-      setExistingContactId(null); setExistingDealId(null)
-      setShowIngressoForm(false); setIsNewContact(false); setSearchQuery(''); setSearchResults([]); fetchDeals()
+      setIngressoContactSearch(''); setIngressoContactResults([]); setIngressoContactId(null)
+      setIngressoTitle(''); setIngressoEnvError(false)
+      setShowIngressoForm(false); fetchDeals()
     }
   }
 
@@ -1469,32 +1478,63 @@ export default function CrmContent() {
       )}
 
       {showIngressoForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" onKeyDown={e=>{if(e.key==='Escape'){setShowIngressoForm(false);setIngressoContactSearch('');setIngressoContactResults([]);setIngressoContactId(null);setIngressoTitle('');setIngressoEnvError(false)}}}>
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Nuovo Ingresso</h2>
-            <div className="flex gap-2 mb-4">
-              <button onClick={()=>setIsNewContact(false)} className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${!isNewContact?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}`}>Esistente</button>
-              <button onClick={()=>{setIsNewContact(true);setExistingDealId(null)}} className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${isNewContact?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}`}>Nuovo</button>
-            </div>
-            {!isNewContact && (
-              <div className="relative mb-4">
-                <input className="border rounded-lg p-3 w-full" placeholder="Cerca per nome o telefono..." value={searchQuery} onChange={e=>{searchContacts(e.target.value);setExistingDealId(null)}} />
-                {searchResults.length>0&&(<div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">{searchResults.map(d=>(<div key={d.id} onClick={()=>selectExistingContact(d)} className="p-3 hover:bg-gray-50 cursor-pointer border-b"><p className="font-semibold text-sm">{d.contact_name}</p><p className="text-xs text-gray-500">{d.phone}</p></div>))}</div>)}
-                {searchQuery.length>=2&&searchResults.length===0&&<p className="text-sm text-gray-500 mt-2">Nessuno. <button onClick={()=>{setIsNewContact(true);setExistingDealId(null)}} className="text-blue-600 underline">Crea nuovo</button></p>}
-                {existingContactId && <p className="text-xs text-green-600 mt-1 font-medium">✓ Contatto trovato: {ingressoForm.contact_name}</p>}
-              </div>
-            )}
             <div className="flex flex-col gap-3">
-              <input className="border rounded-lg p-3" placeholder="Nome contatto *" value={ingressoForm.contact_name} onChange={e=>setIngressoForm({...ingressoForm,contact_name:e.target.value})} />
+              {/* Ricerca contatto con omonimi */}
+              <div className="relative">
+                <label className="text-xs text-gray-500">Contatto *</label>
+                <input className="border rounded-lg p-3 w-full mt-1" placeholder="Cerca contatto esistente o scrivi nuovo..."
+                  value={ingressoContactSearch}
+                  onChange={async e=>{
+                    const v=e.target.value
+                    setIngressoContactSearch(v); setIngressoContactId(null)
+                    setIngressoForm(f=>({...f,contact_name:v,phone:'',email:'',origin:''}))
+                    setIngressoTitle(buildDealTitle(v, ingressoForm.environment))
+                    if(v.length>=2){const{data}=await supabase.from('contacts').select('*').or(`name.ilike.%${v}%,phone.ilike.%${v}%`).limit(8);setIngressoContactResults(data||[])}else setIngressoContactResults([])
+                  }} />
+                {ingressoContactResults.length>0&&(
+                  <div className="absolute left-0 right-0 bg-white border rounded-lg shadow-lg z-10 mt-0.5" style={{maxHeight:'220px',overflowY:'auto'}}>
+                    {ingressoContactResults.map((c:any)=>(
+                      <div key={c.id}
+                        onClick={()=>{setIngressoContactId(c.id);setIngressoContactSearch(c.name);setIngressoForm(f=>({...f,contact_name:c.name,phone:c.phone||'',email:c.email||'',origin:c.origin||''}));setIngressoTitle(buildDealTitle(c.name,ingressoForm.environment));setIngressoContactResults([])}}
+                        className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name?.charAt(0)?.toUpperCase()}</div>
+                        <div><p className="font-semibold text-sm">{c.name}</p>{c.phone&&<p className="text-xs text-gray-400">{c.phone}</p>}</div>
+                      </div>
+                    ))}
+                    <div onClick={()=>{setIngressoContactId(null);setIngressoContactResults([])}}
+                      className="p-3 hover:bg-green-50 cursor-pointer text-green-700 font-medium text-sm flex items-center gap-2 border-t">
+                      <span className="text-lg leading-none">+</span> Crea nuovo &quot;{ingressoContactSearch}&quot;
+                    </div>
+                  </div>
+                )}
+                {ingressoContactId&&<p className="text-xs text-green-600 mt-1">✓ Contatto esistente: {ingressoContactSearch}</p>}
+                {!ingressoContactId&&ingressoContactSearch.length>0&&ingressoContactResults.length===0&&<p className="text-xs text-blue-500 mt-1">✦ Verrà creato un nuovo contatto</p>}
+              </div>
               <input className="border rounded-lg p-3" placeholder="Telefono" value={ingressoForm.phone||''} onChange={e=>setIngressoForm({...ingressoForm,phone:e.target.value})} />
               <input className="border rounded-lg p-3" placeholder="Email" value={ingressoForm.email||''} onChange={e=>setIngressoForm({...ingressoForm,email:e.target.value})} />
               <input className="border rounded-lg p-3" placeholder="Origine" value={ingressoForm.origin||''} onChange={e=>setIngressoForm({...ingressoForm,origin:e.target.value})} />
-              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={ingressoForm.environment} onChange={v=>setIngressoForm({...ingressoForm,environment:v})} />
-              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-3" type="date" value={ingressoForm.entry_date} onChange={e=>setIngressoForm({...ingressoForm,entry_date:e.target.value})} />
+              {/* Ambiente obbligatorio */}
+              <div>
+                <label className={`text-xs font-medium ${ingressoEnvError?'text-red-500':'text-gray-500'}`}>Ambiente * {ingressoEnvError&&<span className="text-red-500">— obbligatorio</span>}</label>
+                <EnvSelect value={ingressoForm.environment} onChange={v=>{setIngressoForm(f=>({...f,environment:v}));setIngressoTitle(buildDealTitle(ingressoForm.contact_name,v));setIngressoEnvError(false)}} />
+              </div>
+              {/* Nome affare auto-generato, modificabile */}
+              <div>
+                <label className="text-xs text-gray-500">Nome affare</label>
+                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Es. Mario Rossi | Cucina"
+                  value={ingressoTitle}
+                  onChange={e=>setIngressoTitle(e.target.value)} />
+                <p className="text-xs text-gray-400 mt-0.5">Generato automaticamente, puoi modificarlo</p>
+              </div>
+              <label className="text-xs text-gray-500">Data ingresso</label>
+              <input className="border rounded-lg p-3" type="date" value={ingressoForm.entry_date} onChange={e=>setIngressoForm({...ingressoForm,entry_date:e.target.value})} />
             </div>
             <div className="flex gap-2 mt-5">
               <button onClick={addIngresso} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Salva Ingresso</button>
-              <button onClick={()=>{setShowIngressoForm(false);setSearchQuery('');setSearchResults([]);setIsNewContact(false);setExistingDealId(null);setExistingContactId(null)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={()=>{setShowIngressoForm(false);setIngressoContactSearch('');setIngressoContactResults([]);setIngressoContactId(null);setIngressoTitle('');setIngressoEnvError(false)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
             </div>
           </div>
         </div>

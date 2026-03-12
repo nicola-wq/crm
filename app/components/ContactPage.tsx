@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 const STAGES = ['Qualificato', 'Appuntamento fissato', 'Ingresso', 'Preventivo', 'Vendita', 'Non convertito']
+const ENVIRONMENTS = ['Cucina', 'Soggiorno', 'Camera da letto', 'Cameretta', 'Tavoli e sedie', 'Altro']
 const PROB_COLORS: Record<number, string> = { 0: 'bg-gray-100 text-gray-500', 25: 'bg-red-100 text-red-700', 50: 'bg-orange-100 text-orange-700', 75: 'bg-yellow-100 text-yellow-700', 90: 'bg-blue-100 text-blue-700', 100: 'bg-green-100 text-green-700' }
 
 function formatDate(dateStr: string) {
@@ -19,8 +20,8 @@ interface Contact {
 }
 
 interface Deal {
-  id: string; contact_name: string; environment: string; entry_date: string; estimate: number
-  stage: string; probability: number | null; sale_date?: string; created_at: string; appointment_date: string
+  id: string; title: string; contact_name: string; environment: string; entry_date: string; estimate: number
+  stage: string; probability: number | null; sale_date?: string; created_at: string; appointment_date: string; is_lead: boolean
 }
 
 export default function ContactPage({ contactId }: { contactId: string }) {
@@ -32,6 +33,11 @@ export default function ContactPage({ contactId }: { contactId: string }) {
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showIngressoModal, setShowIngressoModal] = useState(false)
+  const [ingressoEnv, setIngressoEnv] = useState('')
+  const [ingressoDate, setIngressoDate] = useState('')
+  const [ingressoEnvError, setIngressoEnvError] = useState(false)
+  const [savingIngresso, setSavingIngresso] = useState(false)
 
   useEffect(() => { fetchAll() }, [contactId])
 
@@ -45,6 +51,8 @@ export default function ContactPage({ contactId }: { contactId: string }) {
     setDeals(d || [])
     setLoading(false)
   }
+
+  function toYMD(d: Date) { return d.toISOString().split('T')[0] }
 
   async function saveContact() {
     if (!editContact) return
@@ -73,6 +81,26 @@ export default function ContactPage({ contactId }: { contactId: string }) {
     if (data) router.push(`/deal/${data.id}`)
   }
 
+  async function saveIngresso() {
+    if (!contact) return
+    if (!ingressoEnv) { setIngressoEnvError(true); return }
+    setIngressoEnvError(false)
+    setSavingIngresso(true)
+    const title = `${contact.name} | ${ingressoEnv}`
+    const { data } = await supabase.from('deals').insert({
+      title, contact_name: contact.name,
+      phone: contact.phone || null, email: contact.email || null,
+      origin: contact.origin || null, environment: ingressoEnv,
+      entry_date: ingressoDate || toYMD(new Date()), stage: 'Ingresso',
+      is_lead: false, probability: null, contact_id: contactId,
+    }).select().single()
+    setSavingIngresso(false)
+    if (data) {
+      setShowIngressoModal(false); setIngressoEnv(''); setIngressoDate('')
+      fetchAll()
+    }
+  }
+
   const stageColor: Record<string, string> = {
     'Qualificato': 'bg-gray-100 text-gray-600',
     'Appuntamento fissato': 'bg-blue-100 text-blue-700',
@@ -82,6 +110,8 @@ export default function ContactPage({ contactId }: { contactId: string }) {
     'Non convertito': 'bg-red-100 text-red-500',
   }
 
+  const affari = deals.filter(d => d.stage !== 'Ingresso')
+  const ingressi = deals.filter(d => d.stage === 'Ingresso')
   const totaleVenduto = deals.filter(d => d.stage === 'Vendita').reduce((s, d) => s + (d.estimate || 0), 0)
   const inCorso = deals.filter(d => !['Vendita', 'Non convertito'].includes(d.stage)).length
 
@@ -164,6 +194,38 @@ export default function ContactPage({ contactId }: { contactId: string }) {
           </div>
         </div>
 
+        {/* Ingressi */}
+        <div className="bg-white rounded-xl shadow p-4 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-gray-700">Ingressi</h2>
+            <button onClick={()=>{setShowIngressoModal(true);setIngressoDate(toYMD(new Date()))}} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700">
+              + Nuovo Ingresso
+            </button>
+          </div>
+          {ingressi.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">Nessun ingresso ancora</p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {ingressi.map(deal => (
+                <div key={deal.id}
+                  onClick={() => router.push(`/deal/${deal.id}`)}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-green-200 hover:bg-green-50 cursor-pointer transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{deal.title || deal.contact_name}</p>
+                    <div className="flex gap-3 mt-1">
+                      {deal.environment && <span className="text-xs text-gray-500">{deal.environment}</span>}
+                      {deal.entry_date && <span className="text-xs text-gray-400">Entrata: {formatDate(deal.entry_date)}</span>}
+                    </div>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Affari */}
         <div className="bg-white rounded-xl shadow p-4">
           <div className="flex items-center justify-between mb-3">
@@ -173,16 +235,17 @@ export default function ContactPage({ contactId }: { contactId: string }) {
             </button>
           </div>
 
-          {deals.length === 0 ? (
+          {affari.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">Nessun affare ancora</p>
           ) : (
             <div className="flex flex-col gap-2">
-              {deals.map(deal => (
+              {affari.map(deal => (
                 <div key={deal.id}
                   onClick={() => router.push(`/deal/${deal.id}`)}
                   className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-colors">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{deal.title || deal.contact_name}</p>
+                    <div className="flex items-center gap-2 flex-wrap mt-1">
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stageColor[deal.stage] || 'bg-gray-100 text-gray-600'}`}>{deal.stage}</span>
                       {deal.environment && <span className="text-xs text-gray-500">{deal.environment}</span>}
                       {deal.probability !== null && deal.probability !== undefined && (
@@ -191,7 +254,6 @@ export default function ContactPage({ contactId }: { contactId: string }) {
                     </div>
                     <div className="flex gap-3 mt-1">
                       {deal.estimate > 0 && <span className="text-xs text-green-600 font-semibold">€ {deal.estimate.toLocaleString()}</span>}
-                      {deal.entry_date && <span className="text-xs text-gray-400">Ingresso: {formatDate(deal.entry_date)}</span>}
                       {deal.sale_date && <span className="text-xs text-green-500">Vendita: {formatDate(deal.sale_date)}</span>}
                     </div>
                   </div>
@@ -204,6 +266,48 @@ export default function ContactPage({ contactId }: { contactId: string }) {
           )}
         </div>
       </div>
+
+      {/* Modal Nuovo Ingresso */}
+      {showIngressoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-4">Nuovo Ingresso</h3>
+            <div className="flex flex-col gap-3">
+              <div>
+                <label className={`text-xs font-medium ${ingressoEnvError?'text-red-500':'text-gray-500'}`}>
+                  Ambiente * {ingressoEnvError && <span className="text-red-500">— obbligatorio</span>}
+                </label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {ENVIRONMENTS.map(env=>(
+                    <button key={env}
+                      onClick={()=>{setIngressoEnv(env);setIngressoEnvError(false)}}
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${ingressoEnv===env?'bg-green-600 text-white border-green-600':'bg-white text-gray-700 border-gray-300 hover:border-green-400'}`}>
+                      {env}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Data ingresso</label>
+                <input type="date" className="border rounded-lg p-3 w-full mt-1" value={ingressoDate} onChange={e=>setIngressoDate(e.target.value)} />
+              </div>
+              {ingressoEnv && (
+                <p className="text-xs text-gray-400 bg-gray-50 rounded-lg px-3 py-2">
+                  Nome affare: <strong>{contact?.name} | {ingressoEnv}</strong>
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={saveIngresso} disabled={savingIngresso} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium disabled:opacity-40">
+                {savingIngresso ? 'Salvo...' : 'Salva Ingresso'}
+              </button>
+              <button onClick={()=>{setShowIngressoModal(false);setIngressoEnv('');setIngressoDate('');setIngressoEnvError(false)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Popup conferma eliminazione */}
       {confirmDelete && (
