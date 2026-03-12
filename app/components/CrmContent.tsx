@@ -121,6 +121,7 @@ export default function CrmContent() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Deal[]>([])
   const [isNewContact, setIsNewContact] = useState(false)
+  const [existingDealId, setExistingDealId] = useState<string|null>(null)
   const [groupBy, setGroupBy] = useState('none')
   const [activeQuick, setActiveQuick] = useState<QuickRange>('month')
   const [saveError, setSaveError] = useState('')
@@ -214,7 +215,7 @@ export default function CrmContent() {
       if (showNewTask) { setShowNewTask(false); setNewTaskForm({title:'',due_date:'',deal_id:'',search:''}); setNewTaskSearch(''); setNewTaskSearchResults([]); return }
       if (showForm) { setShowForm(false); return }
       if (showLeadForm) { setShowLeadForm(false); return }
-      if (showIngressoForm) { setShowIngressoForm(false); setSearchQuery(''); setSearchResults([]); setIsNewContact(false); return }
+      if (showIngressoForm) { setShowIngressoForm(false); setSearchQuery(''); setSearchResults([]); setIsNewContact(false); setExistingDealId(null); return }
       if (selectedDeal) { setSelectedDeal(null); setEditMode(false); setEditDeal(null); return }
     }
     window.addEventListener('keydown', handleEsc)
@@ -277,10 +278,26 @@ export default function CrmContent() {
 
   async function addIngresso() {
     if (!ingressoForm.contact_name) return
-    const { error } = await supabase.rpc('insert_deal', buildRpcParams(ingressoForm, 'Ingresso'))
-    if (!error) {
-      setIngressoForm({...emptyDeal, stage:'Ingresso', entry_date:toYMD(new Date())})
-      setShowIngressoForm(false); setIsNewContact(false); setSearchQuery(''); setSearchResults([]); fetchDeals()
+    if (existingDealId) {
+      // Contatto esistente: aggiorna entry_date e ambiente, non crea nuovo
+      const { error } = await supabase.from('deals').update({
+        environment: ingressoForm.environment||null,
+        entry_date: ingressoForm.entry_date||null,
+        stage: 'Ingresso',
+      }).eq('id', existingDealId)
+      if (!error) {
+        await logStageChange(existingDealId, 'Qualificato', 'Ingresso')
+        setIngressoForm({...emptyDeal, stage:'Ingresso', entry_date:toYMD(new Date())})
+        setExistingDealId(null)
+        setShowIngressoForm(false); setIsNewContact(false); setSearchQuery(''); setSearchResults([]); fetchDeals()
+      }
+    } else {
+      // Nuovo contatto: crea record
+      const { error } = await supabase.rpc('insert_deal', buildRpcParams(ingressoForm, 'Ingresso'))
+      if (!error) {
+        setIngressoForm({...emptyDeal, stage:'Ingresso', entry_date:toYMD(new Date())})
+        setShowIngressoForm(false); setIsNewContact(false); setSearchQuery(''); setSearchResults([]); fetchDeals()
+      }
     }
   }
 
@@ -318,6 +335,7 @@ export default function CrmContent() {
   }
 
   function selectExistingContact(deal: Deal) {
+    setExistingDealId(deal.id)
     setIngressoForm({...emptyDeal, stage:'Ingresso', entry_date:toYMD(new Date()), contact_name:deal.contact_name||'', phone:deal.phone||'', email:deal.email||'', origin:deal.origin||''})
     setSearchQuery(deal.contact_name); setSearchResults([]); setIsNewContact(false)
   }
@@ -1274,13 +1292,14 @@ export default function CrmContent() {
             <h2 className="text-xl font-bold mb-4">Nuovo Ingresso</h2>
             <div className="flex gap-2 mb-4">
               <button onClick={()=>setIsNewContact(false)} className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${!isNewContact?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}`}>Esistente</button>
-              <button onClick={()=>setIsNewContact(true)} className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${isNewContact?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}`}>Nuovo</button>
+              <button onClick={()=>{setIsNewContact(true);setExistingDealId(null)}} className={`flex-1 py-2.5 rounded-lg text-sm font-medium ${isNewContact?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}`}>Nuovo</button>
             </div>
             {!isNewContact && (
               <div className="relative mb-4">
-                <input className="border rounded-lg p-3 w-full" placeholder="Cerca per nome o telefono..." value={searchQuery} onChange={e=>searchContacts(e.target.value)} />
+                <input className="border rounded-lg p-3 w-full" placeholder="Cerca per nome o telefono..." value={searchQuery} onChange={e=>{searchContacts(e.target.value);setExistingDealId(null)}} />
                 {searchResults.length>0&&(<div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">{searchResults.map(d=>(<div key={d.id} onClick={()=>selectExistingContact(d)} className="p-3 hover:bg-gray-50 cursor-pointer border-b"><p className="font-semibold text-sm">{d.contact_name}</p><p className="text-xs text-gray-500">{d.phone}</p></div>))}</div>)}
-                {searchQuery.length>=2&&searchResults.length===0&&<p className="text-sm text-gray-500 mt-2">Nessuno. <button onClick={()=>setIsNewContact(true)} className="text-blue-600 underline">Crea nuovo</button></p>}
+                {searchQuery.length>=2&&searchResults.length===0&&<p className="text-sm text-gray-500 mt-2">Nessuno. <button onClick={()=>{setIsNewContact(true);setExistingDealId(null)}} className="text-blue-600 underline">Crea nuovo</button></p>}
+                {existingDealId && <p className="text-xs text-green-600 mt-1 font-medium">✓ Contatto trovato: {ingressoForm.contact_name}</p>}
               </div>
             )}
             <div className="flex flex-col gap-3">
@@ -1293,7 +1312,7 @@ export default function CrmContent() {
             </div>
             <div className="flex gap-2 mt-5">
               <button onClick={addIngresso} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Salva Ingresso</button>
-              <button onClick={()=>{setShowIngressoForm(false);setSearchQuery('');setSearchResults([]);setIsNewContact(false)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={()=>{setShowIngressoForm(false);setSearchQuery('');setSearchResults([]);setIsNewContact(false);setExistingDealId(null)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
             </div>
           </div>
         </div>
