@@ -476,7 +476,7 @@ export default function CrmContent() {
 
   const todayBadge = toYMD(new Date())
   const taskScadute = allTasks.filter(t => !t.done && t.due_date && t.due_date < todayBadge).length
-  const leadNonViste = leads.filter(l => (l.lead_stage||'Nuovo') === 'Nuovo' && !l.lead_viewed_at).length
+  const leadNonViste = leads.filter(l => !l.lead_viewed_at).length
   const listDeals = sortDeals(getListDeals())
 
   const kanbanDeals = (stage: string) => {
