@@ -701,8 +701,8 @@ export default function CrmContent() {
                                   <p className="font-semibold text-xs text-gray-800 leading-tight">{deal.contact_name||deal.title}</p>
                                   {deal.estimate>0 && <p className="text-xs text-green-600 mt-0.5">€ {deal.estimate.toLocaleString()}</p>}
                                   {deal.environment && <p className="text-xs text-blue-500 truncate">{deal.environment}</p>}
-                                  <p className="text-xs text-gray-400 mt-0.5">📋 {formatDate(deal.created_at)}</p>
-                                  {deal.entry_date && <p className="text-xs text-gray-500">🚪 {formatDate(deal.entry_date)}</p>}
+                                  <p className="text-xs text-gray-400 mt-0.5">Inserimento: {formatDate(deal.created_at)}</p>
+                                  {deal.entry_date && <p className="text-xs text-gray-500">Ingresso: {formatDate(deal.entry_date)}</p>}
                                   {deal.appointment_date && <p className="text-xs text-orange-500">📅 {formatDate(deal.appointment_date)}</p>}
                                   {deal.probability !== null && deal.probability !== undefined && (
                                     <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${PROB_COLORS[deal.probability]||'bg-gray-100 text-gray-600'}`}>{deal.probability}%</span>
