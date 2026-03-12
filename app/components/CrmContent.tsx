@@ -18,7 +18,7 @@ interface Deal {
 }
 
 const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Qualificato', probability: null as number | null }
-type View = 'home' | 'kanban' | 'list' | 'dashboard' | 'leads' | 'tasks' | 'contacts'
+type View = 'home' | 'kanban' | 'list' | 'ingressi' | 'dashboard' | 'leads' | 'tasks' | 'contacts'
 type QuickRange = 'today' | 'week' | 'month' | 'lastmonth' | 'alltime' | 'custom'
 
 function formatDate(dateStr: string) {
@@ -235,6 +235,8 @@ export default function CrmContent() {
   const [quickContactId, setQuickContactId] = useState<string|null>(null)
   const [quickTitle, setQuickTitle] = useState('')
   const [quickEnvError, setQuickEnvError] = useState(false)
+  const [ingressiDateFrom, setIngressiDateFrom] = useState('')
+  const [ingressiDateTo, setIngressiDateTo] = useState('')
   const [groupBy, setGroupBy] = useState('none')
   const [activeQuick, setActiveQuick] = useState<QuickRange>('month')
   const [saveError, setSaveError] = useState('')
@@ -817,6 +819,7 @@ export default function CrmContent() {
           <div className="flex border rounded-lg overflow-hidden mr-2">
             <button onClick={()=>navigateTo('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Pipeline</button>
             <button onClick={()=>navigateTo('list')} className={`px-3 py-2 text-sm ${view==='list'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Affari</button>
+            <button onClick={()=>navigateTo('ingressi')} className={`px-3 py-2 text-sm ${view==='ingressi'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Ingressi</button>
             <button onClick={()=>navigateTo('dashboard')} className={`px-3 py-2 text-sm ${view==='dashboard'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Dashboard</button>
           </div>
           {view==='leads' && <button onClick={()=>setShowLeadForm(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">+ Nuovo Lead</button>}
@@ -846,6 +849,7 @@ export default function CrmContent() {
           <div className="grid grid-cols-3 gap-1 mb-1">
             <button onClick={()=>navigateTo('kanban')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='kanban'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Pipeline</button>
             <button onClick={()=>navigateTo('list')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='list'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Affari</button>
+            <button onClick={()=>navigateTo('ingressi')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='ingressi'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Ingressi</button>
             <button onClick={()=>navigateTo('dashboard')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='dashboard'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Dashboard</button>
           </div>
           <div className="grid grid-cols-2 gap-1 mb-1">
@@ -873,6 +877,7 @@ export default function CrmContent() {
           {v:'kanban' as View, label:'Pipeline', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>, color:'text-blue-600', badge:0},
           {v:'tasks' as View, label:'Task', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>, color:'text-orange-500', badge:taskScadute},
           {v:'leads' as View, label:'Lead', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, color:'text-purple-600', badge:leadNonViste},
+          {v:'ingressi' as View, label:'Ingressi', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>, color:'text-cyan-600', badge:0},
           {v:'dashboard' as View, label:'Stats', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>, color:'text-blue-600', badge:0},
         ].map(({v,label,icon,color,badge})=>(
           <button key={v} onClick={()=>navigateTo(v)} className={`relative flex-1 py-2 flex flex-col items-center gap-0.5 text-xs ${view===v?color:'text-gray-400'}`}>
@@ -1123,8 +1128,8 @@ export default function CrmContent() {
                     </thead>
                     <tbody>
                       {groupDeals.map(deal => (
-                        <tr key={deal.id} className={`border-t hover:bg-gray-50 ${selectedIds.has(deal.id)?'bg-blue-50':''}`}>
-                          <td className="p-2 cursor-pointer" onClick={()=>toggleSelect(deal.id)}><input type="checkbox" checked={selectedIds.has(deal.id)} onChange={()=>toggleSelect(deal.id)} className="cursor-pointer" /></td>
+                        <tr key={deal.id} className={`border-t hover:bg-gray-50 cursor-pointer ${selectedIds.has(deal.id)?'bg-blue-50':''}`} onClick={()=>toggleSelect(deal.id)}>
+                          <td className="p-2" onClick={e=>e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(deal.id)} onChange={()=>toggleSelect(deal.id)} className="cursor-pointer" /></td>
                           <td className="p-2 font-medium whitespace-nowrap">
                             {inlineEdit?.id===deal.id&&inlineEdit.col==='contact_name'?(
                               <input autoFocus className="border rounded px-2 py-1 text-xs w-28 font-medium" value={inlineEdit.val}
@@ -1184,6 +1189,76 @@ export default function CrmContent() {
       )}
 
       {/* ── DASHBOARD ── */}
+      {view==='ingressi' && (() => {
+        const today = new Date()
+        const allIngressi = deals.filter(d => d.stage === 'Ingresso' && !d.is_lead)
+        const filtered = allIngressi.filter(d => {
+          if (!ingressiDateFrom && !ingressiDateTo) return true
+          const dt = d.entry_date || ''
+          if (ingressiDateFrom && dt < ingressiDateFrom) return false
+          if (ingressiDateTo && dt > ingressiDateTo) return false
+          return true
+        }).sort((a,b) => (b.entry_date||b.created_at||'').localeCompare(a.entry_date||a.created_at||''))
+
+        return (
+          <div className="p-3 sm:p-6">
+            {/* Filtro date */}
+            <div className="bg-white rounded-xl shadow p-3 sm:p-4 mb-4 flex flex-wrap items-center gap-3">
+              <span className="text-sm font-semibold text-gray-700">Periodo ingresso:</span>
+              <div className="flex items-center gap-1 flex-1 sm:flex-none">
+                <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={ingressiDateFrom} onChange={e=>setIngressiDateFrom(e.target.value)} />
+                <span className="text-gray-400 text-xs">→</span>
+                <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={ingressiDateTo} onChange={e=>setIngressiDateTo(e.target.value)} />
+              </div>
+              {(ingressiDateFrom||ingressiDateTo) && (
+                <button onClick={()=>{setIngressiDateFrom('');setIngressiDateTo('')}} className="text-xs text-gray-400 hover:text-gray-600 underline">Reset</button>
+              )}
+              <span className="ml-auto text-xs text-gray-500 font-medium">{filtered.length} ingressi</span>
+            </div>
+
+            {/* Tabella */}
+            <div className="bg-white rounded-xl shadow overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50 text-left text-xs text-gray-500 font-semibold">
+                    <th className="p-3">Nome affare</th>
+                    <th className="p-3">Contatto</th>
+                    <th className="p-3">Telefono</th>
+                    <th className="p-3">Email</th>
+                    <th className="p-3">Ambiente</th>
+                    <th className="p-3">Origine</th>
+                    <th className="p-3">Data ingresso</th>
+                    <th className="p-3">Inserimento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr><td colSpan={8} className="text-center text-gray-400 py-12 text-sm">Nessun ingresso nel periodo selezionato</td></tr>
+                  ) : (
+                    filtered.map(deal => (
+                      <tr key={deal.id}
+                        onClick={()=>goToDeal(deal)}
+                        className="border-t hover:bg-blue-50 cursor-pointer transition-colors">
+                        <td className="p-3 font-semibold text-blue-700 whitespace-nowrap">{deal.title||deal.contact_name||'—'}</td>
+                        <td className="p-3 whitespace-nowrap text-gray-700">{deal.contact_name||'—'}</td>
+                        <td className="p-3 whitespace-nowrap text-gray-600">{deal.phone||'—'}</td>
+                        <td className="p-3 whitespace-nowrap text-gray-600 text-xs">{deal.email||'—'}</td>
+                        <td className="p-3 whitespace-nowrap">
+                          {deal.environment ? <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">{deal.environment}</span> : '—'}
+                        </td>
+                        <td className="p-3 whitespace-nowrap text-gray-600 text-xs">{deal.origin||'—'}</td>
+                        <td className="p-3 whitespace-nowrap text-gray-700 font-medium">{formatDate(deal.entry_date||'')}</td>
+                        <td className="p-3 whitespace-nowrap text-gray-400 text-xs">{formatDate((deal.created_at||'').split('T')[0])}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      })()}
+
       {view==='dashboard' && (
         <div className="p-3 sm:p-6">
           <div className="bg-white rounded-xl shadow p-3 mb-4">
