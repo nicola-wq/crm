@@ -14,7 +14,7 @@ interface Deal {
   id: string; title: string; contact_name: string; phone: string; email: string
   origin: string; environment: string; entry_date: string; appointment_date: string
   estimate: number; project_timeline: string; stage: string; created_at: string
-  probability: number | null; is_lead: boolean; lead_stage: string; lead_stage_updated_at?: string; sale_date?: string
+  probability: number | null; is_lead: boolean; lead_stage: string; lead_stage_updated_at?: string; sale_date?: string; lead_viewed_at?: string
 }
 
 const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Qualificato', probability: null as number | null }
@@ -473,6 +473,11 @@ export default function CrmContent() {
   if (!checked) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">Verifica accesso...</p></div>
 
   const filteredDeals = getFilteredDeals()
+
+  const todayBadge = toYMD(new Date())
+  const taskScadute = allTasks.filter(t => !t.done && t.due_date && t.due_date < todayBadge).length
+  const taskOggi = allTasks.filter(t => !t.done && t.due_date && t.due_date === todayBadge).length
+  const leadNonViste = leads.filter(l => (l.lead_stage||'Nuovo') === 'Nuovo' && !l.lead_viewed_at).length
   const listDeals = sortDeals(getListDeals())
 
   const kanbanDeals = (stage: string) => {
@@ -608,8 +613,15 @@ export default function CrmContent() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-2 items-center">
-          <button onClick={()=>navigateTo('tasks')} className={`px-3 py-2 text-sm rounded-lg border mr-1 ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300 hover:bg-orange-50'}`}>Task</button>
-          <button onClick={()=>navigateTo('leads')} className={`px-3 py-2 text-sm rounded-lg border mr-3 ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'}`}>Lead</button>
+          <button onClick={()=>navigateTo('tasks')} className={`relative px-3 py-2 text-sm rounded-lg border mr-1 ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300 hover:bg-orange-50'}`}>
+            Task
+            {taskScadute>0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{taskScadute}</span>}
+            {taskOggi>0 && taskScadute===0 && <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{taskOggi}</span>}
+          </button>
+          <button onClick={()=>navigateTo('leads')} className={`relative px-3 py-2 text-sm rounded-lg border mr-3 ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'}`}>
+            Lead
+            {leadNonViste>0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{leadNonViste}</span>}
+          </button>
           <div className="flex border rounded-lg overflow-hidden mr-2">
             <button onClick={()=>navigateTo('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Pipeline</button>
             <button onClick={()=>navigateTo('list')} className={`px-3 py-2 text-sm ${view==='list'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Lista</button>
@@ -645,8 +657,15 @@ export default function CrmContent() {
             <button onClick={()=>navigateTo('dashboard')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='dashboard'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Dashboard</button>
           </div>
           <div className="grid grid-cols-2 gap-1 mb-1">
-            <button onClick={()=>navigateTo('tasks')} className={`py-2.5 rounded-lg text-sm font-medium border ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300'}`}>Task</button>
-            <button onClick={()=>navigateTo('leads')} className={`py-2.5 rounded-lg text-sm font-medium border ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300'}`}>Lead</button>
+            <button onClick={()=>navigateTo('tasks')} className={`relative py-2.5 rounded-lg text-sm font-medium border ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300'}`}>
+              Task
+              {taskScadute>0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{taskScadute}</span>}
+              {taskOggi>0 && taskScadute===0 && <span className="absolute -top-1.5 -right-1.5 bg-green-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{taskOggi}</span>}
+            </button>
+            <button onClick={()=>navigateTo('leads')} className={`relative py-2.5 rounded-lg text-sm font-medium border ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300'}`}>
+              Lead
+              {leadNonViste>0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{leadNonViste}</span>}
+            </button>
           </div>
           <div className="border-t pt-2 flex flex-col gap-1">
             {view!=='leads' && <button onClick={()=>{setShowForm(true);setMobileMenuOpen(false)}} className="bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium">+ Nuovo Affare</button>}
@@ -957,15 +976,26 @@ export default function CrmContent() {
                     <span className="bg-white bg-opacity-20 text-white text-xs px-2 py-0.5 rounded-full">{stageLeads.length}</span>
                   </div>
                   <div className="bg-gray-100 rounded-b-xl p-2 flex flex-col gap-2 min-h-24" onDragOver={e=>e.preventDefault()} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData('leadId');if(id){await supabase.from('deals').update({lead_stage:stage, lead_stage_updated_at: new Date().toISOString()}).eq('id',id);fetchDeals()}}}>
-                    {stageLeads.map(lead => (
-                      <div key={lead.id} draggable onDragStart={e=>{e.dataTransfer.setData('leadId',lead.id)}} className="bg-white rounded-lg p-2.5 shadow cursor-grab active:cursor-grabbing" onClick={()=>goToDeal(lead)}>
-                        <p className="font-semibold text-sm text-gray-800">{lead.contact_name}</p>
+                    {stageLeads.map(lead => {
+                      const isNew = !lead.lead_viewed_at
+                      return (
+                      <div key={lead.id} draggable onDragStart={e=>{e.dataTransfer.setData('leadId',lead.id)}}
+                        className={`bg-white rounded-lg p-2.5 shadow cursor-grab active:cursor-grabbing relative ${isNew?'ring-2 ring-purple-400':''}`}
+                        onClick={async()=>{if(isNew){await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals()}; goToDeal(lead)}}>
+                        {isNew && <span className="absolute top-1.5 right-1.5 bg-purple-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>}
+                        <p className="font-semibold text-sm text-gray-800 pr-8">{lead.contact_name}</p>
                         {lead.phone&&<p className="text-xs text-gray-500 mt-0.5">{lead.phone}</p>}
                         {(lead.origin||lead.environment)&&<div className="flex gap-2 mt-0.5">{lead.origin&&<p className="text-xs text-blue-400">{lead.origin}</p>}{lead.environment&&<p className="text-xs text-green-600">{lead.environment}</p>}</div>}
                         <p className="text-xs text-gray-400 mt-0.5">{formatDate(lead.created_at.split('T')[0])}</p>
+                        <div className="flex gap-1 mt-1.5" onClick={e=>e.stopPropagation()}>
+                          {!isNew
+                            ? <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:null}).eq('id',lead.id);fetchDeals()}} className="text-[10px] text-purple-500 border border-purple-300 rounded px-1.5 py-0.5 hover:bg-purple-50">↩ Segna NEW</button>
+                            : <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals()}} className="text-[10px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 hover:bg-gray-50">✓ Segna letto</button>
+                          }
+                        </div>
                         {stage==='Qualificato'&&(<button onClick={e=>{e.stopPropagation();setConvertingLead(lead)}} className="mt-1.5 w-full text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">⇒ Converti</button>)}
                       </div>
-                    ))}
+                    )})}
                     <button onClick={()=>setShowLeadForm(true)} className="text-xs text-gray-400 py-2 text-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400">+ Aggiungi</button>
                   </div>
                 </div>
