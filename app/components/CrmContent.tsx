@@ -675,8 +675,8 @@ export default function CrmContent() {
               <button onClick={()=>{const r=getCurrentMonthRange();setKanbanVenditaFrom(r.from);setKanbanVenditaTo(r.to)}} className="text-xs text-blue-600 underline">Mese</button>
             </div>
           </div>
-          <div className="p-3 sm:p-4">
-            <div className="flex gap-3">
+          <div className="p-3 sm:p-4 overflow-x-auto sm:overflow-x-visible" style={{WebkitOverflowScrolling:'touch'}}>
+            <div className="flex gap-3" style={{minWidth:'max-content'} as React.CSSProperties}>
               {STAGES.map(stage => {
                 const stageDeals = kanbanDeals(stage)
                 const total = stageDeals.reduce((sum,d)=>sum+(d.estimate||0),0)
@@ -685,8 +685,8 @@ export default function CrmContent() {
                   <Droppable droppableId={stage} key={stage}>
                     {(provided,snapshot) => (
                       <div ref={provided.innerRef} {...provided.droppableProps}
-                        className={`rounded-xl p-2.5 flex flex-col ${snapshot.isDraggingOver?'bg-blue-100':'bg-gray-200'}`}
-                        style={{flex:'1 1 0',minWidth:'160px'}}>
+                        className={`rounded-xl p-2.5 flex flex-col sm:flex-1 ${snapshot.isDraggingOver?'bg-blue-100':'bg-gray-200'}`}
+                        style={{width:'200px', minWidth:'200px'} as React.CSSProperties}>
                         <h2 className="font-semibold text-gray-700 text-xs leading-tight">{stage}</h2>
                         <p className="text-xs text-gray-500">{stageDeals.length} affari</p>
                         {total>0 && <p className="text-xs text-green-700 font-semibold">€ {total.toLocaleString()}</p>}
@@ -922,12 +922,12 @@ export default function CrmContent() {
 
       {/* ── LEAD ── */}
       {view==='leads' && (
-        <div className="p-3 sm:p-6">
-          <div className="flex gap-3 pb-4 overflow-x-auto" style={{WebkitOverflowScrolling:'touch'}}>
+        <div className="p-3 sm:p-6 overflow-x-auto sm:overflow-x-visible" style={{WebkitOverflowScrolling:'touch', minHeight:'calc(100vh - 120px)'}}>
+          <div className="flex gap-3 pb-4 sm:pb-0 h-full" style={{minWidth:'max-content'} as React.CSSProperties}>
             {(['Nuovo','Contattato','Qualificato','Non Qualificato'] as const).map(stage => {
               const stageLeads = leads.filter(l => (l.lead_stage||'Nuovo')===stage)
               return (
-                <div key={stage} style={{flex:'1 1 0',minWidth:'180px'}}>
+                <div key={stage} className="sm:flex-1" style={{width:'220px', minWidth:'220px'} as React.CSSProperties}>
                   <div className={`rounded-t-xl px-3 py-2.5 flex items-center justify-between ${stage==='Nuovo'?'bg-gray-700':stage==='Contattato'?'bg-blue-600':stage==='Qualificato'?'bg-green-600':'bg-red-500'}`}>
                     <span className="text-white font-semibold text-sm">{stage}</span>
                     <span className="bg-white bg-opacity-20 text-white text-xs px-2 py-0.5 rounded-full">{stageLeads.length}</span>
