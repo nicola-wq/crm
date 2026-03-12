@@ -1389,18 +1389,31 @@ export default function CrmContent() {
               <div><label className="text-xs text-gray-500">Data scadenza</label><input type="date" className="border rounded-lg p-3 w-full mt-1 text-sm" value={newTaskForm.due_date} onChange={e=>setNewTaskForm({...newTaskForm,due_date:e.target.value})} /></div>
               <div>
                 <label className="text-xs text-gray-500">Associa a contatto</label>
-                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Cerca..." value={newTaskSearch} onChange={async e=>{
+                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Cerca o scrivi nome nuovo..." value={newTaskSearch} onChange={async e=>{
                   const v=e.target.value
                   setNewTaskSearch(v)
-                  // Se l'utente modifica il testo, resetta l'associazione
                   setNewTaskForm(f=>({...f,deal_id:''}))
                   if(v.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${v}%,phone.ilike.%${v}%`).limit(5);setNewTaskSearchResults(data||[])}else{setNewTaskSearchResults([])}
                 }} />
-                {newTaskSearchResults.length>0&&(<div className="border rounded-lg mt-1 bg-white shadow-lg max-h-40 overflow-y-auto">{newTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:d.id});setNewTaskSearch(d.contact_name);setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0"><span className="font-medium">{d.contact_name}</span></button>))}</div>)}
+                {newTaskSearchResults.length>0 && (
+                  <div className="border rounded-lg mt-1 bg-white shadow-lg max-h-40 overflow-y-auto">
+                    {newTaskSearchResults.map(d=>(
+                      <button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:d.id});setNewTaskSearch(d.contact_name);setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0">
+                        <span className="font-medium">{d.contact_name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {newTaskForm.deal_id ? (
                   <p className="text-xs text-green-600 mt-1">✓ Associato a: {newTaskSearch}</p>
-                ) : newTaskSearch.length>0 ? (
-                  <p className="text-xs text-orange-400 mt-1">⚠ Seleziona un contatto dall'elenco per associare</p>
+                ) : newTaskSearch.trim().length>=2 && newTaskSearchResults.length===0 ? (
+                  <button onClick={async()=>{
+                    const nome=newTaskSearch.trim()
+                    const{data:newDeal}=await supabase.from('deals').insert({title:nome,contact_name:nome,stage:'Qualificato',is_lead:false,probability:null}).select().single()
+                    if(newDeal){setNewTaskForm(f=>({...f,deal_id:newDeal.id}));fetchDeals()}
+                  }} className="mt-1.5 w-full text-left px-3 py-2 text-sm bg-blue-50 border border-blue-200 rounded-lg text-blue-700 hover:bg-blue-100 transition-colors">
+                    + Crea nuovo contatto "<strong>{newTaskSearch.trim()}</strong>"
+                  </button>
                 ) : null}
               </div>
             </div>
