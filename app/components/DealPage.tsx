@@ -87,6 +87,10 @@ export default function DealPage({ dealId }: { dealId: string }) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [editingTaskTitle, setEditingTaskTitle] = useState('')
   const [editingTaskDue, setEditingTaskDue] = useState('')
+  const [showSaleDatePopup, setShowSaleDatePopup] = useState(false)
+  const [saleDateInput, setSaleDateInput] = useState(new Date().toISOString().split('T')[0])
+  const [showMoveFromVenditaPopup, setShowMoveFromVenditaPopup] = useState(false)
+  const [pendingEditDeal, setPendingEditDeal] = useState<typeof editDeal>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -129,25 +133,61 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
   async function saveDeal() {
     if (!editDeal) return
-    setSaving(true); setSaveError('')
     const oldStage = deal?.stage
-    const prob = editDeal.stage === 'Vendita' ? (editDeal.probability ?? 100) : editDeal.probability
+    // Se viene rimesso in Vendita senza data, mostra popup
+    if (editDeal.stage === 'Vendita' && !editDeal.sale_date) {
+      setShowSaleDatePopup(true)
+      return
+    }
+    // Se viene spostato da Vendita, chiedi cosa fare
+    if (oldStage === 'Vendita' && editDeal.stage !== 'Vendita') {
+      setPendingEditDeal(editDeal)
+      setShowMoveFromVenditaPopup(true)
+      return
+    }
+    await doSaveDeal(editDeal, oldStage)
+  }
+
+  async function doSaveDeal(ed: NonNullable<typeof editDeal>, oldStage: string | undefined, overrideNewDeal?: boolean) {
+    setSaving(true); setSaveError('')
+    // Probabilità automatica per fase
+    const prob = ed.stage === 'Vendita' ? 100
+      : ed.stage === 'Non convertito' ? 0
+      : ed.stage === 'Preventivo' ? 50
+      : null
+    const saleDate = ed.stage === 'Vendita' ? (ed.sale_date || null) : null
+    if (overrideNewDeal) {
+      // Crea nuovo affare con stesso contatto
+      await supabase.from('deals').insert({
+        contact_name: ed.contact_name, title: ed.contact_name,
+        phone: ed.phone, email: ed.email, origin: ed.origin,
+        environment: ed.environment, entry_date: ed.entry_date || null,
+        appointment_date: ed.appointment_date || null, estimate: ed.estimate || 0,
+        project_timeline: ed.project_timeline, stage: ed.stage, probability: prob,
+        sale_date: null, is_lead: false,
+      })
+      // Mantieni questo in Vendita
+      setSaving(false); setShowMoveFromVenditaPopup(false); setEditMode(false)
+      window.location.href = '/?tab=kanban'
+      return
+    }
     const { error } = await supabase.from('deals').update({
-      contact_name: editDeal.contact_name, title: editDeal.contact_name,
-      phone: editDeal.phone, email: editDeal.email, origin: editDeal.origin,
-      environment: editDeal.environment, entry_date: editDeal.entry_date || null,
-      appointment_date: editDeal.appointment_date || null, estimate: editDeal.estimate || 0,
-      project_timeline: editDeal.project_timeline, stage: editDeal.stage, probability: prob,
+      contact_name: ed.contact_name, title: ed.contact_name,
+      phone: ed.phone, email: ed.email, origin: ed.origin,
+      environment: ed.environment, entry_date: ed.entry_date || null,
+      appointment_date: ed.appointment_date || null, estimate: ed.estimate || 0,
+      project_timeline: ed.project_timeline, stage: ed.stage, probability: prob,
+      sale_date: saleDate,
     }).eq('id', dealId)
     setSaving(false)
     if (error) { setSaveError(error.message); return }
-    if (oldStage && oldStage !== editDeal.stage) {
+    if (oldStage && oldStage !== ed.stage) {
       await supabase.from('activity_log').insert({
         deal_id: dealId, type: 'stage_change',
-        from_value: oldStage, to_value: editDeal.stage, created_by: userEmail,
+        from_value: oldStage, to_value: ed.stage, created_by: userEmail,
       })
     }
-    setEditMode(false); fetchAll()
+    setShowMoveFromVenditaPopup(false); setEditMode(false); fetchAll()
   }
 
   async function addNote() {
@@ -308,16 +348,33 @@ export default function DealPage({ dealId }: { dealId: string }) {
                   </select>
                 </div>
                 <div><label className="text-xs text-gray-400">Fase</label>
-                  <select className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.stage} onChange={e => setEditDeal({ ...editDeal!, stage: e.target.value })}>
+                  <select className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.stage} onChange={e => {
+                    const s = e.target.value
+                    const autoProb = s === 'Vendita' ? 100 : s === 'Non convertito' ? 0 : s === 'Preventivo' ? 50 : null
+                    setEditDeal({ ...editDeal!, stage: s, probability: autoProb })
+                  }}>
                     {STAGES.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
                 <div><label className="text-xs text-gray-400">Probabilità</label>
-                  <select className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.probability ?? ''} onChange={e => setEditDeal({ ...editDeal!, probability: e.target.value !== '' ? Number(e.target.value) : null })}>
+                  <select className="border rounded-lg p-2 w-full mt-1 text-sm"
+                    value={editDeal?.probability ?? ''}
+                    disabled={editDeal?.stage === 'Vendita' || editDeal?.stage === 'Non convertito'}
+                    onChange={e => setEditDeal({ ...editDeal!, probability: e.target.value !== '' ? Number(e.target.value) : null })}>
                     <option value="">—</option>
                     {PROB_OPTIONS.map(p => <option key={p} value={p}>{p}%</option>)}
                   </select>
+                  {(editDeal?.stage === 'Vendita' || editDeal?.stage === 'Non convertito' || editDeal?.stage === 'Preventivo') && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      {editDeal.stage === 'Vendita' ? '✓ Automatico: 100%' : editDeal.stage === 'Non convertito' ? '✓ Automatico: 0%' : '✓ Default: 50%'}
+                    </p>
+                  )}
                 </div>
+                {editDeal?.stage === 'Vendita' && (
+                  <div><label className="text-xs text-gray-400">Data vendita</label>
+                    <input type="date" className="border rounded-lg p-2 w-full mt-1 text-sm" value={editDeal?.sale_date || ''} onChange={e => setEditDeal({ ...editDeal!, sale_date: e.target.value })} />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -561,6 +618,60 @@ export default function DealPage({ dealId }: { dealId: string }) {
           </div>
         </div>
       )}
+      {showSaleDatePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-1">Contatto aggiudicato! 🏆</h3>
+            <p className="text-gray-500 text-sm mb-4">Inserisci la data di vendita:</p>
+            <input type="date" className="border rounded-lg p-3 w-full mb-4" value={saleDateInput} onChange={e => setSaleDateInput(e.target.value)} autoFocus />
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                if (!editDeal) return
+                setSaving(true)
+                const oldStage = deal?.stage
+                await supabase.from('deals').update({
+                  contact_name: editDeal.contact_name, title: editDeal.contact_name,
+                  phone: editDeal.phone, email: editDeal.email, origin: editDeal.origin,
+                  environment: editDeal.environment, entry_date: editDeal.entry_date || null,
+                  appointment_date: editDeal.appointment_date || null, estimate: editDeal.estimate || 0,
+                  project_timeline: editDeal.project_timeline, stage: 'Vendita', probability: 100,
+                  sale_date: saleDateInput,
+                }).eq('id', dealId)
+                if (oldStage && oldStage !== 'Vendita') {
+                  await supabase.from('activity_log').insert({ deal_id: dealId, type: 'stage_change', from_value: oldStage, to_value: 'Vendita', created_by: userEmail })
+                }
+                setSaving(false); setShowSaleDatePopup(false); setEditMode(false); fetchAll()
+              }} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Conferma</button>
+              <button onClick={() => setShowSaleDatePopup(false)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showMoveFromVenditaPopup && pendingEditDeal && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-1">Sposta da Vendita</h3>
+            <p className="text-gray-600 text-sm mb-1"><strong>{pendingEditDeal.contact_name}</strong> è attualmente venduto.</p>
+            <p className="text-gray-500 text-sm mb-5">Come vuoi procedere?</p>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, true)}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium text-sm">
+                🆕 Crea nuovo affare con questo contatto
+              </button>
+              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, false)}
+                className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium text-sm">
+                ↩ Sposta questo affare (rimuovi da Vendita)
+              </button>
+              <button onClick={() => { setShowMoveFromVenditaPopup(false); setPendingEditDeal(null) }}
+                className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg text-sm">
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmDeleteDeal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
