@@ -8,7 +8,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 const STAGES = ['Qualificato', 'Appuntamento fissato', 'Ingresso', 'Preventivo', 'Vendita', 'Non convertito']
 const ENVIRONMENTS = ['Cucina', 'Soggiorno', 'Camera da letto', 'Cameretta', 'Tavoli e sedie', 'Altro']
 const PROB_OPTIONS = [0, 25, 50, 75, 90, 100]
-const PROB_COLORS: Record<number, string> = { 0: 'bg-gray-100 text-gray-500', 25: 'bg-red-100 text-red-700', 50: 'bg-orange-100 text-orange-700', 75: 'bg-yellow-100 text-yellow-700', 90: 'bg-blue-100 text-blue-700', 100: 'bg-green-100 text-green-700' }
+const PROB_COLORS: Record<number, string> = { 0: 'bg-white/30 text-[#9490A0]', 25: 'bg-red-100/60 text-red-700', 50: 'bg-[#E76F51]/10 text-orange-700', 75: 'bg-yellow-100/60 text-yellow-700', 90: 'bg-[#1D3557]/10 text-[#1D3557]', 100: 'bg-[#2A9D8F]/10 text-[#2A9D8F]' }
 
 interface Deal {
   id: string; title: string; contact_name: string; phone: string; email: string
@@ -57,7 +57,7 @@ function EnvSelect({ value, onChange }: { value: string, onChange: (v: string) =
     <div className="flex flex-wrap gap-2 mt-1">
       {ENVIRONMENTS.map(env => (
         <button key={env} type="button" onClick={()=>toggle(env)}
-          className={`px-3 py-1 rounded-full text-xs border transition-colors ${selected.includes(env)?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>
+          className={`px-3 py-1 rounded-full text-xs border transition-colors ${selected.includes(env)?'text-white bg-[#1D3557] border-[#1D3557]':'bg-white/50 text-[#5C5862] border-white/30 hover:border-[#1D3557]/40'}`}>
           {env}
         </button>
       ))}
@@ -67,7 +67,7 @@ function EnvSelect({ value, onChange }: { value: string, onChange: (v: string) =
 
 function PieChart({ data, size=160 }: { data: {label:string, value:number, color:string}[], size?: number }) {
   const total = data.reduce((s,d)=>s+d.value,0)
-  if (total === 0) return <div className="flex items-center justify-center text-gray-400 text-sm" style={{width:size,height:size}}>Nessun dato</div>
+  if (total === 0) return <div className="flex items-center justify-center text-[#9490A0] text-sm" style={{width:size,height:size}}>Nessun dato</div>
   let cumAngle = -Math.PI/2
   const cx = size/2, cy = size/2, r = size/2 - 4
   const slices = data.filter(d=>d.value>0).map(d => {
@@ -128,34 +128,34 @@ function ContactsView({ router }: { router: any }) {
     <div className="p-3 sm:p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-4 gap-3">
         <input
-          className="border rounded-xl px-4 py-2.5 text-sm flex-1 bg-white shadow-sm"
+          className="border rounded-xl px-4 py-2.5 text-sm flex-1 card-xs"
           placeholder="Cerca per nome, telefono, email..."
           value={search} onChange={e => setSearch(e.target.value)}
         />
-        <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 whitespace-nowrap">
+        <button onClick={() => setShowForm(true)} className="text-white bg-[#1D3557] px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-[#2A4A7F] whitespace-nowrap">
           + Nuovo
         </button>
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-400 py-12">Caricamento...</p>
+        <p className="text-center text-[#9490A0] py-12">Caricamento...</p>
       ) : filtered.length === 0 ? (
-        <p className="text-center text-gray-400 py-12">Nessun contatto trovato</p>
+        <p className="text-center text-[#9490A0] py-12">Nessun contatto trovato</p>
       ) : (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="card overflow-hidden">
           {filtered.map((c, i) => (
             <div key={c.id}
               onClick={() => router.push(`/contact/${c.id}`)}
-              className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer hover:bg-blue-50 transition-colors ${i > 0 ? 'border-t' : ''}`}>
-              <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+              className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer hover:bg-[#1D3557]/5 transition-colors ${i > 0 ? 'border-t' : ''}`}>
+              <div className="w-9 h-9 rounded-full bg-[#1D3557]/10 text-[#1D3557] flex items-center justify-center font-bold text-sm flex-shrink-0">
                 {c.name?.charAt(0)?.toUpperCase() || '?'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-gray-800">{c.name}</p>
+                <p className="font-semibold text-sm text-[#1A1A1A]">{c.name}</p>
                 <div className="flex gap-3 mt-0.5">
-                  {c.phone && <span className="text-xs text-gray-400">{c.phone}</span>}
-                  {c.email && <span className="text-xs text-gray-400 truncate">{c.email}</span>}
-                  {c.origin && <span className="text-xs text-blue-400">{c.origin}</span>}
+                  {c.phone && <span className="text-xs text-[#9490A0]">{c.phone}</span>}
+                  {c.email && <span className="text-xs text-[#9490A0] truncate">{c.email}</span>}
+                  {c.origin && <span className="text-xs text-[#2A9D8F]">{c.origin}</span>}
                 </div>
               </div>
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
@@ -165,18 +165,18 @@ function ContactsView({ router }: { router: any }) {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
-          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-md shadow-xl">
-            <h2 className="text-lg font-bold mb-4">Nuovo Contatto</h2>
+        <div className="modal-overlay">
+          <div className="modal-content p-5 w-full sm:max-w-md shadow-xl">
+            <h2 className="text-lg font-semibold mb-4">Nuovo Contatto</h2>
             <div className="flex flex-col gap-3">
-              <input className="border rounded-lg p-3 text-sm" placeholder="Nome *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} autoFocus />
-              <input className="border rounded-lg p-3 text-sm" placeholder="Telefono" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
-              <input className="border rounded-lg p-3 text-sm" placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-              <input className="border rounded-lg p-3 text-sm" placeholder="Origine" value={form.origin} onChange={e => setForm({...form, origin: e.target.value})} />
+              <input className="border rounded-xl p-3 text-sm" placeholder="Nome *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} autoFocus />
+              <input className="border rounded-xl p-3 text-sm" placeholder="Telefono" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+              <input className="border rounded-xl p-3 text-sm" placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+              <input className="border rounded-xl p-3 text-sm" placeholder="Origine" value={form.origin} onChange={e => setForm({...form, origin: e.target.value})} />
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={addContact} disabled={saving || !form.name.trim()} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-40">Salva</button>
-              <button onClick={() => { setShowForm(false); setForm({name:'', phone:'', email:'', origin:''}) }} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={addContact} disabled={saving || !form.name.trim()} className="flex-1 text-white bg-[#1D3557] py-3 rounded-xl font-medium disabled:opacity-40">Salva</button>
+              <button onClick={() => { setShowForm(false); setForm({name:'', phone:'', email:'', origin:''}) }} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
@@ -633,7 +633,7 @@ export default function CrmContent() {
   }
 
   function btnClass(type: QuickRange) {
-    return `px-2 py-1 rounded-lg text-xs sm:text-sm font-medium transition-colors ${activeQuick===type?'bg-blue-600 text-white':'bg-gray-100 hover:bg-gray-200 text-gray-700'}`
+    return `px-2 py-1 rounded-xl text-xs sm:text-sm font-medium transition-colors ${activeQuick===type?'text-white bg-[#1D3557]':'bg-white/30 hover:bg-white/50 text-[#5C5862]'}`
   }
 
   function goToDeal(deal: Deal) { router.push(`/deal/${deal.id}`) }
@@ -705,7 +705,7 @@ export default function CrmContent() {
     setInlineEdit(null); fetchDeals()
   }
 
-  if (!checked) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">Verifica accesso...</p></div>
+  if (!checked) return <div className="min-h-screen flex items-center justify-center"><p className="text-[#9490A0]">Verifica accesso...</p></div>
 
   const filteredDeals = getFilteredDeals()
 
@@ -782,38 +782,38 @@ export default function CrmContent() {
 
   const BulkActionBar = ({ dealsInView }: { dealsInView: Deal[] }) => (
     selectedIds.size > 0 ? (
-      <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+      <div className="mb-4 bg-[#1D3557]/5 border border-[#1D3557]/15 rounded-xl px-4 py-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-blue-700 font-semibold">{selectedIds.size} selezionati</span>
-          <select className="border rounded-lg p-2 text-sm ml-2" value={bulkStage} onChange={e=>setBulkStage(e.target.value)}>
+          <span className="text-sm text-[#1D3557] font-semibold">{selectedIds.size} selezionati</span>
+          <select className="border rounded-xl p-2 text-sm ml-2" value={bulkStage} onChange={e=>setBulkStage(e.target.value)}>
             <option value="">Cambia fase...</option>
             {STAGES.map(s=><option key={s}>{s}</option>)}
           </select>
-          {bulkStage && <button onClick={bulkChangeStage} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700">Applica fase</button>}
-          <div className="w-px h-6 bg-blue-200 mx-1" />
+          {bulkStage && <button onClick={bulkChangeStage} className="text-white bg-[#1D3557] px-3 py-2 rounded-xl text-sm hover:bg-[#2A4A7F]">Applica fase</button>}
+          <div className="w-px h-6 bg-[#1D3557]/15 mx-1" />
           <div className="relative">
-            <button onClick={()=>setShowBulkEnvPicker(p=>!p)} className="border rounded-lg px-3 py-2 text-sm bg-white hover:bg-gray-50 flex items-center gap-1">
-              {bulkEnv.length>0 ? <span className="text-blue-700 font-medium">{bulkEnv.join(', ')}</span> : <span className="text-gray-500">Ambiente...</span>}
-              <span className="text-gray-400 text-xs ml-1">▾</span>
+            <button onClick={()=>setShowBulkEnvPicker(p=>!p)} className="border rounded-xl px-3 py-2 text-sm bg-white hover:bg-white/20 flex items-center gap-1">
+              {bulkEnv.length>0 ? <span className="text-[#1D3557] font-medium">{bulkEnv.join(', ')}</span> : <span className="text-[#9490A0]">Ambiente...</span>}
+              <span className="text-[#9490A0] text-xs ml-1">▾</span>
             </button>
             {showBulkEnvPicker && (
-              <div className="absolute top-full left-0 mt-1 bg-white border rounded-xl shadow-lg p-3 z-20" style={{minWidth:'240px'}}>
+              <div className="absolute top-full left-0 mt-1 card border-0 rounded-xl shadow-lg p-3 z-20" style={{minWidth:'240px'}}>
                 <div className="flex flex-wrap gap-1 mb-3">
-                  {ENVIRONMENTS.map(env=>{const active=bulkEnv.includes(env);return <button key={env} type="button" onClick={()=>setBulkEnv(prev=>active?prev.filter(e=>e!==env):[...prev,env])} className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`}>{env}</button>})}
+                  {ENVIRONMENTS.map(env=>{const active=bulkEnv.includes(env);return <button key={env} type="button" onClick={()=>setBulkEnv(prev=>active?prev.filter(e=>e!==env):[...prev,env])} className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'text-white bg-[#1D3557] border-[#1D3557]':'bg-white/50 text-[#5C5862] border-white/30 hover:border-[#1D3557]/40'}`}>{env}</button>})}
                 </div>
                 <div className="flex gap-1 justify-end border-t pt-2">
-                  <button onClick={()=>{setShowBulkEnvPicker(false);setBulkEnv([])}} className="text-xs text-gray-500 px-2 py-1 hover:text-gray-700">Annulla</button>
-                  {bulkEnv.length>0 && <button onClick={bulkChangeEnv} className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Applica</button>}
+                  <button onClick={()=>{setShowBulkEnvPicker(false);setBulkEnv([])}} className="text-xs text-[#9490A0] px-2 py-1 hover:text-[#5C5862]">Annulla</button>
+                  {bulkEnv.length>0 && <button onClick={bulkChangeEnv} className="text-xs text-white bg-[#1D3557] px-3 py-1 rounded hover:bg-[#2A4A7F]">Applica</button>}
                 </div>
               </div>
             )}
           </div>
           <div className="flex items-center gap-1">
-            <input type="date" className="border rounded-lg p-2 text-sm bg-white" value={bulkEntryDate} onChange={e=>setBulkEntryDate(e.target.value)} />
-            {bulkEntryDate && <button onClick={bulkChangeEntryDate} className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700">Applica</button>}
+            <input type="date" className="border rounded-xl p-2 text-sm bg-white" value={bulkEntryDate} onChange={e=>setBulkEntryDate(e.target.value)} />
+            {bulkEntryDate && <button onClick={bulkChangeEntryDate} className="text-white bg-[#1D3557] px-3 py-2 rounded-xl text-sm hover:bg-[#2A4A7F]">Applica</button>}
           </div>
-          <button onClick={()=>setConfirmBulkDelete(true)} className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-600">Elimina</button>
-          <button onClick={()=>{setSelectedIds(new Set());setBulkStage('');setBulkEnv([]);setBulkEntryDate('');setShowBulkEnvPicker(false)}} className="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-300 ml-auto">✕</button>
+          <button onClick={()=>setConfirmBulkDelete(true)} className="bg-red-500 text-white px-3 py-2 rounded-xl text-sm hover:bg-red-600">Elimina</button>
+          <button onClick={()=>{setSelectedIds(new Set());setBulkStage('');setBulkEnv([]);setBulkEntryDate('');setShowBulkEnvPicker(false)}} className="bg-white/50 text-[#5C5862] px-3 py-2 rounded-xl text-sm hover:bg-white/60 ml-auto">✕</button>
         </div>
       </div>
     ) : null
@@ -848,50 +848,50 @@ export default function CrmContent() {
   const envCountData = envKeys.map((k,i)=>({label:k,value:envCountMap[k]||0,color:PIE_COLORS[i%PIE_COLORS.length]}))
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen">
 
       {/* ── HEADER ── */}
-      <div className="bg-white shadow px-3 sm:px-6 py-3 flex justify-between items-center sticky top-0 z-40">
+      <div className="px-3 sm:px-6 py-3 flex justify-between items-center sticky top-0 z-40" style={{background:'rgba(255,255,255,0.55)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',borderBottom:'1px solid rgba(255,255,255,0.3)'}}>
         <div className="flex items-center gap-2">
-          <button onClick={()=>navigateTo('home')} className={`transition-colors ${view==='home'?'text-blue-600':'text-gray-400 hover:text-blue-600'}`}>
+          <button onClick={()=>navigateTo('home')} className={`transition-colors ${view==='home'?'text-[#1D3557]':'text-[#9490A0] hover:text-[#1D3557]'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
           </button>
-          <button onClick={()=>navigateTo('contacts')} title="Contatti" className={`transition-colors ${view==='contacts'?'text-blue-600':'text-gray-400 hover:text-blue-600'}`}>
+          <button onClick={()=>navigateTo('contacts')} title="Contatti" className={`transition-colors ${view==='contacts'?'text-[#1D3557]':'text-[#9490A0] hover:text-[#1D3557]'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
           </button>
           <img src="/logo.png" alt="Pensare Casa" className="h-5 object-contain" />
-          <span className="text-sm font-semibold text-gray-700">C.so Regina</span>
+          <span className="text-sm font-semibold" style={{color:'#1A1A1A'}}>C.so Regina</span>
         </div>
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-2 items-center">
-          <button onClick={()=>navigateTo('tasks')} className={`relative px-3 py-2 text-sm rounded-lg border mr-1 ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300 hover:bg-orange-50'}`}>
+          <button onClick={()=>navigateTo('tasks')} className={`relative px-3 py-2 text-sm font-medium rounded-xl border transition-all ${view==='tasks'?'text-white border-[#E76F51]':'text-[#E76F51] border-[#E76F51]/30 hover:border-[#E76F51]/60'}`} style={view==='tasks'?{background:'#E76F51',boxShadow:'0 2px 8px rgba(231,111,81,0.25)'}:{background:'rgba(255,255,255,0.5)'}}>
             Task
             {taskScadute>0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{taskScadute}</span>}
           </button>
-          <button onClick={()=>navigateTo('leads')} className={`relative px-3 py-2 text-sm rounded-lg border mr-3 ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300 hover:bg-purple-50'}`}>
+          <button onClick={()=>navigateTo('leads')} className={`relative px-3 py-2 text-sm font-medium rounded-xl border mr-2 transition-all ${view==='leads'?'text-white border-[#7B2D8B]':'text-[#7B2D8B] border-[#7B2D8B]/30 hover:border-[#7B2D8B]/60'}`} style={view==='leads'?{background:'#7B2D8B',boxShadow:'0 2px 8px rgba(123,45,139,0.25)'}:{background:'rgba(255,255,255,0.5)'}}>
             Lead
             {leadNonViste>0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{leadNonViste}</span>}
           </button>
-          <div className="flex border rounded-lg overflow-hidden mr-2">
-            <button onClick={()=>navigateTo('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Pipeline</button>
-            <button onClick={()=>navigateTo('list')} className={`px-3 py-2 text-sm ${view==='list'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Affari</button>
-            <button onClick={()=>navigateTo('ingressi')} className={`px-3 py-2 text-sm ${view==='ingressi'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Ingressi</button>
-            <button onClick={()=>navigateTo('dashboard')} className={`px-3 py-2 text-sm ${view==='dashboard'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Dashboard</button>
+          <div className="flex rounded-xl overflow-hidden mr-2" style={{border:'1px solid rgba(0,0,0,0.06)',background:'rgba(255,255,255,0.4)'}}>
+            <button onClick={()=>navigateTo('kanban')} className={`px-3 py-2 text-sm font-medium transition-all ${view==='kanban'?'text-white':'text-[#5C5862]'}`} style={view==='kanban'?{background:'#1D3557'}:{}}>Pipeline</button>
+            <button onClick={()=>navigateTo('list')} className={`px-3 py-2 text-sm font-medium transition-all ${view==='list'?'text-white':'text-[#5C5862]'}`} style={view==='list'?{background:'#1D3557'}:{}}>Affari</button>
+            <button onClick={()=>navigateTo('ingressi')} className={`px-3 py-2 text-sm font-medium transition-all ${view==='ingressi'?'text-white':'text-[#5C5862]'}`} style={view==='ingressi'?{background:'#1D3557'}:{}}>Ingressi</button>
+            <button onClick={()=>navigateTo('dashboard')} className={`px-3 py-2 text-sm font-medium transition-all ${view==='dashboard'?'text-white':'text-[#5C5862]'}`} style={view==='dashboard'?{background:'#1D3557'}:{}}>Dashboard</button>
           </div>
-          {view==='leads' && <button onClick={()=>setShowLeadForm(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">+ Nuovo Lead</button>}
-          {view!=='leads' && <button onClick={()=>setShowIngressoForm(true)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">+ Nuovo Ingresso</button>}
-          {view!=='leads' && <button onClick={()=>setShowForm(true)} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">+ Nuovo Affare</button>}
-          <button onClick={()=>setConfirmLogout(true)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300">Esci</button>
+          {view==='leads' && <button onClick={()=>setShowLeadForm(true)} className="btn-primary px-4 py-2 rounded-xl text-sm font-medium" style={{background:'#7B2D8B',borderColor:'#7B2D8B',boxShadow:'0 2px 8px rgba(123,45,139,0.25)'}}>+ Nuovo Lead</button>}
+          {view!=='leads' && <button onClick={()=>setShowIngressoForm(true)} className="px-4 py-2 rounded-xl text-sm font-medium text-white" style={{background:'#2A9D8F',boxShadow:'0 2px 8px rgba(42,157,143,0.25)'}}>+ Nuovo Ingresso</button>}
+          {view!=='leads' && <button onClick={()=>setShowForm(true)} className="px-4 py-2 rounded-xl text-sm font-medium text-white" style={{background:'#1D3557',boxShadow:'0 2px 8px rgba(29,53,87,0.25)'}}>+ Nuovo Affare</button>}
+          <button onClick={()=>setConfirmLogout(true)} className="px-4 py-2 rounded-xl text-sm" style={{background:'rgba(255,255,255,0.5)',color:'#5C5862',border:'1px solid rgba(0,0,0,0.06)'}}>Esci</button>
         </div>
 
         {/* Mobile: azione rapida + hamburger */}
         <div className="flex md:hidden items-center gap-2">
           {view==='leads'
-            ? <button onClick={()=>setShowLeadForm(true)} className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium">+ Lead</button>
-            : <button onClick={()=>setShowIngressoForm(true)} className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium">+ Ingresso</button>
+            ? <button onClick={()=>setShowLeadForm(true)} className="text-white px-3 py-1.5 rounded-xl text-sm font-medium" style={{background:'#7B2D8B',boxShadow:'0 2px 8px rgba(123,45,139,0.25)'}}>+ Lead</button>
+            : <button onClick={()=>setShowIngressoForm(true)} className="text-white px-3 py-1.5 rounded-xl text-sm font-medium" style={{background:'#2A9D8F',boxShadow:'0 2px 8px rgba(42,157,143,0.25)'}}>+ Ingresso</button>
           }
-          <button onClick={()=>setMobileMenuOpen(p=>!p)} className="p-2 rounded-lg bg-gray-100 text-gray-600">
+          <button onClick={()=>setMobileMenuOpen(p=>!p)} className="p-2 rounded-xl" style={{background:'rgba(255,255,255,0.5)',color:'#5C5862'}}>
             {mobileMenuOpen
               ? <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
               : <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -902,42 +902,42 @@ export default function CrmContent() {
 
       {/* Mobile dropdown menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b shadow-lg z-30 px-4 py-3 flex flex-col gap-2">
+        <div className="md:hidden z-30 px-4 py-3 flex flex-col gap-2" style={{background:'rgba(255,255,255,0.75)',backdropFilter:'blur(20px)',WebkitBackdropFilter:'blur(20px)',borderBottom:'1px solid rgba(255,255,255,0.3)'}}>
           <div className="grid grid-cols-3 gap-1 mb-1">
-            <button onClick={()=>navigateTo('kanban')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='kanban'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Pipeline</button>
-            <button onClick={()=>navigateTo('list')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='list'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Affari</button>
-            <button onClick={()=>navigateTo('ingressi')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='ingressi'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Ingressi</button>
-            <button onClick={()=>navigateTo('dashboard')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='dashboard'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Dashboard</button>
+            <button onClick={()=>navigateTo('kanban')} className={`py-2.5 rounded-xl text-sm font-medium transition-all ${view==='kanban'?'text-white':'text-[#5C5862]'}`} style={view==='kanban'?{background:'#1D3557'}:{background:'rgba(255,255,255,0.5)'}}>Pipeline</button>
+            <button onClick={()=>navigateTo('list')} className={`py-2.5 rounded-xl text-sm font-medium transition-all ${view==='list'?'text-white':'text-[#5C5862]'}`} style={view==='list'?{background:'#1D3557'}:{background:'rgba(255,255,255,0.5)'}}>Affari</button>
+            <button onClick={()=>navigateTo('ingressi')} className={`py-2.5 rounded-xl text-sm font-medium transition-all ${view==='ingressi'?'text-white':'text-[#5C5862]'}`} style={view==='ingressi'?{background:'#1D3557'}:{background:'rgba(255,255,255,0.5)'}}>Ingressi</button>
+            <button onClick={()=>navigateTo('dashboard')} className={`py-2.5 rounded-xl text-sm font-medium transition-all ${view==='dashboard'?'text-white':'text-[#5C5862]'}`} style={view==='dashboard'?{background:'#1D3557'}:{background:'rgba(255,255,255,0.5)'}}>Dashboard</button>
           </div>
           <div className="grid grid-cols-2 gap-1 mb-1">
-            <button onClick={()=>navigateTo('tasks')} className={`relative py-2.5 rounded-lg text-sm font-medium border ${view==='tasks'?'bg-orange-500 text-white border-orange-500':'bg-white text-orange-500 border-orange-300'}`}>
+            <button onClick={()=>navigateTo('tasks')} className={`relative py-2.5 rounded-xl text-sm font-medium border transition-all ${view==='tasks'?'text-white border-[#E76F51]':'text-[#E76F51] border-[#E76F51]/30'}`} style={view==='tasks'?{background:'#E76F51'}:{background:'rgba(255,255,255,0.5)'}}>
               Task
               {taskScadute>0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{taskScadute}</span>}
             </button>
-            <button onClick={()=>navigateTo('leads')} className={`relative py-2.5 rounded-lg text-sm font-medium border ${view==='leads'?'bg-purple-600 text-white border-purple-600':'bg-white text-purple-600 border-purple-300'}`}>
+            <button onClick={()=>navigateTo('leads')} className={`relative py-2.5 rounded-xl text-sm font-medium border transition-all ${view==='leads'?'text-white border-[#7B2D8B]':'text-[#7B2D8B] border-[#7B2D8B]/30'}`} style={view==='leads'?{background:'#7B2D8B'}:{background:'rgba(255,255,255,0.5)'}}>
               Lead
               {leadNonViste>0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">{leadNonViste}</span>}
             </button>
           </div>
-          <div className="border-t pt-2 flex flex-col gap-1">
-            {view!=='leads' && <button onClick={()=>{setShowForm(true);setMobileMenuOpen(false)}} className="bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium">+ Nuovo Affare</button>}
-            <button onClick={()=>{setConfirmLogout(true);setMobileMenuOpen(false)}} className="bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm">Esci</button>
+          <div className="border-t border-white/20 pt-2 flex flex-col gap-1">
+            {view!=='leads' && <button onClick={()=>{setShowForm(true);setMobileMenuOpen(false)}} className="text-white py-2.5 rounded-xl text-sm font-medium" style={{background:'#1D3557'}}>+ Nuovo Affare</button>}
+            <button onClick={()=>{setConfirmLogout(true);setMobileMenuOpen(false)}} className="py-2.5 rounded-xl text-sm" style={{background:'rgba(255,255,255,0.5)',color:'#5C5862'}}>Esci</button>
           </div>
         </div>
       )}
 
       {/* ── BOTTOM NAV (mobile only) ── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-40 flex safe-bottom">
+      <div className="bottom-nav md:hidden">
         {[
-          {v:'home' as View, label:'Home', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>, color:'text-blue-600', badge:0},
-          {v:'contacts' as View, label:'Contatti', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, color:'text-blue-600', badge:0},
-          {v:'kanban' as View, label:'Pipeline', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>, color:'text-blue-600', badge:0},
-          {v:'tasks' as View, label:'Task', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>, color:'text-orange-500', badge:taskScadute},
-          {v:'leads' as View, label:'Lead', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, color:'text-purple-600', badge:leadNonViste},
-          {v:'ingressi' as View, label:'Ingressi', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>, color:'text-cyan-600', badge:0},
-          {v:'dashboard' as View, label:'Stats', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>, color:'text-blue-600', badge:0},
-        ].map(({v,label,icon,color,badge})=>(
-          <button key={v} onClick={()=>navigateTo(v)} className={`relative flex-1 py-2 flex flex-col items-center gap-0.5 text-xs ${view===v?color:'text-gray-400'}`}>
+          {v:'home' as View, label:'Home', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>, badge:0},
+          {v:'contacts' as View, label:'Contatti', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, badge:0},
+          {v:'kanban' as View, label:'Pipeline', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>, badge:0},
+          {v:'tasks' as View, label:'Task', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>, badge:taskScadute},
+          {v:'leads' as View, label:'Lead', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, badge:leadNonViste},
+          {v:'ingressi' as View, label:'Ingressi', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>, badge:0},
+          {v:'dashboard' as View, label:'Stats', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>, badge:0},
+        ].map(({v,label,icon,badge})=>(
+          <button key={v} onClick={()=>navigateTo(v)} className={`bottom-nav-item ${view===v?'active':''}`}>
             {icon}{label}
             {badge>0 && <span className="absolute top-1 right-3 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1">{badge}</span>}
           </button>
@@ -962,97 +962,97 @@ export default function CrmContent() {
         return (
           <div className="p-4 sm:p-6 max-w-5xl mx-auto">
             {/* Saluto */}
-            <h1 className="text-xl font-bold text-gray-800 mb-1">Buongiorno 👋</h1>
-            <p className="text-sm text-gray-400 mb-5">{new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</p>
+            <h1 className="text-xl font-semibold text-[#1A1A1A] mb-1">Buongiorno 👋</h1>
+            <p className="text-sm text-[#9490A0] mb-5">{new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</p>
 
             {/* KPI */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-              <div onClick={()=>navigateTo('leads')} className="bg-white rounded-xl shadow p-4 cursor-pointer hover:shadow-md transition-shadow">
-                <p className="text-xs text-gray-400 mb-1">Lead non viste</p>
+              <div onClick={()=>navigateTo('leads')} className="card p-4 cursor-pointer hover:shadow-sm transition-shadow">
+                <p className="text-xs text-[#9490A0] mb-1">Lead non viste</p>
                 <p className={`text-2xl font-bold ${leadNonVisteLista.length>0?'text-red-500':'text-gray-300'}`}>{leadNonVisteLista.length}</p>
               </div>
-              <div onClick={()=>navigateTo('tasks')} className="bg-white rounded-xl shadow p-4 cursor-pointer hover:shadow-md transition-shadow">
-                <p className="text-xs text-gray-400 mb-1">Task scadute</p>
+              <div onClick={()=>navigateTo('tasks')} className="card p-4 cursor-pointer hover:shadow-sm transition-shadow">
+                <p className="text-xs text-[#9490A0] mb-1">Task scadute</p>
                 <p className={`text-2xl font-bold ${taskScaduteList.length>0?'text-red-500':'text-gray-300'}`}>{taskScaduteList.length}</p>
               </div>
-              <div className="bg-white rounded-xl shadow p-4">
-                <p className="text-xs text-gray-400 mb-1">Vendite del mese</p>
-                <p className="text-2xl font-bold text-green-600">{valoreVendite>0?`€ ${Math.round(valoreVendite/1000)}k`:venditeM.length}</p>
+              <div className="card p-4">
+                <p className="text-xs text-[#9490A0] mb-1">Vendite del mese</p>
+                <p className="text-2xl font-bold text-[#2A9D8F]">{valoreVendite>0?`€ ${Math.round(valoreVendite/1000)}k`:venditeM.length}</p>
               </div>
-              <div className="bg-white rounded-xl shadow p-4">
-                <p className="text-xs text-gray-400 mb-1">Pipeline ponderata</p>
-                <p className="text-2xl font-bold text-blue-600">{valorePonderato>0?`€ ${Math.round(valorePonderato/1000)}k`:'—'}</p>
+              <div className="card p-4">
+                <p className="text-xs text-[#9490A0] mb-1">Pipeline ponderata</p>
+                <p className="text-2xl font-bold text-[#1D3557]">{valorePonderato>0?`€ ${Math.round(valorePonderato/1000)}k`:'—'}</p>
               </div>
             </div>
 
             {/* Azioni rapide */}
             <div className="flex gap-3 mb-6">
-              <button onClick={()=>setShowIngressoForm(true)} className="flex-1 bg-green-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-green-700 transition-colors">+ Nuovo Ingresso</button>
-              <button onClick={()=>setShowNewTask(true)} className="flex-1 bg-orange-500 text-white rounded-xl py-3 font-semibold text-sm hover:bg-orange-600 transition-colors">+ Nuova Task</button>
+              <button onClick={()=>setShowIngressoForm(true)} className="flex-1 text-white bg-[#2A9D8F] rounded-xl py-3 font-semibold text-sm hover:opacity-90 transition-colors">+ Nuovo Ingresso</button>
+              <button onClick={()=>setShowNewTask(true)} className="flex-1 text-white bg-[#E76F51] rounded-xl py-3 font-semibold text-sm hover:opacity-90 transition-colors">+ Nuova Task</button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* Lead non viste */}
-              <div className="bg-white rounded-xl shadow p-4">
+              <div className="card p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-bold text-gray-700">Lead non viste</h2>
-                  <button onClick={()=>navigateTo('leads')} className="text-xs text-purple-600 hover:underline">Vedi tutte →</button>
+                  <h2 className="font-bold text-[#5C5862]">Lead non viste</h2>
+                  <button onClick={()=>navigateTo('leads')} className="text-xs text-[#7B2D8B] hover:underline">Vedi tutte →</button>
                 </div>
                 {leadNonVisteLista.length===0 ? (
                   <p className="text-sm text-gray-300 text-center py-4">Nessuna lead in attesa ✓</p>
                 ) : (
                   <div className="flex flex-col gap-2">
                     {leadNonVisteLista.slice(0,5).map(lead=>(
-                      <div key={lead.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-purple-50 border border-purple-100 hover:bg-purple-100 transition-colors">
+                      <div key={lead.id} className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#7B2D8B]/5 border border-purple-100 hover:bg-purple-100 transition-colors">
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals();goToDeal(lead)}}>
-                          <p className="font-semibold text-sm text-gray-800 truncate">{lead.contact_name}</p>
-                          <p className="text-xs text-gray-400">{lead.lead_stage||'Nuovo'} · {formatDate(lead.created_at.split('T')[0])}</p>
+                          <p className="font-semibold text-sm text-[#1A1A1A] truncate">{lead.contact_name}</p>
+                          <p className="text-xs text-[#9490A0]">{lead.lead_stage||'Nuovo'} · {formatDate(lead.created_at.split('T')[0])}</p>
                         </div>
-                        <button onClick={async(e)=>{e.stopPropagation();await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals()}} className="text-[10px] text-gray-400 border border-gray-200 rounded px-2 py-1 hover:bg-gray-50 flex-shrink-0">✓ Letto</button>
+                        <button onClick={async(e)=>{e.stopPropagation();await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals()}} className="text-[10px] text-[#9490A0] border border-gray-200 rounded px-2 py-1 hover:bg-white/20 flex-shrink-0">✓ Letto</button>
                         <span className="text-gray-300 text-xs flex-shrink-0 cursor-pointer" onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals();goToDeal(lead)}}>→</span>
                       </div>
                     ))}
-                    {leadNonVisteLista.length>5 && <p className="text-xs text-center text-gray-400 mt-1">+{leadNonVisteLista.length-5} altre</p>}
+                    {leadNonVisteLista.length>5 && <p className="text-xs text-center text-[#9490A0] mt-1">+{leadNonVisteLista.length-5} altre</p>}
                   </div>
                 )}
               </div>
 
               {/* Task */}
-              <div className="bg-white rounded-xl shadow p-4">
+              <div className="card p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-bold text-gray-700">Task</h2>
-                  <button onClick={()=>navigateTo('tasks')} className="text-xs text-orange-500 hover:underline">Vedi tutte →</button>
+                  <h2 className="font-bold text-[#5C5862]">Task</h2>
+                  <button onClick={()=>navigateTo('tasks')} className="text-xs text-[#E76F51] hover:underline">Vedi tutte →</button>
                 </div>
                 {taskScaduteList.length===0 && taskOggiList.length===0 && taskFuture.length===0 ? (
                   <p className="text-sm text-gray-300 text-center py-4">Nessuna task ✓</p>
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     {taskScaduteList.slice(0,3).map(t=>(
-                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-red-50 border border-red-100 hover:bg-red-100 transition-colors">
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-red-50 border border-red-100 hover:bg-red-100 transition-colors">
                         <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onClick={e=>e.stopPropagation()} onChange={async(e)=>{e.stopPropagation();await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={()=>t.deal_id&&router.push(`/deal/${t.deal_id}`)}>
-                          <p className="text-sm font-medium text-gray-800 truncate">{t.title}</p>
+                          <p className="text-sm font-medium text-[#1A1A1A] truncate">{t.title}</p>
                           <p className="text-xs text-red-400">{t.deals?.contact_name} · scad. {formatDate(t.due_date)}</p>
                         </div>
                         {t.deal_id && <span className="text-gray-300 text-xs flex-shrink-0 cursor-pointer" onClick={()=>router.push(`/deal/${t.deal_id}`)}>→</span>}
                       </div>
                     ))}
                     {taskOggiList.slice(0,3).map(t=>(
-                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100 hover:bg-orange-100 transition-colors">
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-orange-50 border border-orange-100 hover:bg-[#E76F51]/10 transition-colors">
                         <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onClick={e=>e.stopPropagation()} onChange={async(e)=>{e.stopPropagation();await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={()=>t.deal_id&&router.push(`/deal/${t.deal_id}`)}>
-                          <p className="text-sm font-medium text-gray-800 truncate">{t.title}</p>
+                          <p className="text-sm font-medium text-[#1A1A1A] truncate">{t.title}</p>
                           <p className="text-xs text-orange-400">{t.deals?.contact_name} · oggi</p>
                         </div>
                         {t.deal_id && <span className="text-gray-300 text-xs flex-shrink-0 cursor-pointer" onClick={()=>router.push(`/deal/${t.deal_id}`)}>→</span>}
                       </div>
                     ))}
                     {taskFuture.slice(0,2).map(t=>(
-                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100 hover:bg-gray-100 transition-colors">
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-xl bg-white/20 border border-gray-100 hover:bg-white/30 transition-colors">
                         <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onClick={e=>e.stopPropagation()} onChange={async(e)=>{e.stopPropagation();await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={()=>t.deal_id&&router.push(`/deal/${t.deal_id}`)}>
-                          <p className="text-sm font-medium text-gray-800 truncate">{t.title}</p>
-                          <p className="text-xs text-gray-400">{t.deals?.contact_name}{t.due_date?` · ${formatDate(t.due_date)}`:''}</p>
+                          <p className="text-sm font-medium text-[#1A1A1A] truncate">{t.title}</p>
+                          <p className="text-xs text-[#9490A0]">{t.deals?.contact_name}{t.due_date?` · ${formatDate(t.due_date)}`:''}</p>
                         </div>
                         {t.deal_id && <span className="text-gray-300 text-xs flex-shrink-0 cursor-pointer" onClick={()=>router.push(`/deal/${t.deal_id}`)}>→</span>}
                       </div>
@@ -1068,12 +1068,12 @@ export default function CrmContent() {
       {view==='kanban' && (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="p-3 sm:p-4 pb-0">
-            <div className="bg-white rounded-xl shadow px-3 py-2 flex items-center gap-2 text-xs sm:text-sm flex-wrap">
+            <div className="card px-3 py-2 flex items-center gap-2 text-xs sm:text-sm flex-wrap">
               
-              <input type="date" className="border rounded-lg p-1.5 text-xs" value={kanbanVenditaFrom} onChange={e=>setKanbanVenditaFrom(e.target.value)} />
-              <span className="text-gray-400">→</span>
-              <input type="date" className="border rounded-lg p-1.5 text-xs" value={kanbanVenditaTo} onChange={e=>setKanbanVenditaTo(e.target.value)} />
-              <button onClick={()=>{const r=getCurrentMonthRange();setKanbanVenditaFrom(r.from);setKanbanVenditaTo(r.to)}} className="text-xs text-blue-600 underline">Mese</button>
+              <input type="date" className="border rounded-xl p-1.5 text-xs" value={kanbanVenditaFrom} onChange={e=>setKanbanVenditaFrom(e.target.value)} />
+              <span className="text-[#9490A0]">→</span>
+              <input type="date" className="border rounded-xl p-1.5 text-xs" value={kanbanVenditaTo} onChange={e=>setKanbanVenditaTo(e.target.value)} />
+              <button onClick={()=>{const r=getCurrentMonthRange();setKanbanVenditaFrom(r.from);setKanbanVenditaTo(r.to)}} className="text-xs text-[#1D3557] underline">Mese</button>
             </div>
           </div>
           <div className="p-3 sm:p-4 overflow-x-auto sm:overflow-x-visible" style={{WebkitOverflowScrolling:'touch'}}>
@@ -1086,27 +1086,27 @@ export default function CrmContent() {
                   <Droppable droppableId={stage} key={stage}>
                     {(provided,snapshot) => (
                       <div ref={provided.innerRef} {...provided.droppableProps}
-                        className={`rounded-xl p-2.5 flex flex-col sm:flex-1 ${snapshot.isDraggingOver?'bg-blue-100':'bg-gray-200'}`}
+                        className={`rounded-xl p-2.5 flex flex-col sm:flex-1 ${snapshot.isDraggingOver?'bg-[#1D3557]/10':'bg-white/40'}`}
                         style={{width:'200px', minWidth:'200px'} as React.CSSProperties}>
-                        <h2 className="font-semibold text-gray-700 text-xs leading-tight">{stage}</h2>
-                        <p className="text-xs text-gray-500">{stageDeals.length} affari</p>
-                        {total>0 && <p className="text-xs text-green-700 font-semibold">€ {total.toLocaleString()}</p>}
-                        {weighted>0 && weighted!==total && <p className="text-xs text-blue-600">pond. € {Math.round(weighted).toLocaleString()}</p>}
+                        <h2 className="font-semibold text-[#5C5862] text-xs leading-tight">{stage}</h2>
+                        <p className="text-xs text-[#9490A0]">{stageDeals.length} affari</p>
+                        {total>0 && <p className="text-xs text-[#2A9D8F] font-semibold">€ {total.toLocaleString()}</p>}
+                        {weighted>0 && weighted!==total && <p className="text-xs text-[#1D3557]">pond. € {Math.round(weighted).toLocaleString()}</p>}
                         <div className="flex flex-col gap-2 mt-2 flex-1">
                           {stageDeals.map((deal,index) => (
                             <Draggable key={deal.id} draggableId={deal.id} index={index}>
                               {(provided,snapshot) => (
                                 <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
                                   onClick={()=>goToDeal(deal)}
-                                  className={`bg-white rounded-lg p-2.5 cursor-pointer ${snapshot.isDragging?'shadow-xl rotate-1':'shadow hover:shadow-md'}`}>
-                                  <p className="font-semibold text-xs text-gray-800 leading-tight">{deal.contact_name||deal.title}</p>
-                                  {deal.estimate>0 && <p className="text-xs text-green-600 mt-0.5">€ {deal.estimate.toLocaleString()}</p>}
+                                  className={`bg-white rounded-xl p-2.5 cursor-pointer ${snapshot.isDragging?'shadow-xl rotate-1':'shadow hover:shadow-sm'}`}>
+                                  <p className="font-semibold text-xs text-[#1A1A1A] leading-tight">{deal.contact_name||deal.title}</p>
+                                  {deal.estimate>0 && <p className="text-xs text-[#2A9D8F] mt-0.5">€ {deal.estimate.toLocaleString()}</p>}
                                   {deal.environment && <p className="text-xs text-blue-500 truncate">{deal.environment}</p>}
-                                  <p className="text-xs text-gray-400 mt-0.5">Inserimento: {formatDate(deal.created_at)}</p>
-                                  {deal.entry_date && <p className="text-xs text-gray-500">Ingresso: {formatDate(deal.entry_date)}</p>}
-                                  {deal.appointment_date && <p className="text-xs text-orange-500">📅 {formatDate(deal.appointment_date)}</p>}
+                                  <p className="text-xs text-[#9490A0] mt-0.5">Inserimento: {formatDate(deal.created_at)}</p>
+                                  {deal.entry_date && <p className="text-xs text-[#9490A0]">Ingresso: {formatDate(deal.entry_date)}</p>}
+                                  {deal.appointment_date && <p className="text-xs text-[#E76F51]">📅 {formatDate(deal.appointment_date)}</p>}
                                   {deal.probability !== null && deal.probability !== undefined && (
-                                    <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${PROB_COLORS[deal.probability]||'bg-gray-100 text-gray-600'}`}>{deal.probability}%</span>
+                                    <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${PROB_COLORS[deal.probability]||'bg-white/40 text-[#5C5862]'}`}>{deal.probability}%</span>
                                   )}
                                 </div>
                               )}
@@ -1114,7 +1114,7 @@ export default function CrmContent() {
                           ))}
                           {provided.placeholder}
                         </div>
-                        <button onClick={()=>{setQuickAddStage(stage);setQuickForm({...emptyDeal,stage})}} className="mt-2 w-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white rounded-lg py-1 text-sm transition-colors">+</button>
+                        <button onClick={()=>{setQuickAddStage(stage);setQuickForm({...emptyDeal,stage})}} className="mt-2 w-full flex items-center justify-center text-[#9490A0] hover:text-[#1D3557] hover:bg-white rounded-xl py-1 text-sm transition-colors">+</button>
                       </div>
                     )}
                   </Droppable>
@@ -1128,29 +1128,29 @@ export default function CrmContent() {
       {/* ── LISTA ── */}
       {view==='list' && (
         <div className="p-3 sm:p-6">
-          <div className="bg-white rounded-xl shadow p-3 sm:p-4 mb-4 flex flex-wrap items-center gap-2">
+          <div className="card p-3 sm:p-4 mb-4 flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <label className="text-xs font-semibold text-gray-700 whitespace-nowrap">Raggruppa:</label>
-              <select className="border rounded-lg p-2 text-xs flex-1 sm:flex-none" value={groupBy} onChange={e=>setGroupBy(e.target.value)}>
+              <label className="text-xs font-semibold text-[#5C5862] whitespace-nowrap">Raggruppa:</label>
+              <select className="border rounded-xl p-2 text-xs flex-1 sm:flex-none" value={groupBy} onChange={e=>setGroupBy(e.target.value)}>
                 <option value="none">Nessuno</option><option value="stage">Fase</option><option value="origin">Origine</option><option value="environment">Ambiente</option><option value="project_timeline">Tempi</option>
               </select>
             </div>
             <div className="flex items-center gap-1 w-full sm:w-auto">
-              <label className="text-xs font-semibold text-gray-700 whitespace-nowrap">Periodo:</label>
-              <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={listDateFrom} onChange={e=>{setListDateFrom(e.target.value);setListDateActive(true)}} />
-              <span className="text-gray-400 text-xs">→</span>
-              <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={listDateTo} onChange={e=>{setListDateTo(e.target.value);setListDateActive(true)}} />
-              {listDateActive && <button onClick={()=>setListDateActive(false)} className="text-xs text-gray-400 underline whitespace-nowrap">Tutti</button>}
+              <label className="text-xs font-semibold text-[#5C5862] whitespace-nowrap">Periodo:</label>
+              <input type="date" className="border rounded-xl p-1.5 text-xs flex-1" value={listDateFrom} onChange={e=>{setListDateFrom(e.target.value);setListDateActive(true)}} />
+              <span className="text-[#9490A0] text-xs">→</span>
+              <input type="date" className="border rounded-xl p-1.5 text-xs flex-1" value={listDateTo} onChange={e=>{setListDateTo(e.target.value);setListDateActive(true)}} />
+              {listDateActive && <button onClick={()=>setListDateActive(false)} className="text-xs text-[#9490A0] underline whitespace-nowrap">Tutti</button>}
             </div>
             <div className="flex items-center gap-1 flex-wrap">
-              {ENVIRONMENTS.map(env=>{const active=listEnvFilter.includes(env);return <button key={env} type="button" onClick={()=>setListEnvFilter(prev=>active?prev.filter(e=>e!==env):[...prev,env])} className={`px-2 py-1 rounded-full text-xs border ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300'}`}>{env}</button>})}
-              {listEnvFilter.length>0 && <button onClick={()=>setListEnvFilter([])} className="text-xs text-gray-400 underline">✕</button>}
+              {ENVIRONMENTS.map(env=>{const active=listEnvFilter.includes(env);return <button key={env} type="button" onClick={()=>setListEnvFilter(prev=>active?prev.filter(e=>e!==env):[...prev,env])} className={`px-2 py-1 rounded-full text-xs border ${active?'text-white bg-[#1D3557] border-[#1D3557]':'bg-white text-[#5C5862] border-gray-300'}`}>{env}</button>})}
+              {listEnvFilter.length>0 && <button onClick={()=>setListEnvFilter([])} className="text-xs text-[#9490A0] underline">✕</button>}
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
-              <button onClick={()=>setFilterAggiudicati(p=>!p)} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${filterAggiudicati?'bg-green-600 text-white border-green-600':'bg-white text-gray-600 border-gray-300'}`}>🏆 Aggiudicati</button>
+              <button onClick={()=>setFilterAggiudicati(p=>!p)} className={`px-2.5 py-1 rounded-full text-xs font-medium border ${filterAggiudicati?'text-white bg-[#2A9D8F] border-green-600':'bg-white text-[#5C5862] border-gray-300'}`}>🏆 Aggiudicati</button>
               <div className="flex items-center gap-2 ml-auto sm:ml-0">
-                <span className="text-xs text-gray-400">{listDeals.length}</span>
-                <button onClick={downloadCSV} className="flex items-center gap-1 bg-gray-800 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium">
+                <span className="text-xs text-[#9490A0]">{listDeals.length}</span>
+                <button onClick={downloadCSV} className="flex items-center gap-1 bg-gray-800 text-white px-2.5 py-1.5 rounded-xl text-xs font-medium">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                   CSV
                 </button>
@@ -1160,21 +1160,21 @@ export default function CrmContent() {
           <BulkActionBar dealsInView={listDeals} />
           {Object.entries(getGroupedDeals(listDeals)).map(([group,groupDeals]) => (
             <div key={group} className="mb-6">
-              {groupBy!=='none' && <h2 className="font-bold text-gray-700 mb-2 text-sm">{group} <span className="text-gray-400 font-normal">({groupDeals.length})</span></h2>}
-              <div className="bg-white rounded-xl shadow overflow-hidden">
+              {groupBy!=='none' && <h2 className="font-bold text-[#5C5862] mb-2 text-sm">{group} <span className="text-[#9490A0] font-normal">({groupDeals.length})</span></h2>}
+              <div className="card overflow-hidden">
                 <div className="overflow-x-auto" style={{WebkitOverflowScrolling:'touch'}}>
                   <table className="w-full text-xs" style={{minWidth:'480px'}}>
-                    <thead className="bg-gray-50 text-gray-600">
+                    <thead className="bg-white/20 text-[#5C5862]">
                       <tr>
                         <th className="p-2 w-8"><input type="checkbox" onChange={()=>toggleSelectAll(groupDeals)} checked={groupDeals.length>0&&groupDeals.every(d=>selectedIds.has(d.id))} /></th>
-                        <th className="text-left p-2 font-semibold cursor-pointer select-none hover:bg-gray-100 whitespace-nowrap" onClick={()=>toggleListSort('contact_name')}>
+                        <th className="text-left p-2 font-semibold cursor-pointer select-none hover:bg-white/30 whitespace-nowrap" onClick={()=>toggleListSort('contact_name')}>
                           Contatto {listSortCol==='contact_name'?(listSortDir==='asc'?'↑':'↓'):<span className="text-gray-300">↕</span>}
                         </th>
                         {listCols.map(({label,col},idx)=>(
                           <th key={col} draggable onDragStart={()=>setDragColIdx(idx)} onDragOver={e=>e.preventDefault()}
                             onDrop={()=>{if(dragColIdx===null||dragColIdx===idx)return;const next=[...listCols];const[moved]=next.splice(dragColIdx,1);next.splice(idx,0,moved);setListCols(next);setDragColIdx(null)}}
                             onDragEnd={()=>setDragColIdx(null)}
-                            className={`text-left p-2 cursor-pointer select-none hover:bg-gray-100 whitespace-nowrap ${dragColIdx===idx?'opacity-40':''}`}
+                            className={`text-left p-2 cursor-pointer select-none hover:bg-white/30 whitespace-nowrap ${dragColIdx===idx?'opacity-40':''}`}
                             onClick={()=>toggleListSort(col)}>
                             <span className="inline-flex items-center gap-0.5">
                               {label} {listSortCol===col?(listSortDir==='asc'?'↑':'↓'):<span className="text-gray-300">↕</span>}
@@ -1185,7 +1185,7 @@ export default function CrmContent() {
                     </thead>
                     <tbody>
                       {groupDeals.map(deal => (
-                        <tr key={deal.id} className={`border-t hover:bg-gray-50 cursor-pointer ${selectedIds.has(deal.id)?'bg-blue-50':''}`} onClick={()=>toggleSelect(deal.id)}>
+                        <tr key={deal.id} className={`border-t hover:bg-white/20 cursor-pointer ${selectedIds.has(deal.id)?'bg-[#1D3557]/5':''}`} onClick={()=>toggleSelect(deal.id)}>
                           <td className="p-2" onClick={e=>e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(deal.id)} onChange={()=>toggleSelect(deal.id)} className="cursor-pointer" /></td>
                           <td className="p-2 font-medium whitespace-nowrap">
                             {inlineEdit?.id===deal.id&&inlineEdit.col==='contact_name'?(
@@ -1193,7 +1193,7 @@ export default function CrmContent() {
                                 onChange={e=>setInlineEdit({...inlineEdit,val:e.target.value})} onBlur={saveInlineEdit}
                                 onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />
                             ):(
-                              <span className="font-medium text-blue-700 hover:underline cursor-pointer" onClick={()=>goToDeal(deal)}>{deal.title||deal.contact_name||<span className="text-gray-300 italic">—</span>}</span>
+                              <span className="font-medium text-[#1D3557] hover:underline cursor-pointer" onClick={()=>goToDeal(deal)}>{deal.title||deal.contact_name||<span className="text-gray-300 italic">—</span>}</span>
                             )}
                           </td>
                           {listCols.map(({col})=>{
@@ -1209,7 +1209,7 @@ export default function CrmContent() {
                             const isEditing=inlineEdit?.id===deal.id&&inlineEdit.col===col
                             const editVal=inlineEdit?.val??''
                             return (
-                              <td key={col} className={`p-2 whitespace-nowrap relative ${readonly?'text-gray-400':col==='estimate'||col==='weighted'?'text-green-600':col==='created_at'||col==='entry_date'||col==='appointment_date'?'text-gray-500':'text-gray-600'} ${readonly?'cursor-default':'cursor-text'}`}
+                              <td key={col} className={`p-2 whitespace-nowrap relative ${readonly?'text-[#9490A0]':col==='estimate'||col==='weighted'?'text-[#2A9D8F]':col==='created_at'||col==='entry_date'||col==='appointment_date'?'text-[#9490A0]':'text-[#5C5862]'} ${readonly?'cursor-default':'cursor-text'}`}
                                 onClick={e=>{e.stopPropagation();if(readonly)return;const current=col==='entry_date'||col==='appointment_date'?rawVal||'':col==='estimate'||col==='probability'?String(rawVal||''):rawVal||'';setInlineEdit({id:deal.id,col,val:current})}}>
                                 {isEditing?(
                                   col==='stage'?(<select autoFocus className="border rounded px-2 py-1 text-xs" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>)
@@ -1217,18 +1217,18 @@ export default function CrmContent() {
                                   :col==='entry_date'||col==='appointment_date'?(<input autoFocus type="date" className="border rounded px-2 py-1 text-xs" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
                                   :col==='estimate'?(<input autoFocus type="number" className="border rounded px-2 py-1 text-xs w-20" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
                                   :col==='environment'?(
-                                    <div className="flex flex-wrap gap-1 bg-white border rounded-lg p-2 shadow-lg z-10 absolute" onClick={e=>e.stopPropagation()} style={{minWidth:'200px'}}>
-                                      {ENVIRONMENTS.map(env=>{const sel=editVal.split(',').map((s:string)=>s.trim()).filter(Boolean);const active=sel.includes(env);return <button key={env} type="button" className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'bg-blue-600 text-white border-blue-600':'bg-white text-gray-600 border-gray-300 hover:border-blue-400'}`} onClick={e=>{e.stopPropagation();const next=active?sel.filter((x:string)=>x!==env):[...sel,env];setInlineEdit({...inlineEdit!,val:next.join(', ')})}}>{env}</button>})}
+                                    <div className="flex flex-wrap gap-1 card border-0 rounded-xl p-2 shadow-lg z-10 absolute" onClick={e=>e.stopPropagation()} style={{minWidth:'200px'}}>
+                                      {ENVIRONMENTS.map(env=>{const sel=editVal.split(',').map((s:string)=>s.trim()).filter(Boolean);const active=sel.includes(env);return <button key={env} type="button" className={`px-2 py-1 rounded-full text-xs border transition-colors ${active?'text-white bg-[#1D3557] border-[#1D3557]':'bg-white/50 text-[#5C5862] border-white/30 hover:border-[#1D3557]/40'}`} onClick={e=>{e.stopPropagation();const next=active?sel.filter((x:string)=>x!==env):[...sel,env];setInlineEdit({...inlineEdit!,val:next.join(', ')})}}>{env}</button>})}
                                       <div className="w-full flex justify-end gap-1 mt-1 pt-1 border-t">
-                                        <button className="text-xs text-gray-500 px-2 py-1" onClick={e=>{e.stopPropagation();setInlineEdit(null)}}>Annulla</button>
-                                        <button className="text-xs bg-blue-600 text-white px-2 py-1 rounded" onClick={e=>{e.stopPropagation();saveInlineEdit()}}>OK</button>
+                                        <button className="text-xs text-[#9490A0] px-2 py-1" onClick={e=>{e.stopPropagation();setInlineEdit(null)}}>Annulla</button>
+                                        <button className="text-xs text-white bg-[#1D3557] px-2 py-1 rounded" onClick={e=>{e.stopPropagation();saveInlineEdit()}}>OK</button>
                                       </div>
                                     </div>
                                   ):(<input autoFocus className="border rounded px-2 py-1 text-xs w-24" value={editVal} onChange={e=>setInlineEdit({...inlineEdit!,val:e.target.value})} onBlur={saveInlineEdit} onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />)
                                 ):(
-                                  col==='stage'?<span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-xs">{display}</span>
-                                  :col==='probability'&&rawVal!=null?<span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${PROB_COLORS[rawVal]||'bg-gray-100 text-gray-600'}`}>{display}</span>
-                                  :<span className={`rounded ${readonly?'':'hover:bg-blue-50'}`}>{display}</span>
+                                  col==='stage'?<span className="bg-[#1D3557]/10 text-[#1D3557] px-1.5 py-0.5 rounded text-xs">{display}</span>
+                                  :col==='probability'&&rawVal!=null?<span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${PROB_COLORS[rawVal]||'bg-white/40 text-[#5C5862]'}`}>{display}</span>
+                                  :<span className={`rounded ${readonly?'':'hover:bg-[#1D3557]/5'}`}>{display}</span>
                                 )}
                               </td>
                             )
@@ -1238,7 +1238,7 @@ export default function CrmContent() {
                     </tbody>
                   </table>
                 </div>
-                {groupDeals.length===0 && <p className="text-center text-gray-400 py-8 text-sm">Nessun contatto nel periodo</p>}
+                {groupDeals.length===0 && <p className="text-center text-[#9490A0] py-8 text-sm">Nessun contatto nel periodo</p>}
               </div>
             </div>
           ))}
@@ -1260,24 +1260,24 @@ export default function CrmContent() {
         return (
           <div className="p-3 sm:p-6">
             {/* Filtro date */}
-            <div className="bg-white rounded-xl shadow p-3 sm:p-4 mb-4 flex flex-wrap items-center gap-3">
-              <span className="text-sm font-semibold text-gray-700">Periodo ingresso:</span>
+            <div className="card p-3 sm:p-4 mb-4 flex flex-wrap items-center gap-3">
+              <span className="text-sm font-semibold text-[#5C5862]">Periodo ingresso:</span>
               <div className="flex items-center gap-1 flex-1 sm:flex-none">
-                <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={ingressiDateFrom} onChange={e=>setIngressiDateFrom(e.target.value)} />
-                <span className="text-gray-400 text-xs">→</span>
-                <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={ingressiDateTo} onChange={e=>setIngressiDateTo(e.target.value)} />
+                <input type="date" className="border rounded-xl p-1.5 text-xs flex-1" value={ingressiDateFrom} onChange={e=>setIngressiDateFrom(e.target.value)} />
+                <span className="text-[#9490A0] text-xs">→</span>
+                <input type="date" className="border rounded-xl p-1.5 text-xs flex-1" value={ingressiDateTo} onChange={e=>setIngressiDateTo(e.target.value)} />
               </div>
               {(ingressiDateFrom||ingressiDateTo) && (
-                <button onClick={()=>{setIngressiDateFrom('');setIngressiDateTo('')}} className="text-xs text-gray-400 hover:text-gray-600 underline">Reset</button>
+                <button onClick={()=>{setIngressiDateFrom('');setIngressiDateTo('')}} className="text-xs text-[#9490A0] hover:text-[#5C5862] underline">Reset</button>
               )}
-              <span className="ml-auto text-xs text-gray-500 font-medium">{filtered.length} ingressi</span>
+              <span className="ml-auto text-xs text-[#9490A0] font-medium">{filtered.length} ingressi</span>
             </div>
 
             {/* Tabella */}
-            <div className="bg-white rounded-xl shadow overflow-x-auto">
+            <div className="card overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b bg-gray-50 text-left text-xs text-gray-500 font-semibold">
+                  <tr className="border-b bg-white/20 text-left text-xs text-[#9490A0] font-semibold">
                     <th className="p-3">Nome affare</th>
                     <th className="p-3">Contatto</th>
                     <th className="p-3">Telefono</th>
@@ -1290,22 +1290,22 @@ export default function CrmContent() {
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={8} className="text-center text-gray-400 py-12 text-sm">Nessun ingresso nel periodo selezionato</td></tr>
+                    <tr><td colSpan={8} className="text-center text-[#9490A0] py-12 text-sm">Nessun ingresso nel periodo selezionato</td></tr>
                   ) : (
                     filtered.map(deal => (
                       <tr key={deal.id}
                         onClick={()=>goToDeal(deal)}
-                        className="border-t hover:bg-blue-50 cursor-pointer transition-colors">
-                        <td className="p-3 font-semibold text-blue-700 whitespace-nowrap">{deal.title||deal.contact_name||'—'}</td>
-                        <td className="p-3 whitespace-nowrap text-gray-700">{deal.contact_name||'—'}</td>
-                        <td className="p-3 whitespace-nowrap text-gray-600">{deal.phone||'—'}</td>
-                        <td className="p-3 whitespace-nowrap text-gray-600 text-xs">{deal.email||'—'}</td>
+                        className="border-t hover:bg-[#1D3557]/5 cursor-pointer transition-colors">
+                        <td className="p-3 font-semibold text-[#1D3557] whitespace-nowrap">{deal.title||deal.contact_name||'—'}</td>
+                        <td className="p-3 whitespace-nowrap text-[#5C5862]">{deal.contact_name||'—'}</td>
+                        <td className="p-3 whitespace-nowrap text-[#5C5862]">{deal.phone||'—'}</td>
+                        <td className="p-3 whitespace-nowrap text-[#5C5862] text-xs">{deal.email||'—'}</td>
                         <td className="p-3 whitespace-nowrap">
-                          {deal.environment ? <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">{deal.environment}</span> : '—'}
+                          {deal.environment ? <span className="bg-[#1D3557]/10 text-[#1D3557] text-xs px-2 py-0.5 rounded-full">{deal.environment}</span> : '—'}
                         </td>
-                        <td className="p-3 whitespace-nowrap text-gray-600 text-xs">{deal.origin||'—'}</td>
-                        <td className="p-3 whitespace-nowrap text-gray-700 font-medium">{formatDate(deal.entry_date||'')}</td>
-                        <td className="p-3 whitespace-nowrap text-gray-400 text-xs">{formatDate((deal.created_at||'').split('T')[0])}</td>
+                        <td className="p-3 whitespace-nowrap text-[#5C5862] text-xs">{deal.origin||'—'}</td>
+                        <td className="p-3 whitespace-nowrap text-[#5C5862] font-medium">{formatDate(deal.entry_date||'')}</td>
+                        <td className="p-3 whitespace-nowrap text-[#9490A0] text-xs">{formatDate((deal.created_at||'').split('T')[0])}</td>
                       </tr>
                     ))
                   )}
@@ -1318,7 +1318,7 @@ export default function CrmContent() {
 
       {view==='dashboard' && (
         <div className="p-3 sm:p-6">
-          <div className="bg-white rounded-xl shadow p-3 mb-4">
+          <div className="card p-3 mb-4">
             <div className="flex flex-wrap gap-1.5">
               <button onClick={()=>applyQuick('today')} className={btnClass('today')}>Oggi</button>
               <button onClick={()=>applyQuick('week')} className={btnClass('week')}>Settimana</button>
@@ -1327,35 +1327,35 @@ export default function CrmContent() {
               <button onClick={()=>applyQuick('alltime')} className={btnClass('alltime')}>Tutto</button>
               {activeQuick!=='alltime' && (
                 <div className="flex items-center gap-1 w-full mt-1">
-                  <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={dateFrom} onChange={e=>{setActiveQuick('custom');setDateFrom(e.target.value)}} />
-                  <span className="text-gray-400 text-xs">→</span>
-                  <input type="date" className="border rounded-lg p-1.5 text-xs flex-1" value={dateTo} onChange={e=>{setActiveQuick('custom');setDateTo(e.target.value)}} />
+                  <input type="date" className="border rounded-xl p-1.5 text-xs flex-1" value={dateFrom} onChange={e=>{setActiveQuick('custom');setDateFrom(e.target.value)}} />
+                  <span className="text-[#9490A0] text-xs">→</span>
+                  <input type="date" className="border rounded-xl p-1.5 text-xs flex-1" value={dateTo} onChange={e=>{setActiveQuick('custom');setDateTo(e.target.value)}} />
                 </div>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-white rounded-xl shadow p-3 sm:p-5 border-l-4 border-green-500">
-              <p className="text-gray-500 text-xs">Vendite certe</p>
-              <p className="text-xl sm:text-3xl font-bold text-green-600 mt-1">€ {venditeCerte.toLocaleString()}</p>
-              <p className="text-xs text-gray-400">{vendite.length} vendite</p>
+            <div className="card p-3 sm:p-5 border-l-4 border-green-500">
+              <p className="text-[#9490A0] text-xs">Vendite certe</p>
+              <p className="text-xl sm:text-3xl font-bold text-[#2A9D8F] mt-1">€ {venditeCerte.toLocaleString()}</p>
+              <p className="text-xs text-[#9490A0]">{vendite.length} vendite</p>
             </div>
-            <div className="bg-white rounded-xl shadow p-3 sm:p-5 border-l-4 border-blue-500">
-              <p className="text-gray-500 text-xs">Pipeline pond.</p>
-              <p className="text-xl sm:text-3xl font-bold text-blue-600 mt-1">€ {Math.round(pipelineTotal).toLocaleString()}</p>
-              <p className="text-xs text-gray-400">× probabilità</p>
+            <div className="card p-3 sm:p-5 border-l-4 border-blue-500">
+              <p className="text-[#9490A0] text-xs">Pipeline pond.</p>
+              <p className="text-xl sm:text-3xl font-bold text-[#1D3557] mt-1">€ {Math.round(pipelineTotal).toLocaleString()}</p>
+              <p className="text-xs text-[#9490A0]">× probabilità</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow p-3 sm:p-5 mb-4">
-            <p className="font-semibold text-gray-700 text-sm mb-3">Ingressi per giorno</p>
-            {days.length===0?<p className="text-gray-400 text-sm">Nessun dato</p>:(
+          <div className="card p-3 sm:p-5 mb-4">
+            <p className="font-semibold text-[#5C5862] text-sm mb-3">Ingressi per giorno</p>
+            {days.length===0?<p className="text-[#9490A0] text-sm">Nessun dato</p>:(
               <div className="flex items-end gap-1" style={{height:'80px'}}>
                 {days.map(day=>{const count=dayMap[day];const parts=day.split('-');const label=`${parts[2]}/${parts[1]}`;return(
                   <div key={day} className="flex flex-col items-center flex-1 min-w-0">
                     <div className="w-full flex flex-col justify-end" style={{height:'65px'}}><div style={{height:`${Math.round((count/maxDay)*65)}px`}} className="bg-blue-400 w-full rounded-t-sm"/></div>
-                    <span className="text-gray-400 mt-0.5 truncate w-full text-center" style={{fontSize:'7px'}}>{label}</span>
+                    <span className="text-[#9490A0] mt-0.5 truncate w-full text-center" style={{fontSize:'7px'}}>{label}</span>
                   </div>
                 )})}
               </div>
@@ -1363,26 +1363,26 @@ export default function CrmContent() {
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Ingressi</p><p className="text-xl font-bold text-gray-800">{ingressiCount}</p></div>
-            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Medio ingresso</p><p className="text-base font-bold text-gray-800">€ {avgIngresso.toLocaleString()}</p></div>
-            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Medio vendita</p><p className="text-base font-bold text-green-600">€ {avgVendita.toLocaleString()}</p></div>
+            <div className="card p-3"><p className="text-xs text-[#9490A0]">Ingressi</p><p className="text-xl font-semibold text-[#1A1A1A]">{ingressiCount}</p></div>
+            <div className="card p-3"><p className="text-xs text-[#9490A0]">Medio ingresso</p><p className="text-base font-bold text-[#1A1A1A]">€ {avgIngresso.toLocaleString()}</p></div>
+            <div className="card p-3"><p className="text-xs text-[#9490A0]">Medio vendita</p><p className="text-base font-bold text-[#2A9D8F]">€ {avgVendita.toLocaleString()}</p></div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Medio prev.</p><p className="text-base font-bold text-blue-600">€ {avgPreventivo.toLocaleString()}</p></div>
-            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Conv. ingresso</p><p className="text-xl font-bold text-purple-600">{tassoConvIngresso}%</p></div>
-            <div className="bg-white rounded-xl shadow p-3"><p className="text-xs text-gray-500">Conv. prev.</p><p className="text-xl font-bold text-orange-500">{tassoConvPreventivo}%</p></div>
+            <div className="card p-3"><p className="text-xs text-[#9490A0]">Medio prev.</p><p className="text-base font-bold text-[#1D3557]">€ {avgPreventivo.toLocaleString()}</p></div>
+            <div className="card p-3"><p className="text-xs text-[#9490A0]">Conv. ingresso</p><p className="text-xl font-semibold text-[#7B2D8B]">{tassoConvIngresso}%</p></div>
+            <div className="card p-3"><p className="text-xs text-[#9490A0]">Conv. prev.</p><p className="text-xl font-semibold text-[#E76F51]">{tassoConvPreventivo}%</p></div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[{title:'Venduto per ambiente',data:envSoldData,fmt:(v:number)=>`€ ${v.toLocaleString()}`},{title:'Ingressi per ambiente',data:envCountData,fmt:(v:number)=>`${v}`}].map(({title,data,fmt})=>(
-              <div key={title} className="bg-white rounded-xl shadow p-3 sm:p-5">
-                <p className="font-semibold text-gray-700 text-sm mb-3">{title}</p>
+              <div key={title} className="card p-3 sm:p-5">
+                <p className="font-semibold text-[#5C5862] text-sm mb-3">{title}</p>
                 <div className="flex items-center gap-3">
                   <PieChart data={data} size={100}/>
                   <div className="flex flex-col gap-1 text-xs flex-1 min-w-0">
-                    {data.filter(d=>d.value>0).map(d=>(<div key={d.label} className="flex items-center gap-1.5 min-w-0"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{background:d.color}}/><span className="text-gray-600 truncate">{d.label}</span><span className="text-gray-400 ml-auto flex-shrink-0">{fmt(d.value)}</span></div>))}
-                    {data.every(d=>d.value===0)&&<p className="text-gray-400">Nessun dato</p>}
+                    {data.filter(d=>d.value>0).map(d=>(<div key={d.label} className="flex items-center gap-1.5 min-w-0"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{background:d.color}}/><span className="text-[#5C5862] truncate">{d.label}</span><span className="text-[#9490A0] ml-auto flex-shrink-0">{fmt(d.value)}</span></div>))}
+                    {data.every(d=>d.value===0)&&<p className="text-[#9490A0]">Nessun dato</p>}
                   </div>
                 </div>
               </div>
@@ -1396,11 +1396,11 @@ export default function CrmContent() {
         <div className="p-3 sm:p-6 overflow-x-auto sm:overflow-x-visible" style={{WebkitOverflowScrolling:'touch', minHeight:'calc(100vh - 120px)'}}>
           {/* Filtro date */}
           <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <span className="text-sm text-gray-500">Ultima modifica fase:</span>
-            <input type="date" className="border rounded-lg px-2 py-1.5 text-sm" value={leadFrom} onChange={e=>setLeadFrom(e.target.value)} />
-            <span className="text-gray-400">→</span>
-            <input type="date" className="border rounded-lg px-2 py-1.5 text-sm" value={leadTo} onChange={e=>setLeadTo(e.target.value)} />
-            <button onClick={()=>{const d=leadDefault30();setLeadFrom(d.from);setLeadTo(d.to)}} className="text-xs text-blue-600 underline">30 giorni</button>
+            <span className="text-sm text-[#9490A0]">Ultima modifica fase:</span>
+            <input type="date" className="border rounded-xl px-2 py-1.5 text-sm" value={leadFrom} onChange={e=>setLeadFrom(e.target.value)} />
+            <span className="text-[#9490A0]">→</span>
+            <input type="date" className="border rounded-xl px-2 py-1.5 text-sm" value={leadTo} onChange={e=>setLeadTo(e.target.value)} />
+            <button onClick={()=>{const d=leadDefault30();setLeadFrom(d.from);setLeadTo(d.to)}} className="text-xs text-[#1D3557] underline">30 giorni</button>
           </div>
           <div className="flex gap-3 pb-4 sm:pb-0 h-full" style={{minWidth:'max-content'} as React.CSSProperties}>
             {(['Nuovo','Contattato','Qualificato','Non Qualificato'] as const).map(stage => {
@@ -1413,29 +1413,29 @@ export default function CrmContent() {
               })
               return (
                 <div key={stage} className="sm:flex-1" style={{width:'220px', minWidth:'220px'} as React.CSSProperties}>
-                  <div className={`rounded-t-xl px-3 py-2.5 flex items-center justify-between ${stage==='Nuovo'?'bg-gray-700':stage==='Contattato'?'bg-blue-600':stage==='Qualificato'?'bg-green-600':'bg-red-500'}`}>
+                  <div className={`rounded-t-xl px-3 py-2.5 flex items-center justify-between ${stage==='Nuovo'?'bg-[#5C5862]':stage==='Contattato'?'bg-[#1D3557]':stage==='Qualificato'?'bg-[#2A9D8F]':'bg-red-500'}`}>
                     <span className="text-white font-semibold text-sm">{stage}</span>
                     <span className="bg-white bg-opacity-20 text-white text-xs px-2 py-0.5 rounded-full">{stageLeads.length}</span>
                   </div>
-                  <div className="bg-gray-100 rounded-b-xl p-2 flex flex-col gap-2 min-h-24" onDragOver={e=>e.preventDefault()} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData('leadId');if(id){await supabase.from('deals').update({lead_stage:stage, lead_stage_updated_at: new Date().toISOString()}).eq('id',id);fetchDeals()}}}>
+                  <div className="bg-white/30 rounded-b-xl p-2 flex flex-col gap-2 min-h-24" onDragOver={e=>e.preventDefault()} onDrop={async e=>{e.preventDefault();const id=e.dataTransfer.getData('leadId');if(id){await supabase.from('deals').update({lead_stage:stage, lead_stage_updated_at: new Date().toISOString()}).eq('id',id);fetchDeals()}}}>
                     {stageLeads.map(lead => {
                       const isNew = !lead.lead_viewed_at
                       return (
                       <div key={lead.id} draggable onDragStart={e=>{e.dataTransfer.setData('leadId',lead.id)}}
-                        className={`bg-white rounded-lg p-2.5 shadow cursor-grab active:cursor-grabbing relative ${isNew?'ring-2 ring-purple-400':''}`}
+                        className={`bg-white rounded-xl p-2.5 shadow cursor-grab active:cursor-grabbing relative ${isNew?'ring-2 ring-purple-400':''}`}
                         onClick={async()=>{if(isNew){await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals()}; goToDeal(lead)}}>
-                        {isNew && <span className="absolute top-1.5 right-1.5 bg-purple-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>}
-                        <p className="font-semibold text-sm text-gray-800 pr-8">{lead.contact_name}</p>
-                        {lead.phone&&<p className="text-xs text-gray-500 mt-0.5">{lead.phone}</p>}
-                        {(lead.origin||lead.environment)&&<div className="flex gap-2 mt-0.5">{lead.origin&&<p className="text-xs text-blue-400">{lead.origin}</p>}{lead.environment&&<p className="text-xs text-green-600">{lead.environment}</p>}</div>}
-                        <p className="text-xs text-gray-400 mt-0.5">{formatDate(lead.created_at.split('T')[0])}</p>
+                        {isNew && <span className="absolute top-1.5 right-1.5 bg-[#7B2D8B]/50 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>}
+                        <p className="font-semibold text-sm text-[#1A1A1A] pr-8">{lead.contact_name}</p>
+                        {lead.phone&&<p className="text-xs text-[#9490A0] mt-0.5">{lead.phone}</p>}
+                        {(lead.origin||lead.environment)&&<div className="flex gap-2 mt-0.5">{lead.origin&&<p className="text-xs text-[#2A9D8F]">{lead.origin}</p>}{lead.environment&&<p className="text-xs text-[#2A9D8F]">{lead.environment}</p>}</div>}
+                        <p className="text-xs text-[#9490A0] mt-0.5">{formatDate(lead.created_at.split('T')[0])}</p>
                         <div className="flex gap-1 mt-1.5" onClick={e=>e.stopPropagation()}>
-                          {isNew && <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals()}} className="text-[10px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 hover:bg-gray-50">✓ Segna letto</button>}
+                          {isNew && <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals()}} className="text-[10px] text-[#9490A0] border border-gray-200 rounded px-1.5 py-0.5 hover:bg-white/20">✓ Segna letto</button>}
                         </div>
-                        {stage==='Qualificato'&&(<button onClick={e=>{e.stopPropagation();setConvertingLead(lead)}} className="mt-1.5 w-full text-xs px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">⇒ Converti</button>)}
+                        {stage==='Qualificato'&&(<button onClick={e=>{e.stopPropagation();setConvertingLead(lead)}} className="mt-1.5 w-full text-xs px-2 py-1 rounded-xl bg-[#1D3557] hover:bg-[#2A4A7F] text-white">⇒ Converti</button>)}
                       </div>
                     )})}
-                    <button onClick={()=>setShowLeadForm(true)} className="text-xs text-gray-400 py-2 text-center border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400">+ Aggiungi</button>
+                    <button onClick={()=>setShowLeadForm(true)} className="text-xs text-[#9490A0] py-2 text-center border-2 border-dashed border-gray-300 rounded-xl hover:border-gray-400">+ Aggiungi</button>
                   </div>
                 </div>
               )
@@ -1447,22 +1447,22 @@ export default function CrmContent() {
       {/* ── TASK ── */}
       {view==='tasks' && (
         <div className="p-3 sm:p-6 max-w-4xl mx-auto">
-          <div className="bg-white rounded-xl shadow p-4">
+          <div className="card p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-gray-800">Task</h2>
-                <button onClick={()=>setShowNewTask(true)} className="bg-orange-500 text-white px-2.5 py-1.5 rounded-lg text-xs hover:bg-orange-600">+ Nuova</button>
+                <h2 className="text-base font-bold text-[#1A1A1A]">Task</h2>
+                <button onClick={()=>setShowNewTask(true)} className="text-white bg-[#E76F51] px-2.5 py-1.5 rounded-xl text-xs hover:opacity-90">+ Nuova</button>
               </div>
-              <div className="flex border rounded-lg overflow-hidden">
-                <button onClick={()=>setTaskFilter('todo')} className={`px-2.5 py-1.5 text-xs ${taskFilter==='todo'?'bg-orange-500 text-white':'bg-white text-gray-600'}`}>Da fare</button>
-                <button onClick={()=>setTaskFilter('done')} className={`px-2.5 py-1.5 text-xs ${taskFilter==='done'?'bg-orange-500 text-white':'bg-white text-gray-600'}`}>Fatti</button>
-                <button onClick={()=>setTaskFilter('all')} className={`px-2.5 py-1.5 text-xs ${taskFilter==='all'?'bg-orange-500 text-white':'bg-white text-gray-600'}`}>Tutti</button>
+              <div className="flex border rounded-xl overflow-hidden">
+                <button onClick={()=>setTaskFilter('todo')} className={`px-2.5 py-1.5 text-xs ${taskFilter==='todo'?'text-white bg-[#E76F51]':'bg-white text-[#5C5862]'}`}>Da fare</button>
+                <button onClick={()=>setTaskFilter('done')} className={`px-2.5 py-1.5 text-xs ${taskFilter==='done'?'text-white bg-[#E76F51]':'bg-white text-[#5C5862]'}`}>Fatti</button>
+                <button onClick={()=>setTaskFilter('all')} className={`px-2.5 py-1.5 text-xs ${taskFilter==='all'?'text-white bg-[#E76F51]':'bg-white text-[#5C5862]'}`}>Tutti</button>
               </div>
             </div>
             {(()=>{
               const today=toYMD(new Date())
               const filtered=allTasks.filter(t=>taskFilter==='all'?true:taskFilter==='todo'?!t.done:t.done).sort((a,b)=>{const da=a.due_date||a.created_at.split('T')[0];const db=b.due_date||b.created_at.split('T')[0];return da<db?-1:da>db?1:0})
-              if(filtered.length===0) return <p className="text-gray-400 text-sm text-center py-8">Nessun task</p>
+              if(filtered.length===0) return <p className="text-[#9490A0] text-sm text-center py-8">Nessun task</p>
               const groups: Record<string,typeof filtered>={}
               filtered.forEach(t=>{const day=t.due_date||t.created_at.split('T')[0];if(!groups[day])groups[day]=[];groups[day].push(t)})
               return (
@@ -1470,12 +1470,12 @@ export default function CrmContent() {
                   {Object.entries(groups).map(([day,tasks])=>(
                     <div key={day}>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${day===today?'bg-orange-100 text-orange-600':day<today?'bg-red-100 text-red-500':'bg-gray-100 text-gray-500'}`}>{day===today?`${formatDate(day)} (oggi)`:formatDate(day)}</span>
-                        <div className="flex-1 h-px bg-gray-100"/>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${day===today?'bg-[#E76F51]/10 text-[#E76F51]':day<today?'bg-red-100 text-red-500':'bg-white/30 text-[#9490A0]'}`}>{day===today?`${formatDate(day)} (oggi)`:formatDate(day)}</span>
+                        <div className="flex-1 h-px bg-white/30"/>
                       </div>
-                      <div className="flex flex-col divide-y border rounded-lg overflow-hidden">
+                      <div className="flex flex-col divide-y border rounded-xl overflow-hidden">
                         {(tasks as any[]).map(task=>(
-                          <div key={task.id} className="flex items-start gap-3 px-3 py-3 bg-white hover:bg-gray-50 group">
+                          <div key={task.id} className="flex items-start gap-3 px-3 py-3 bg-white hover:bg-white/20 group">
                             <input type="checkbox" checked={task.done} onChange={async()=>{const nowDone=!task.done;await supabase.from('tasks').update({done:nowDone,completed_at:nowDone?new Date().toISOString():null}).eq('id',task.id);fetchDeals()}} className="mt-0.5 cursor-pointer flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               {editingTask?.id===task.id?(
@@ -1491,25 +1491,25 @@ export default function CrmContent() {
                                         setEditingTask(t=>t?{...t,deal_id:'',deal_name:''}:t)
                                         if(v.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${v}%,phone.ilike.%${v}%`).limit(5);setEditTaskSearchResults(data||[])}else setEditTaskSearchResults([])
                                       }} />
-                                    {editTaskSearchResults.length>0&&(<div className="absolute z-10 left-0 right-0 border rounded bg-white shadow-lg mt-0.5 max-h-32 overflow-y-auto">{editTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setEditingTask(t=>t?{...t,deal_id:d.id,deal_name:d.contact_name}:t);setEditTaskSearch(d.contact_name);setEditTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b"><span className="font-medium">{d.contact_name}</span></button>))}</div>)}
-                                    {editingTask?.deal_name&&!editTaskSearchResults.length&&<p className="text-xs text-green-600 mt-0.5">✓ {editingTask.deal_name}</p>}
+                                    {editTaskSearchResults.length>0&&(<div className="absolute z-10 left-0 right-0 border rounded card-lg mt-0.5 max-h-32 overflow-y-auto">{editTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setEditingTask(t=>t?{...t,deal_id:d.id,deal_name:d.contact_name}:t);setEditTaskSearch(d.contact_name);setEditTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-xs hover:bg-white/20 border-b"><span className="font-medium">{d.contact_name}</span></button>))}</div>)}
+                                    {editingTask?.deal_name&&!editTaskSearchResults.length&&<p className="text-xs text-[#2A9D8F] mt-0.5">✓ {editingTask.deal_name}</p>}
                                     {!editingTask?.deal_name&&editTaskSearch.trim().length>=2&&editTaskSearchResults.length===0&&(
-                                      <button onClick={async()=>{const nome=editTaskSearch.trim();const{data:nd}=await supabase.from('deals').insert({title:nome,contact_name:nome,stage:'Qualificato',is_lead:false,probability:null}).select().single();if(nd){setEditingTask(t=>t?{...t,deal_id:nd.id,deal_name:nd.contact_name}:t);setEditTaskSearch(nd.contact_name);fetchDeals()}}} className="mt-1 w-full text-left px-2 py-1.5 text-xs bg-blue-50 border border-blue-200 rounded text-blue-700 hover:bg-blue-100">+ Crea contatto &quot;{editTaskSearch.trim()}&quot;</button>
+                                      <button onClick={async()=>{const nome=editTaskSearch.trim();const{data:nd}=await supabase.from('deals').insert({title:nome,contact_name:nome,stage:'Qualificato',is_lead:false,probability:null}).select().single();if(nd){setEditingTask(t=>t?{...t,deal_id:nd.id,deal_name:nd.contact_name}:t);setEditTaskSearch(nd.contact_name);fetchDeals()}}} className="mt-1 w-full text-left px-2 py-1.5 text-xs bg-[#1D3557]/5 border border-[#1D3557]/15 rounded text-[#1D3557] hover:bg-blue-100">+ Crea contatto &quot;{editTaskSearch.trim()}&quot;</button>
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <button onClick={async()=>{const et=editingTask!;await supabase.from('tasks').update({title:et.title,due_date:et.due_date||null,deal_id:et.deal_id||null}).eq('id',task.id);setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([]);fetchDeals()}} className="text-xs bg-orange-500 text-white px-3 py-1.5 rounded">Salva</button>
-                                    <button onClick={()=>{setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([])}} className="text-xs text-gray-400">Annulla</button>
+                                    <button onClick={async()=>{const et=editingTask!;await supabase.from('tasks').update({title:et.title,due_date:et.due_date||null,deal_id:et.deal_id||null}).eq('id',task.id);setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([]);fetchDeals()}} className="text-xs text-white bg-[#E76F51] px-3 py-1.5 rounded">Salva</button>
+                                    <button onClick={()=>{setEditingTask(null);setEditTaskSearch('');setEditTaskSearchResults([])}} className="text-xs text-[#9490A0]">Annulla</button>
                                     <button onClick={async()=>{if(confirm('Eliminare?')){await supabase.from('tasks').delete().eq('id',task.id);setEditingTask(null);fetchDeals()}}} className="text-xs text-red-400 ml-auto">Elimina</button>
                                   </div>
                                 </div>
                               ):(
                                 <>
-                                  <p className={`text-sm ${task.done?'line-through text-gray-400':'text-gray-800'}`}>{task.title}</p>
+                                  <p className={`text-sm ${task.done?'line-through text-[#9490A0]':'text-[#1A1A1A]'}`}>{task.title}</p>
                                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                                     {task.deals?.contact_name&&<button onClick={()=>router.push(`/deal/${task.deal_id}`)} className="text-xs text-blue-500 hover:underline">{task.deals.contact_name}</button>}
-                                    {task.deals?.stage&&<span className="text-xs text-gray-400">{task.deals.stage}</span>}
-                                    {task.auto&&<span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">auto</span>}
+                                    {task.deals?.stage&&<span className="text-xs text-[#9490A0]">{task.deals.stage}</span>}
+                                    {task.auto&&<span className="text-xs bg-purple-100 text-[#7B2D8B] px-1.5 py-0.5 rounded">auto</span>}
                                     {task.done&&task.completed_at&&<span className="text-xs text-green-500">✓ {new Date(task.completed_at).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})} {new Date(task.completed_at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</span>}
                                   </div>
                                 </>
@@ -1517,10 +1517,10 @@ export default function CrmContent() {
                             </div>
                             {editingTask?.id!==task.id&&(
                               <div className="flex items-center gap-1 flex-shrink-0">
-                                <button onClick={()=>{setEditingTask({id:task.id,title:task.title,due_date:task.due_date||'',deal_id:task.deal_id||'',deal_name:task.deals?.contact_name||''});setEditTaskSearch(task.deals?.contact_name||'');setEditTaskSearchResults([])}} className="p-1.5 rounded-lg text-gray-400 hover:text-orange-500 hover:bg-orange-50 transition-colors">
+                                <button onClick={()=>{setEditingTask({id:task.id,title:task.title,due_date:task.due_date||'',deal_id:task.deal_id||'',deal_name:task.deals?.contact_name||''});setEditTaskSearch(task.deals?.contact_name||'');setEditTaskSearchResults([])}} className="p-1.5 rounded-xl text-[#9490A0] hover:text-[#E76F51] hover:bg-[#E76F51]/5 transition-colors">
                                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </button>
-                                <button onClick={async()=>{if(confirm('Eliminare questa task?')){await supabase.from('tasks').delete().eq('id',task.id);fetchDeals()}}} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                <button onClick={async()=>{if(confirm('Eliminare questa task?')){await supabase.from('tasks').delete().eq('id',task.id);fetchDeals()}}} className="p-1.5 rounded-xl text-[#9490A0] hover:text-red-500 hover:bg-red-50 transition-colors">
                                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                               </div>
@@ -1542,14 +1542,14 @@ export default function CrmContent() {
 
       {/* ── MODALI (sheet su mobile) ── */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" onKeyDown={e=>{if(e.key==='Escape'){setShowForm(false);setFormContactSearch('');setFormContactResults([]);setFormContactId(null);setFormTitle('');setFormEnvError(false)}}}>
-          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Nuovo Affare</h2>
+        <div className="modal-overlay" onKeyDown={e=>{if(e.key==='Escape'){setShowForm(false);setFormContactSearch('');setFormContactResults([]);setFormContactId(null);setFormTitle('');setFormEnvError(false)}}}>
+          <div className="modal-content p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4">Nuovo Affare</h2>
             <div className="flex flex-col gap-3">
               {/* Ricerca contatto con omonimi */}
               <div className="relative">
-                <label className="text-xs text-gray-500">Contatto *</label>
-                <input className="border rounded-lg p-3 w-full mt-1" placeholder="Cerca contatto esistente o scrivi nuovo..."
+                <label className="text-xs text-[#9490A0]">Contatto *</label>
+                <input className="border rounded-xl p-3 w-full mt-1" placeholder="Cerca contatto esistente o scrivi nuovo..."
                   value={formContactSearch}
                   onChange={async e=>{
                     const v=e.target.value
@@ -1559,65 +1559,65 @@ export default function CrmContent() {
                     if(v.length>=2){const{data}=await supabase.from('contacts').select('*').or(`name.ilike.%${v}%,phone.ilike.%${v}%`).limit(8);setFormContactResults(data||[])}else setFormContactResults([])
                   }} />
                 {formContactResults.length>0&&(
-                  <div className="absolute left-0 right-0 bg-white border rounded-lg shadow-lg z-10 mt-0.5" style={{maxHeight:'220px',overflowY:'auto'}}>
+                  <div className="absolute left-0 right-0 card border-0 rounded-xl shadow-lg z-10 mt-0.5" style={{maxHeight:'220px',overflowY:'auto'}}>
                     {formContactResults.map((c:any)=>(
                       <div key={c.id}
                         onClick={()=>{setFormContactId(c.id);setFormContactSearch(c.name);setForm(f=>({...f,contact_name:c.name,phone:c.phone||'',email:c.email||'',origin:c.origin||''}));setFormTitle(buildDealTitle(c.name,form.environment));setFormContactResults([])}}
-                        className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name?.charAt(0)?.toUpperCase()}</div>
-                        <div><p className="font-semibold text-sm">{c.name}</p>{c.phone&&<p className="text-xs text-gray-400">{c.phone}</p>}</div>
+                        className="p-3 hover:bg-[#1D3557]/5 cursor-pointer border-b last:border-0 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#1D3557]/10 text-[#1D3557] flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name?.charAt(0)?.toUpperCase()}</div>
+                        <div><p className="font-semibold text-sm">{c.name}</p>{c.phone&&<p className="text-xs text-[#9490A0]">{c.phone}</p>}</div>
                       </div>
                     ))}
                     {/* Opzione crea nuovo anche se ci sono omonimi */}
                     <div onClick={()=>{setFormContactId(null);setFormContactResults([])}}
-                      className="p-3 hover:bg-green-50 cursor-pointer text-green-700 font-medium text-sm flex items-center gap-2 border-t">
+                      className="p-3 hover:bg-green-50 cursor-pointer text-[#2A9D8F] font-medium text-sm flex items-center gap-2 border-t">
                       <span className="text-lg leading-none">+</span> Crea nuovo &quot;{formContactSearch}&quot;
                     </div>
                   </div>
                 )}
-                {formContactId&&<p className="text-xs text-green-600 mt-1">✓ Contatto esistente: {formContactSearch}</p>}
+                {formContactId&&<p className="text-xs text-[#2A9D8F] mt-1">✓ Contatto esistente: {formContactSearch}</p>}
                 {!formContactId&&formContactSearch.length>0&&formContactResults.length===0&&<p className="text-xs text-blue-500 mt-1">✦ Verrà creato un nuovo contatto</p>}
               </div>
-              <input className="border rounded-lg p-3" placeholder="Telefono" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} />
-              <input className="border rounded-lg p-3" placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} />
-              <input className="border rounded-lg p-3" placeholder="Origine" value={form.origin} onChange={e=>setForm({...form,origin:e.target.value})} />
+              <input className="border rounded-xl p-3" placeholder="Telefono" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} />
+              <input className="border rounded-xl p-3" placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} />
+              <input className="border rounded-xl p-3" placeholder="Origine" value={form.origin} onChange={e=>setForm({...form,origin:e.target.value})} />
               {/* Ambiente obbligatorio */}
               <div>
-                <label className={`text-xs font-medium ${formEnvError?'text-red-500':'text-gray-500'}`}>Ambiente * {formEnvError&&<span className="text-red-500">— obbligatorio</span>}</label>
+                <label className={`text-xs font-medium ${formEnvError?'text-red-500':'text-[#9490A0]'}`}>Ambiente * {formEnvError&&<span className="text-red-500">— obbligatorio</span>}</label>
                 <EnvSelect value={form.environment} onChange={v=>{setForm(f=>({...f,environment:v}));setFormTitle(buildDealTitle(form.contact_name,v));setFormEnvError(false)}} />
               </div>
               {/* Nome affare auto-generato, modificabile */}
               <div>
-                <label className="text-xs text-gray-500">Nome affare</label>
-                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Es. Mario Rossi | Cucina"
+                <label className="text-xs text-[#9490A0]">Nome affare</label>
+                <input className="border rounded-xl p-3 w-full mt-1 text-sm" placeholder="Es. Mario Rossi | Cucina"
                   value={formTitle}
                   onChange={e=>setFormTitle(e.target.value)} />
-                <p className="text-xs text-gray-400 mt-0.5">Generato automaticamente, puoi modificarlo</p>
+                <p className="text-xs text-[#9490A0] mt-0.5">Generato automaticamente, puoi modificarlo</p>
               </div>
-              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-3" type="date" value={form.entry_date} onChange={e=>setForm({...form,entry_date:e.target.value})} />
-              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-3" type="date" value={form.appointment_date} onChange={e=>setForm({...form,appointment_date:e.target.value})} />
-              <input className="border rounded-lg p-3" type="number" placeholder="Preventivo (€)" value={form.estimate||''} onChange={e=>setForm({...form,estimate:Number(e.target.value)})} />
-              <input className="border rounded-lg p-3" placeholder="Tempi progettuali" value={form.project_timeline} onChange={e=>setForm({...form,project_timeline:e.target.value})} />
-              <select className="border rounded-lg p-3" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
-              {(form.stage==='Preventivo'||form.stage==='Vendita')&&(<div><label className="text-xs text-gray-500">Probabilità</label><select className="border rounded-lg p-3 w-full mt-1" value={form.probability??''} onChange={e=>setForm({...form,probability:e.target.value?Number(e.target.value):null})} disabled={form.stage==='Vendita'}>{form.stage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
+              <label className="text-xs text-[#9490A0]">Data ingresso</label><input className="border rounded-xl p-3" type="date" value={form.entry_date} onChange={e=>setForm({...form,entry_date:e.target.value})} />
+              <label className="text-xs text-[#9490A0]">Data appuntamento</label><input className="border rounded-xl p-3" type="date" value={form.appointment_date} onChange={e=>setForm({...form,appointment_date:e.target.value})} />
+              <input className="border rounded-xl p-3" type="number" placeholder="Preventivo (€)" value={form.estimate||''} onChange={e=>setForm({...form,estimate:Number(e.target.value)})} />
+              <input className="border rounded-xl p-3" placeholder="Tempi progettuali" value={form.project_timeline} onChange={e=>setForm({...form,project_timeline:e.target.value})} />
+              <select className="border rounded-xl p-3" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
+              {(form.stage==='Preventivo'||form.stage==='Vendita')&&(<div><label className="text-xs text-[#9490A0]">Probabilità</label><select className="border rounded-xl p-3 w-full mt-1" value={form.probability??''} onChange={e=>setForm({...form,probability:e.target.value?Number(e.target.value):null})} disabled={form.stage==='Vendita'}>{form.stage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={addDeal} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium">Salva</button>
-              <button onClick={()=>{setShowForm(false);setFormContactSearch('');setFormContactResults([]);setFormContactId(null);setFormTitle('');setFormEnvError(false)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={addDeal} className="flex-1 text-white bg-[#1D3557] py-3 rounded-xl font-medium">Salva</button>
+              <button onClick={()=>{setShowForm(false);setFormContactSearch('');setFormContactResults([]);setFormContactId(null);setFormTitle('');setFormEnvError(false)}} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
       )}
 
       {quickAddStage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" onKeyDown={e=>{if(e.key==='Escape'){setQuickAddStage(null);setQuickContactSearch('');setQuickContactResults([]);setQuickContactId(null);setQuickTitle('');setQuickEnvError(false)}}}>
-          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-1">Nuovo affare</h2>
-            <p className="text-sm text-blue-600 mb-4 font-medium">Fase: {quickAddStage}</p>
+        <div className="modal-overlay" onKeyDown={e=>{if(e.key==='Escape'){setQuickAddStage(null);setQuickContactSearch('');setQuickContactResults([]);setQuickContactId(null);setQuickTitle('');setQuickEnvError(false)}}}>
+          <div className="modal-content p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-1">Nuovo affare</h2>
+            <p className="text-sm text-[#1D3557] mb-4 font-medium">Fase: {quickAddStage}</p>
             <div className="flex flex-col gap-3">
               <div className="relative">
-                <label className="text-xs text-gray-500">Contatto *</label>
-                <input className="border rounded-lg p-3 w-full mt-1" placeholder="Cerca contatto esistente o scrivi nuovo..."
+                <label className="text-xs text-[#9490A0]">Contatto *</label>
+                <input className="border rounded-xl p-3 w-full mt-1" placeholder="Cerca contatto esistente o scrivi nuovo..."
                   value={quickContactSearch}
                   onChange={async e=>{
                     const v=e.target.value
@@ -1627,59 +1627,59 @@ export default function CrmContent() {
                     if(v.length>=2){const{data}=await supabase.from('contacts').select('*').or(`name.ilike.%${v}%,phone.ilike.%${v}%`).limit(8);setQuickContactResults(data||[])}else setQuickContactResults([])
                   }} />
                 {quickContactResults.length>0&&(
-                  <div className="absolute left-0 right-0 bg-white border rounded-lg shadow-lg z-10 mt-0.5" style={{maxHeight:'200px',overflowY:'auto'}}>
+                  <div className="absolute left-0 right-0 card border-0 rounded-xl shadow-lg z-10 mt-0.5" style={{maxHeight:'200px',overflowY:'auto'}}>
                     {quickContactResults.map((c:any)=>(
                       <div key={c.id}
                         onClick={()=>{setQuickContactId(c.id);setQuickContactSearch(c.name);setQuickForm(f=>({...f,contact_name:c.name,phone:c.phone||'',email:c.email||'',origin:c.origin||''}));setQuickTitle(buildDealTitle(c.name,quickForm.environment));setQuickContactResults([])}}
-                        className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name?.charAt(0)?.toUpperCase()}</div>
-                        <div><p className="font-semibold text-sm">{c.name}</p>{c.phone&&<p className="text-xs text-gray-400">{c.phone}</p>}</div>
+                        className="p-3 hover:bg-[#1D3557]/5 cursor-pointer border-b last:border-0 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#1D3557]/10 text-[#1D3557] flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name?.charAt(0)?.toUpperCase()}</div>
+                        <div><p className="font-semibold text-sm">{c.name}</p>{c.phone&&<p className="text-xs text-[#9490A0]">{c.phone}</p>}</div>
                       </div>
                     ))}
                     <div onClick={()=>{setQuickContactId(null);setQuickContactResults([])}}
-                      className="p-3 hover:bg-green-50 cursor-pointer text-green-700 font-medium text-sm flex items-center gap-2 border-t">
+                      className="p-3 hover:bg-green-50 cursor-pointer text-[#2A9D8F] font-medium text-sm flex items-center gap-2 border-t">
                       <span className="text-lg leading-none">+</span> Crea nuovo &quot;{quickContactSearch}&quot;
                     </div>
                   </div>
                 )}
-                {quickContactId&&<p className="text-xs text-green-600 mt-1">✓ Contatto esistente: {quickContactSearch}</p>}
+                {quickContactId&&<p className="text-xs text-[#2A9D8F] mt-1">✓ Contatto esistente: {quickContactSearch}</p>}
                 {!quickContactId&&quickContactSearch.length>0&&quickContactResults.length===0&&<p className="text-xs text-blue-500 mt-1">✦ Verrà creato un nuovo contatto</p>}
               </div>
-              <input className="border rounded-lg p-3" placeholder="Telefono" value={quickForm.phone} onChange={e=>setQuickForm({...quickForm,phone:e.target.value})} />
-              <input className="border rounded-lg p-3" placeholder="Email" value={quickForm.email} onChange={e=>setQuickForm({...quickForm,email:e.target.value})} />
-              <input className="border rounded-lg p-3" placeholder="Origine" value={quickForm.origin} onChange={e=>setQuickForm({...quickForm,origin:e.target.value})} />
+              <input className="border rounded-xl p-3" placeholder="Telefono" value={quickForm.phone} onChange={e=>setQuickForm({...quickForm,phone:e.target.value})} />
+              <input className="border rounded-xl p-3" placeholder="Email" value={quickForm.email} onChange={e=>setQuickForm({...quickForm,email:e.target.value})} />
+              <input className="border rounded-xl p-3" placeholder="Origine" value={quickForm.origin} onChange={e=>setQuickForm({...quickForm,origin:e.target.value})} />
               <div>
-                <label className={`text-xs font-medium ${quickEnvError?'text-red-500':'text-gray-500'}`}>Ambiente * {quickEnvError&&<span className="text-red-500">— obbligatorio</span>}</label>
+                <label className={`text-xs font-medium ${quickEnvError?'text-red-500':'text-[#9490A0]'}`}>Ambiente * {quickEnvError&&<span className="text-red-500">— obbligatorio</span>}</label>
                 <EnvSelect value={quickForm.environment} onChange={v=>{setQuickForm(f=>({...f,environment:v}));setQuickTitle(buildDealTitle(quickForm.contact_name,v));setQuickEnvError(false)}} />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Nome affare</label>
-                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Es. Mario Rossi | Cucina"
+                <label className="text-xs text-[#9490A0]">Nome affare</label>
+                <input className="border rounded-xl p-3 w-full mt-1 text-sm" placeholder="Es. Mario Rossi | Cucina"
                   value={quickTitle} onChange={e=>setQuickTitle(e.target.value)} />
-                <p className="text-xs text-gray-400 mt-0.5">Generato automaticamente, puoi modificarlo</p>
+                <p className="text-xs text-[#9490A0] mt-0.5">Generato automaticamente, puoi modificarlo</p>
               </div>
-              <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-3" type="date" value={quickForm.entry_date} onChange={e=>setQuickForm({...quickForm,entry_date:e.target.value})} />
-              <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-3" type="date" value={quickForm.appointment_date} onChange={e=>setQuickForm({...quickForm,appointment_date:e.target.value})} />
-              <input className="border rounded-lg p-3" type="number" placeholder="Preventivo (€)" value={quickForm.estimate||''} onChange={e=>setQuickForm({...quickForm,estimate:Number(e.target.value)})} />
-              <input className="border rounded-lg p-3" placeholder="Tempi progettuali" value={quickForm.project_timeline} onChange={e=>setQuickForm({...quickForm,project_timeline:e.target.value})} />
-              {(quickAddStage==='Preventivo'||quickAddStage==='Vendita')&&(<div><label className="text-xs text-gray-500">Probabilità</label><select className="border rounded-lg p-3 w-full mt-1" value={quickForm.probability??''} onChange={e=>setQuickForm({...quickForm,probability:e.target.value?Number(e.target.value):null})} disabled={quickAddStage==='Vendita'}>{quickAddStage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
+              <label className="text-xs text-[#9490A0]">Data ingresso</label><input className="border rounded-xl p-3" type="date" value={quickForm.entry_date} onChange={e=>setQuickForm({...quickForm,entry_date:e.target.value})} />
+              <label className="text-xs text-[#9490A0]">Data appuntamento</label><input className="border rounded-xl p-3" type="date" value={quickForm.appointment_date} onChange={e=>setQuickForm({...quickForm,appointment_date:e.target.value})} />
+              <input className="border rounded-xl p-3" type="number" placeholder="Preventivo (€)" value={quickForm.estimate||''} onChange={e=>setQuickForm({...quickForm,estimate:Number(e.target.value)})} />
+              <input className="border rounded-xl p-3" placeholder="Tempi progettuali" value={quickForm.project_timeline} onChange={e=>setQuickForm({...quickForm,project_timeline:e.target.value})} />
+              {(quickAddStage==='Preventivo'||quickAddStage==='Vendita')&&(<div><label className="text-xs text-[#9490A0]">Probabilità</label><select className="border rounded-xl p-3 w-full mt-1" value={quickForm.probability??''} onChange={e=>setQuickForm({...quickForm,probability:e.target.value?Number(e.target.value):null})} disabled={quickAddStage==='Vendita'}>{quickAddStage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={addQuickDeal} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium">Salva</button>
-              <button onClick={()=>{setQuickAddStage(null);setQuickContactSearch('');setQuickContactResults([]);setQuickContactId(null);setQuickTitle('');setQuickEnvError(false)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={addQuickDeal} className="flex-1 text-white bg-[#1D3557] py-3 rounded-xl font-medium">Salva</button>
+              <button onClick={()=>{setQuickAddStage(null);setQuickContactSearch('');setQuickContactResults([]);setQuickContactId(null);setQuickTitle('');setQuickEnvError(false)}} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
       )}
 
       {showIngressoForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" onKeyDown={e=>{if(e.key==='Escape'){setShowIngressoForm(false);setIngressoContactSearch('');setIngressoContactResults([]);setIngressoContactId(null);setIngressoTitle('');setIngressoEnvError(false)}}}>
-          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Nuovo Ingresso</h2>
+        <div className="modal-overlay" onKeyDown={e=>{if(e.key==='Escape'){setShowIngressoForm(false);setIngressoContactSearch('');setIngressoContactResults([]);setIngressoContactId(null);setIngressoTitle('');setIngressoEnvError(false)}}}>
+          <div className="modal-content p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4">Nuovo Ingresso</h2>
             <div className="flex flex-col gap-3">
               <div className="relative">
-                <label className="text-xs text-gray-500">Contatto *</label>
-                <input className="border rounded-lg p-3 w-full mt-1" placeholder="Cerca contatto esistente o scrivi nuovo..."
+                <label className="text-xs text-[#9490A0]">Contatto *</label>
+                <input className="border rounded-xl p-3 w-full mt-1" placeholder="Cerca contatto esistente o scrivi nuovo..."
                   value={ingressoContactSearch}
                   onChange={async e=>{
                     const v=e.target.value
@@ -1689,43 +1689,43 @@ export default function CrmContent() {
                     if(v.length>=2){const{data}=await supabase.from('contacts').select('*').or(`name.ilike.%${v}%,phone.ilike.%${v}%`).limit(8);setIngressoContactResults(data||[])}else setIngressoContactResults([])
                   }} />
                 {ingressoContactResults.length>0&&(
-                  <div className="absolute left-0 right-0 bg-white border rounded-lg shadow-lg z-10 mt-0.5" style={{maxHeight:'220px',overflowY:'auto'}}>
+                  <div className="absolute left-0 right-0 card border-0 rounded-xl shadow-lg z-10 mt-0.5" style={{maxHeight:'220px',overflowY:'auto'}}>
                     {ingressoContactResults.map((c:any)=>(
                       <div key={c.id}
                         onClick={()=>{setIngressoContactId(c.id);setIngressoContactSearch(c.name);setIngressoForm(f=>({...f,contact_name:c.name,phone:c.phone||'',email:c.email||'',origin:c.origin||''}));setIngressoTitle(buildDealTitle(c.name,ingressoForm.environment));setIngressoContactResults([])}}
-                        className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name?.charAt(0)?.toUpperCase()}</div>
-                        <div><p className="font-semibold text-sm">{c.name}</p>{c.phone&&<p className="text-xs text-gray-400">{c.phone}</p>}</div>
+                        className="p-3 hover:bg-[#1D3557]/5 cursor-pointer border-b last:border-0 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#2A9D8F]/10 text-[#2A9D8F] flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name?.charAt(0)?.toUpperCase()}</div>
+                        <div><p className="font-semibold text-sm">{c.name}</p>{c.phone&&<p className="text-xs text-[#9490A0]">{c.phone}</p>}</div>
                       </div>
                     ))}
                     <div onClick={()=>{setIngressoContactId(null);setIngressoContactResults([])}}
-                      className="p-3 hover:bg-green-50 cursor-pointer text-green-700 font-medium text-sm flex items-center gap-2 border-t">
+                      className="p-3 hover:bg-green-50 cursor-pointer text-[#2A9D8F] font-medium text-sm flex items-center gap-2 border-t">
                       <span className="text-lg leading-none">+</span> Crea nuovo &quot;{ingressoContactSearch}&quot;
                     </div>
                   </div>
                 )}
-                {ingressoContactId&&<p className="text-xs text-green-600 mt-1">✓ Contatto esistente: {ingressoContactSearch}</p>}
+                {ingressoContactId&&<p className="text-xs text-[#2A9D8F] mt-1">✓ Contatto esistente: {ingressoContactSearch}</p>}
                 {!ingressoContactId&&ingressoContactSearch.length>0&&ingressoContactResults.length===0&&<p className="text-xs text-blue-500 mt-1">✦ Verrà creato un nuovo contatto</p>}
               </div>
-              <input className="border rounded-lg p-3" placeholder="Telefono" value={ingressoForm.phone||''} onChange={e=>setIngressoForm({...ingressoForm,phone:e.target.value})} />
-              <input className="border rounded-lg p-3" placeholder="Email" value={ingressoForm.email||''} onChange={e=>setIngressoForm({...ingressoForm,email:e.target.value})} />
-              <input className="border rounded-lg p-3" placeholder="Origine" value={ingressoForm.origin||''} onChange={e=>setIngressoForm({...ingressoForm,origin:e.target.value})} />
+              <input className="border rounded-xl p-3" placeholder="Telefono" value={ingressoForm.phone||''} onChange={e=>setIngressoForm({...ingressoForm,phone:e.target.value})} />
+              <input className="border rounded-xl p-3" placeholder="Email" value={ingressoForm.email||''} onChange={e=>setIngressoForm({...ingressoForm,email:e.target.value})} />
+              <input className="border rounded-xl p-3" placeholder="Origine" value={ingressoForm.origin||''} onChange={e=>setIngressoForm({...ingressoForm,origin:e.target.value})} />
               <div>
-                <label className={`text-xs font-medium ${ingressoEnvError?'text-red-500':'text-gray-500'}`}>Ambiente * {ingressoEnvError&&<span className="text-red-500">— obbligatorio</span>}</label>
+                <label className={`text-xs font-medium ${ingressoEnvError?'text-red-500':'text-[#9490A0]'}`}>Ambiente * {ingressoEnvError&&<span className="text-red-500">— obbligatorio</span>}</label>
                 <EnvSelect value={ingressoForm.environment} onChange={v=>{setIngressoForm(f=>({...f,environment:v}));setIngressoTitle(buildDealTitle(ingressoForm.contact_name,v));setIngressoEnvError(false)}} />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Nome affare</label>
-                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Es. Mario Rossi | Cucina"
+                <label className="text-xs text-[#9490A0]">Nome affare</label>
+                <input className="border rounded-xl p-3 w-full mt-1 text-sm" placeholder="Es. Mario Rossi | Cucina"
                   value={ingressoTitle} onChange={e=>setIngressoTitle(e.target.value)} />
-                <p className="text-xs text-gray-400 mt-0.5">Generato automaticamente, puoi modificarlo</p>
+                <p className="text-xs text-[#9490A0] mt-0.5">Generato automaticamente, puoi modificarlo</p>
               </div>
-              <label className="text-xs text-gray-500">Data ingresso</label>
-              <input className="border rounded-lg p-3" type="date" value={ingressoForm.entry_date} onChange={e=>setIngressoForm({...ingressoForm,entry_date:e.target.value})} />
+              <label className="text-xs text-[#9490A0]">Data ingresso</label>
+              <input className="border rounded-xl p-3" type="date" value={ingressoForm.entry_date} onChange={e=>setIngressoForm({...ingressoForm,entry_date:e.target.value})} />
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={addIngresso} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Salva Ingresso</button>
-              <button onClick={()=>{setShowIngressoForm(false);setIngressoContactSearch('');setIngressoContactResults([]);setIngressoContactId(null);setIngressoTitle('');setIngressoEnvError(false)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={addIngresso} className="flex-1 text-white bg-[#2A9D8F] py-3 rounded-xl font-medium">Salva Ingresso</button>
+              <button onClick={()=>{setShowIngressoForm(false);setIngressoContactSearch('');setIngressoContactResults([]);setIngressoContactId(null);setIngressoTitle('');setIngressoEnvError(false)}} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
@@ -1734,10 +1734,10 @@ export default function CrmContent() {
       {saleDatePopup && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[70]">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
-            <h3 className="text-lg font-bold mb-1">Contatto aggiudicato! 🏆</h3>
-            <p className="text-gray-600 text-sm mb-4">Inserisci la data di vendita:</p>
-            <input type="date" className="border rounded-lg p-3 w-full mb-4" value={saleDateValue} onChange={e=>setSaleDateValue(e.target.value)} />
-            <div className="flex gap-2"><button onClick={confirmSaleDate} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Conferma</button><button onClick={()=>{setSaleDatePopup(null);fetchDeals()}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+            <h3 className="text-lg font-semibold mb-1">Contatto aggiudicato! 🏆</h3>
+            <p className="text-[#5C5862] text-sm mb-4">Inserisci la data di vendita:</p>
+            <input type="date" className="border rounded-xl p-3 w-full mb-4" value={saleDateValue} onChange={e=>setSaleDateValue(e.target.value)} />
+            <div className="flex gap-2"><button onClick={confirmSaleDate} className="flex-1 text-white bg-[#2A9D8F] py-3 rounded-xl font-medium">Conferma</button><button onClick={()=>{setSaleDatePopup(null);fetchDeals()}} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button></div>
           </div>
         </div>
       )}
@@ -1745,22 +1745,22 @@ export default function CrmContent() {
       {nonConvPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[70]" onKeyDown={e=>{if(e.key==='Escape'){setNonConvPopup(null);setNonConvMotivo('');setNonConvAltro('');fetchDeals()}}}>
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
-            <h3 className="text-lg font-bold mb-1">Motivo non conversione</h3>
-            <p className="text-gray-500 text-sm mb-4">Seleziona il motivo per cui il contatto non si è convertito:</p>
+            <h3 className="text-lg font-semibold mb-1">Motivo non conversione</h3>
+            <p className="text-[#9490A0] text-sm mb-4">Seleziona il motivo per cui il contatto non si è convertito:</p>
             <div className="flex flex-col gap-2 mb-4">
               {['Prezzo','Design','Finanziamento','Tempi','Altro'].map(m=>(
                 <button key={m} onClick={()=>setNonConvMotivo(m)}
-                  className={`text-left px-4 py-3 rounded-lg border-2 text-sm font-medium transition-colors ${nonConvMotivo===m?'border-red-500 bg-red-50 text-red-700':'border-gray-200 hover:border-gray-300 text-gray-700'}`}>
+                  className={`text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-colors ${nonConvMotivo===m?'border-red-500 bg-red-50 text-red-700':'border-gray-200 hover:border-gray-300 text-[#5C5862]'}`}>
                   {m}
                 </button>
               ))}
             </div>
             {nonConvMotivo==='Altro' && (
-              <input autoFocus className="border rounded-lg p-3 w-full mb-4 text-sm" placeholder="Specifica il motivo..." value={nonConvAltro} onChange={e=>setNonConvAltro(e.target.value)} />
+              <input autoFocus className="border rounded-xl p-3 w-full mb-4 text-sm" placeholder="Specifica il motivo..." value={nonConvAltro} onChange={e=>setNonConvAltro(e.target.value)} />
             )}
             <div className="flex gap-2">
-              <button onClick={confirmNonConv} disabled={!nonConvMotivo||(nonConvMotivo==='Altro'&&!nonConvAltro.trim())} className="flex-1 bg-red-500 text-white py-3 rounded-lg font-medium disabled:opacity-40">Conferma</button>
-              <button onClick={()=>{setNonConvPopup(null);setNonConvMotivo('');setNonConvAltro('');fetchDeals()}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={confirmNonConv} disabled={!nonConvMotivo||(nonConvMotivo==='Altro'&&!nonConvAltro.trim())} className="flex-1 bg-red-500 text-white py-3 rounded-xl font-medium disabled:opacity-40">Conferma</button>
+              <button onClick={()=>{setNonConvPopup(null);setNonConvMotivo('');setNonConvAltro('');fetchDeals()}} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
@@ -1768,102 +1768,102 @@ export default function CrmContent() {
       {confirmBulkDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[60]">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
-            <h3 className="text-lg font-bold mb-2">Conferma eliminazione</h3>
-            <p className="text-gray-600 text-sm mb-5">Eliminare <strong>{selectedIds.size} contatti</strong>? Irreversibile.</p>
-            <div className="flex gap-2"><button onClick={bulkDelete} className="flex-1 bg-red-500 text-white py-3 rounded-lg">Elimina</button><button onClick={()=>setConfirmBulkDelete(false)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+            <h3 className="text-lg font-semibold mb-2">Conferma eliminazione</h3>
+            <p className="text-[#5C5862] text-sm mb-5">Eliminare <strong>{selectedIds.size} contatti</strong>? Irreversibile.</p>
+            <div className="flex gap-2"><button onClick={bulkDelete} className="flex-1 bg-red-500 text-white py-3 rounded-xl">Elimina</button><button onClick={()=>setConfirmBulkDelete(false)} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button></div>
           </div>
         </div>
       )}
       {confirmDelete && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[60]">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
-            <h3 className="text-lg font-bold mb-2">Conferma eliminazione</h3>
-            <p className="text-gray-600 text-sm mb-5">Eliminare questo contatto? Irreversibile.</p>
-            <div className="flex gap-2"><button onClick={()=>deleteDeal(confirmDelete)} className="flex-1 bg-red-500 text-white py-3 rounded-lg">Elimina</button><button onClick={()=>setConfirmDelete(null)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+            <h3 className="text-lg font-semibold mb-2">Conferma eliminazione</h3>
+            <p className="text-[#5C5862] text-sm mb-5">Eliminare questo contatto? Irreversibile.</p>
+            <div className="flex gap-2"><button onClick={()=>deleteDeal(confirmDelete)} className="flex-1 bg-red-500 text-white py-3 rounded-xl">Elimina</button><button onClick={()=>setConfirmDelete(null)} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button></div>
           </div>
         </div>
       )}
       {confirmLogout && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[60]">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
-            <h3 className="text-lg font-bold mb-2">Conferma uscita</h3>
-            <p className="text-gray-600 text-sm mb-5">Sei sicuro di voler uscire?</p>
-            <div className="flex gap-2"><button onClick={()=>{supabase.auth.signOut();window.location.replace('/login')}} className="flex-1 bg-gray-800 text-white py-3 rounded-lg">Esci</button><button onClick={()=>setConfirmLogout(false)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+            <h3 className="text-lg font-semibold mb-2">Conferma uscita</h3>
+            <p className="text-[#5C5862] text-sm mb-5">Sei sicuro di voler uscire?</p>
+            <div className="flex gap-2"><button onClick={()=>{supabase.auth.signOut();window.location.replace('/login')}} className="flex-1 bg-gray-800 text-white py-3 rounded-xl">Esci</button><button onClick={()=>setConfirmLogout(false)} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button></div>
           </div>
         </div>
       )}
 
       {showNewTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" onKeyDown={e=>{if(e.key==='Escape'){setShowNewTask(false);setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([])}}}>
-          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-md shadow-xl">
-            <h2 className="text-lg font-bold mb-4">Nuova Task</h2>
+        <div className="modal-overlay" onKeyDown={e=>{if(e.key==='Escape'){setShowNewTask(false);setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([])}}}>
+          <div className="modal-content p-5 w-full sm:max-w-md shadow-xl">
+            <h2 className="text-lg font-semibold mb-4">Nuova Task</h2>
             <div className="flex flex-col gap-3">
-              <div><label className="text-xs text-gray-500">Titolo *</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Es. Richiamare cliente..." value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm,title:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Data scadenza</label><input type="date" className="border rounded-lg p-3 w-full mt-1 text-sm" value={newTaskForm.due_date} onChange={e=>setNewTaskForm({...newTaskForm,due_date:e.target.value})} /></div>
+              <div><label className="text-xs text-[#9490A0]">Titolo *</label><input className="border rounded-xl p-3 w-full mt-1 text-sm" placeholder="Es. Richiamare cliente..." value={newTaskForm.title} onChange={e=>setNewTaskForm({...newTaskForm,title:e.target.value})} /></div>
+              <div><label className="text-xs text-[#9490A0]">Data scadenza</label><input type="date" className="border rounded-xl p-3 w-full mt-1 text-sm" value={newTaskForm.due_date} onChange={e=>setNewTaskForm({...newTaskForm,due_date:e.target.value})} /></div>
               <div>
-                <label className="text-xs text-gray-500">Associa a contatto</label>
-                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Cerca o scrivi nome nuovo..." value={newTaskSearch} onChange={async e=>{
+                <label className="text-xs text-[#9490A0]">Associa a contatto</label>
+                <input className="border rounded-xl p-3 w-full mt-1 text-sm" placeholder="Cerca o scrivi nome nuovo..." value={newTaskSearch} onChange={async e=>{
                   const v=e.target.value
                   setNewTaskSearch(v)
                   setNewTaskForm(f=>({...f,deal_id:''}))
                   if(v.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${v}%,phone.ilike.%${v}%`).limit(5);setNewTaskSearchResults(data||[])}else{setNewTaskSearchResults([])}
                 }} />
                 {newTaskSearchResults.length>0 && (
-                  <div className="border rounded-lg mt-1 bg-white shadow-lg max-h-40 overflow-y-auto">
+                  <div className="border rounded-xl mt-1 card-lg max-h-40 overflow-y-auto">
                     {newTaskSearchResults.map(d=>(
-                      <button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:d.id});setNewTaskSearch(d.contact_name);setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0">
+                      <button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:d.id});setNewTaskSearch(d.contact_name);setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-sm hover:bg-white/20 border-b last:border-0">
                         <span className="font-medium">{d.contact_name}</span>
                       </button>
                     ))}
                   </div>
                 )}
                 {newTaskForm.deal_id ? (
-                  <p className="text-xs text-green-600 mt-1">✓ Associato a: {newTaskSearch}</p>
+                  <p className="text-xs text-[#2A9D8F] mt-1">✓ Associato a: {newTaskSearch}</p>
                 ) : newTaskSearch.trim().length>=2 && newTaskSearchResults.length===0 ? (
                   <button onClick={async()=>{
                     const nome=newTaskSearch.trim()
                     const{data:newDeal}=await supabase.from('deals').insert({title:nome,contact_name:nome,stage:'Qualificato',is_lead:false,probability:null}).select().single()
                     if(newDeal){setNewTaskForm(f=>({...f,deal_id:newDeal.id}));fetchDeals()}
-                  }} className="mt-1.5 w-full text-left px-3 py-2 text-sm bg-blue-50 border border-blue-200 rounded-lg text-blue-700 hover:bg-blue-100 transition-colors">
+                  }} className="mt-1.5 w-full text-left px-3 py-2 text-sm bg-[#1D3557]/5 border border-[#1D3557]/15 rounded-xl text-[#1D3557] hover:bg-blue-100 transition-colors">
                     + Crea nuovo contatto "<strong>{newTaskSearch.trim()}</strong>"
                   </button>
                 ) : null}
               </div>
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={async()=>{if(!newTaskForm.title.trim())return;await supabase.from('tasks').insert({title:newTaskForm.title.trim(),due_date:newTaskForm.due_date||null,deal_id:newTaskForm.deal_id||null,auto:false,done:false});setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([]);setShowNewTask(false);fetchDeals()}} className="flex-1 bg-orange-500 text-white py-3 rounded-lg font-medium">Salva</button>
-              <button onClick={()=>{setShowNewTask(false);setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([])}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={async()=>{if(!newTaskForm.title.trim())return;await supabase.from('tasks').insert({title:newTaskForm.title.trim(),due_date:newTaskForm.due_date||null,deal_id:newTaskForm.deal_id||null,auto:false,done:false});setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([]);setShowNewTask(false);fetchDeals()}} className="flex-1 text-white bg-[#E76F51] py-3 rounded-xl font-medium">Salva</button>
+              <button onClick={()=>{setShowNewTask(false);setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([])}} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
       )}
 
       {showLeadForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
-          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-md shadow-xl">
-            <h2 className="text-lg font-bold mb-4">Nuovo Lead</h2>
+        <div className="modal-overlay">
+          <div className="modal-content p-5 w-full sm:max-w-md shadow-xl">
+            <h2 className="text-lg font-semibold mb-4">Nuovo Lead</h2>
             <div className="flex flex-col gap-3">
-              <div><label className="text-xs text-gray-500">Nome *</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" value={leadForm.contact_name} onChange={e=>setLeadForm({...leadForm,contact_name:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Telefono</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" value={leadForm.phone} onChange={e=>setLeadForm({...leadForm,phone:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Email</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" value={leadForm.email} onChange={e=>setLeadForm({...leadForm,email:e.target.value})} /></div>
-              <div><label className="text-xs text-gray-500">Origine</label><input className="border rounded-lg p-3 w-full mt-1 text-sm" value={leadForm.origin} onChange={e=>setLeadForm({...leadForm,origin:e.target.value})} /></div>
+              <div><label className="text-xs text-[#9490A0]">Nome *</label><input className="border rounded-xl p-3 w-full mt-1 text-sm" value={leadForm.contact_name} onChange={e=>setLeadForm({...leadForm,contact_name:e.target.value})} /></div>
+              <div><label className="text-xs text-[#9490A0]">Telefono</label><input className="border rounded-xl p-3 w-full mt-1 text-sm" value={leadForm.phone} onChange={e=>setLeadForm({...leadForm,phone:e.target.value})} /></div>
+              <div><label className="text-xs text-[#9490A0]">Email</label><input className="border rounded-xl p-3 w-full mt-1 text-sm" value={leadForm.email} onChange={e=>setLeadForm({...leadForm,email:e.target.value})} /></div>
+              <div><label className="text-xs text-[#9490A0]">Origine</label><input className="border rounded-xl p-3 w-full mt-1 text-sm" value={leadForm.origin} onChange={e=>setLeadForm({...leadForm,origin:e.target.value})} /></div>
             </div>
             <div className="flex gap-2 mt-5">
-              <button onClick={async()=>{if(!leadForm.contact_name.trim())return;const{data:newLead}=await supabase.from('deals').insert({title:leadForm.contact_name,contact_name:leadForm.contact_name,phone:leadForm.phone||null,email:leadForm.email||null,origin:leadForm.origin||null,stage:'Qualificato',is_lead:true,lead_stage:'Nuovo',probability:null}).select().single();if(newLead)await createAutoTaskIfNeeded(newLead.id,'Contattare il contatto');setLeadForm({contact_name:'',phone:'',email:'',origin:''});setShowLeadForm(false);fetchDeals()}} className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-medium">Salva</button>
-              <button onClick={()=>{setShowLeadForm(false);setLeadForm({contact_name:'',phone:'',email:'',origin:''})}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={async()=>{if(!leadForm.contact_name.trim())return;const{data:newLead}=await supabase.from('deals').insert({title:leadForm.contact_name,contact_name:leadForm.contact_name,phone:leadForm.phone||null,email:leadForm.email||null,origin:leadForm.origin||null,stage:'Qualificato',is_lead:true,lead_stage:'Nuovo',probability:null}).select().single();if(newLead)await createAutoTaskIfNeeded(newLead.id,'Contattare il contatto');setLeadForm({contact_name:'',phone:'',email:'',origin:''});setShowLeadForm(false);fetchDeals()}} className="flex-1 text-white bg-[#7B2D8B] py-3 rounded-xl font-medium">Salva</button>
+              <button onClick={()=>{setShowLeadForm(false);setLeadForm({contact_name:'',phone:'',email:'',origin:''})}} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
       )}
 
       {convertingLead && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
-          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-md shadow-xl">
-            <h2 className="text-lg font-bold mb-2">Converti in Contatto</h2>
-            <p className="text-gray-600 text-sm mb-4"><strong>{convertingLead.contact_name}</strong> → Pipeline come <span className="text-blue-600 font-medium">Qualificato</span>.</p>
+        <div className="modal-overlay">
+          <div className="modal-content p-5 w-full sm:max-w-md shadow-xl">
+            <h2 className="text-lg font-semibold mb-2">Converti in Contatto</h2>
+            <p className="text-[#5C5862] text-sm mb-4"><strong>{convertingLead.contact_name}</strong> → Pipeline come <span className="text-[#1D3557] font-medium">Qualificato</span>.</p>
             <div className="flex gap-2">
-              <button onClick={async()=>{await supabase.from('deals').update({is_lead:false,lead_stage:null,stage:'Qualificato',probability:25}).eq('id',convertingLead.id);await logStageChange(convertingLead.id,convertingLead.lead_stage||'Lead','Qualificato');setConvertingLead(null);fetchDeals()}} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium">Converti</button>
-              <button onClick={()=>setConvertingLead(null)} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={async()=>{await supabase.from('deals').update({is_lead:false,lead_stage:null,stage:'Qualificato',probability:25}).eq('id',convertingLead.id);await logStageChange(convertingLead.id,convertingLead.lead_stage||'Lead','Qualificato');setConvertingLead(null);fetchDeals()}} className="flex-1 text-white bg-[#1D3557] py-3 rounded-xl font-medium">Converti</button>
+              <button onClick={()=>setConvertingLead(null)} className="flex-1 bg-white/50 text-[#5C5862] py-3 rounded-xl">Annulla</button>
             </div>
           </div>
         </div>
