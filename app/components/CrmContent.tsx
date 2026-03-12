@@ -341,7 +341,7 @@ export default function CrmContent() {
   }
 
   async function updateStage(id: string, stage: string, currentProb: number|null, fromStage: string) {
-    const newProb = stage === 'Vendita' ? 100 : (stage === 'Preventivo' && (currentProb === null || currentProb === 0) ? 50 : stage === 'Non convertito' ? 0 : currentProb)
+    const newProb = stage === 'Vendita' ? 100 : stage === 'Non convertito' ? 0 : stage === 'Preventivo' ? (currentProb === 100 || currentProb === 0 ? 50 : (currentProb ?? 50)) : (currentProb === 100 || currentProb === 0 ? null : currentProb)
     await supabase.from('deals').update({stage, probability: newProb}).eq('id', id)
     await logStageChange(id, fromStage, stage)
     if (stage === 'Appuntamento fissato') {
@@ -378,7 +378,7 @@ export default function CrmContent() {
     const fromStage = deal?.stage || ''
     if (fromStage === newStage) return
     const currentP = deal?.probability ?? null
-    const newProb = newStage === 'Vendita' && currentP === null ? 100 : newStage === 'Preventivo' && currentP === null ? 50 : newStage === 'Non convertito' && currentP === null ? 0 : currentP
+    const newProb = newStage === 'Vendita' ? 100 : newStage === 'Non convertito' ? 0 : newStage === 'Preventivo' ? (currentP === 100 || currentP === 0 ? 50 : (currentP ?? 50)) : (currentP === 100 || currentP === 0 ? null : currentP)
     setDeals(prev => prev.map(d => d.id===dealId ? {...d, stage:newStage, probability:newProb} : d))
     if (newStage === 'Vendita') {
       setSaleDateValue(toYMD(new Date()))
