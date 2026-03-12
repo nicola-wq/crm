@@ -134,6 +134,9 @@ export default function CrmContent() {
   const [showBulkEnvPicker, setShowBulkEnvPicker] = useState(false)
   const [filterAggiudicati, setFilterAggiudicati] = useState(false)
   const [saleDatePopup, setSaleDatePopup] = useState<{id:string, stage:string, prob:number|null, fromStage?:string}|null>(null)
+  const [nonConvPopup, setNonConvPopup] = useState<{id:string, fromStage:string, prob:number|null}|null>(null)
+  const [nonConvMotivo, setNonConvMotivo] = useState('')
+  const [nonConvAltro, setNonConvAltro] = useState('')
   const [saleDateValue, setSaleDateValue] = useState(toYMD(new Date()))
   const last30 = getLast30Days()
   const [listDateFrom, setListDateFrom] = useState(last30.from)
@@ -202,6 +205,7 @@ export default function CrmContent() {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (saleDatePopup) { setSaleDatePopup(null); fetchDeals(); return }
+      if (nonConvPopup) { setNonConvPopup(null); setNonConvMotivo(''); setNonConvAltro(''); fetchDeals(); return }
       if (confirmDelete) { setConfirmDelete(null); return }
       if (showNewTask) { setShowNewTask(false); setNewTaskForm({title:'',due_date:'',deal_id:'',search:''}); setNewTaskSearch(''); setNewTaskSearchResults([]); return }
       if (showForm) { setShowForm(false); return }
@@ -211,7 +215,7 @@ export default function CrmContent() {
     }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
-  }, [saleDatePopup, confirmDelete, showNewTask, showForm, showLeadForm, showIngressoForm, selectedDeal])
+  }, [saleDatePopup, nonConvPopup, confirmDelete, showNewTask, showForm, showLeadForm, showIngressoForm, selectedDeal])
 
   async function fetchDeals() {
     const { data } = await supabase.from('deals').select('*').eq('is_lead', false).order('created_at', { ascending: false })
@@ -284,6 +288,11 @@ export default function CrmContent() {
       setSaleDatePopup({id: deal.id, stage: deal.stage, prob: deal.probability ?? 100, fromStage: selectedDeal?.stage})
       return
     }
+    if (deal.stage === 'Non convertito' && oldDeal?.stage !== 'Non convertito') {
+      setNonConvMotivo(''); setNonConvAltro('')
+      setNonConvPopup({id: deal.id, fromStage: oldDeal?.stage||'', prob: 0})
+      return
+    }
     const prob = deal.probability ?? getDefaultProb(deal.stage)
     const { error } = await supabase.from('deals').update({
       title: deal.contact_name, contact_name: deal.contact_name, phone: deal.phone, email: deal.email,
@@ -319,6 +328,16 @@ export default function CrmContent() {
     }
   }
 
+  async function confirmNonConv() {
+    if (!nonConvPopup) return
+    const motivo = nonConvMotivo === 'Altro' ? `Altro: ${nonConvAltro}` : nonConvMotivo
+    if (!motivo.trim()) return
+    const {id, fromStage, prob} = nonConvPopup
+    await supabase.from('deals').update({stage:'Non convertito', probability:0, project_timeline: motivo}).eq('id', id)
+    await logStageChange(id, fromStage, 'Non convertito')
+    setNonConvPopup(null); setNonConvMotivo(''); setNonConvAltro(''); fetchDeals()
+  }
+
   async function createAutoTaskIfNeeded(dealId: string, title: string) {
     const { data } = await supabase.from('tasks').select('id').eq('deal_id', dealId).eq('title', title).eq('auto', true)
     if (data && data.length > 0) return
@@ -342,6 +361,9 @@ export default function CrmContent() {
     if (newStage === 'Vendita') {
       setSaleDateValue(toYMD(new Date()))
       setSaleDatePopup({id: dealId, stage: newStage, prob: newProb, fromStage})
+    } else if (newStage === 'Non convertito') {
+      setNonConvMotivo(''); setNonConvAltro('')
+      setNonConvPopup({id: dealId, fromStage, prob: newProb})
     } else {
       await updateStage(dealId, newStage, deal?.probability ?? null, fromStage)
     }
@@ -678,8 +700,10 @@ export default function CrmContent() {
                                   className={`bg-white rounded-lg p-2.5 cursor-pointer ${snapshot.isDragging?'shadow-xl rotate-1':'shadow hover:shadow-md'}`}>
                                   <p className="font-semibold text-xs text-gray-800 leading-tight">{deal.contact_name||deal.title}</p>
                                   {deal.estimate>0 && <p className="text-xs text-green-600 mt-0.5">€ {deal.estimate.toLocaleString()}</p>}
-                                  {deal.appointment_date && <p className="text-xs text-orange-500">📅 {formatDate(deal.appointment_date)}</p>}
                                   {deal.environment && <p className="text-xs text-blue-500 truncate">{deal.environment}</p>}
+                                  <p className="text-xs text-gray-400 mt-0.5">📋 {formatDate(deal.created_at)}</p>
+                                  {deal.entry_date && <p className="text-xs text-gray-500">🚪 {formatDate(deal.entry_date)}</p>}
+                                  {deal.appointment_date && <p className="text-xs text-orange-500">📅 {formatDate(deal.appointment_date)}</p>}
                                   {deal.probability !== null && deal.probability !== undefined && (
                                     <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded-full font-medium ${PROB_COLORS[deal.probability]||'bg-gray-100 text-gray-600'}`}>{deal.probability}%</span>
                                   )}
@@ -959,7 +983,7 @@ export default function CrmContent() {
                       <div className="flex flex-col divide-y border rounded-lg overflow-hidden">
                         {(tasks as any[]).map(task=>(
                           <div key={task.id} className="flex items-start gap-3 px-3 py-3 bg-white hover:bg-gray-50 group">
-                            <input type="checkbox" checked={task.done} onChange={async()=>{await supabase.from('tasks').update({done:!task.done}).eq('id',task.id);fetchDeals()}} className="mt-0.5 cursor-pointer flex-shrink-0" />
+                            <input type="checkbox" checked={task.done} onChange={async()=>{const nowDone=!task.done;await supabase.from('tasks').update({done:nowDone,completed_at:nowDone?new Date().toISOString():null}).eq('id',task.id);fetchDeals()}} className="mt-0.5 cursor-pointer flex-shrink-0" />
                             <div className="flex-1 min-w-0">
                               {editingTask?.id===task.id?(
                                 <div className="flex flex-col gap-2 py-1">
@@ -984,6 +1008,7 @@ export default function CrmContent() {
                                     {task.deals?.contact_name&&<button onClick={()=>router.push(`/deal/${task.deal_id}`)} className="text-xs text-blue-500 hover:underline">{task.deals.contact_name}</button>}
                                     {task.deals?.stage&&<span className="text-xs text-gray-400">{task.deals.stage}</span>}
                                     {task.auto&&<span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">auto</span>}
+                                    {task.done&&task.completed_at&&<span className="text-xs text-green-500">✓ {new Date(task.completed_at).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})} {new Date(task.completed_at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</span>}
                                   </div>
                                 </>
                               )}
@@ -1093,6 +1118,30 @@ export default function CrmContent() {
             <p className="text-gray-600 text-sm mb-4">Inserisci la data di vendita:</p>
             <input type="date" className="border rounded-lg p-3 w-full mb-4" value={saleDateValue} onChange={e=>setSaleDateValue(e.target.value)} />
             <div className="flex gap-2"><button onClick={confirmSaleDate} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Conferma</button><button onClick={()=>{setSaleDatePopup(null);fetchDeals()}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+          </div>
+        </div>
+      )}
+
+      {nonConvPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[70]" onKeyDown={e=>{if(e.key==='Escape'){setNonConvPopup(null);setNonConvMotivo('');setNonConvAltro('');fetchDeals()}}}>
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full sm:max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold mb-1">Motivo non conversione</h3>
+            <p className="text-gray-500 text-sm mb-4">Seleziona il motivo per cui il contatto non si è convertito:</p>
+            <div className="flex flex-col gap-2 mb-4">
+              {['Prezzo','Design','Finanziamento','Tempi','Altro'].map(m=>(
+                <button key={m} onClick={()=>setNonConvMotivo(m)}
+                  className={`text-left px-4 py-3 rounded-lg border-2 text-sm font-medium transition-colors ${nonConvMotivo===m?'border-red-500 bg-red-50 text-red-700':'border-gray-200 hover:border-gray-300 text-gray-700'}`}>
+                  {m}
+                </button>
+              ))}
+            </div>
+            {nonConvMotivo==='Altro' && (
+              <input autoFocus className="border rounded-lg p-3 w-full mb-4 text-sm" placeholder="Specifica il motivo..." value={nonConvAltro} onChange={e=>setNonConvAltro(e.target.value)} />
+            )}
+            <div className="flex gap-2">
+              <button onClick={confirmNonConv} disabled={!nonConvMotivo||(nonConvMotivo==='Altro'&&!nonConvAltro.trim())} className="flex-1 bg-red-500 text-white py-3 rounded-lg font-medium disabled:opacity-40">Conferma</button>
+              <button onClick={()=>{setNonConvPopup(null);setNonConvMotivo('');setNonConvAltro('');fetchDeals()}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+            </div>
           </div>
         </div>
       )}
