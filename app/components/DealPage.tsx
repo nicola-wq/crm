@@ -318,17 +318,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
             )}
           </div>
 
-          {/* Elimina contatto */}
-          <div className="mt-3 flex flex-col gap-2">
-            {deal.is_lead && deal.lead_viewed_at && (
-              <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:null}).eq('id',deal.id);fetchAll()}} className="w-full text-xs text-purple-500 hover:text-purple-700 border border-purple-200 hover:border-purple-400 rounded-lg py-2 transition-colors">
-                ↩ Segna come NEW
-              </button>
-            )}
-            <button onClick={() => setConfirmDeleteDeal(true)} className="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg py-2 transition-colors">
-              Elimina contatto
-            </button>
-          </div>
+
 
           {/* Task */}
           <div className="bg-white rounded-xl shadow p-5 mt-4">
@@ -482,6 +472,18 @@ export default function DealPage({ dealId }: { dealId: string }) {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Elimina contatto + Segna NEW — in fondo */}
+          <div className="flex flex-col gap-2 mt-4">
+            <button onClick={() => setConfirmDeleteDeal(true)} className="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg py-2 transition-colors">
+              Elimina contatto
+            </button>
+            {deal.is_lead && deal.lead_viewed_at && (
+              <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:null}).eq('id',deal.id);fetchAll()}} className="w-full text-xs text-purple-500 hover:text-purple-700 border border-purple-200 hover:border-purple-400 rounded-lg py-2 transition-colors">
+                ↩ Segna come NEW
+              </button>
+            )}
           </div>
         </div>
       </div>
