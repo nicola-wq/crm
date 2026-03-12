@@ -18,7 +18,7 @@ interface Deal {
 }
 
 const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Qualificato', probability: null as number | null }
-type View = 'kanban' | 'list' | 'dashboard' | 'leads' | 'tasks'
+type View = 'home' | 'kanban' | 'list' | 'dashboard' | 'leads' | 'tasks'
 type QuickRange = 'today' | 'week' | 'month' | 'lastmonth' | 'alltime' | 'custom'
 
 function formatDate(dateStr: string) {
@@ -91,17 +91,18 @@ export default function CrmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const tabParam = searchParams.get('tab') as View | null
-  const [view, setView] = useState<View>(tabParam || 'kanban')
+  const [view, setView] = useState<View>(tabParam || 'home')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     const t = searchParams.get('tab') as View | null
-    setView(t || 'kanban')
+    setView(t || 'home')
   }, [searchParams])
 
   function navigateTo(v: View) {
     setMobileMenuOpen(false)
-    if (v === 'kanban') router.push('/')
+    if (v === 'home') router.push('/')
+    if (v === 'kanban') router.push('/?tab=kanban')
     else router.push(`/?tab=${v}`)
   }
 
@@ -618,7 +619,7 @@ export default function CrmContent() {
       {/* ── HEADER ── */}
       <div className="bg-white shadow px-3 sm:px-6 py-3 flex justify-between items-center sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <button onClick={()=>router.push('/')} className="text-gray-400 hover:text-blue-600 transition-colors">
+          <button onClick={()=>navigateTo('home')} className={`transition-colors ${view==='home'?'text-blue-600':'text-gray-400 hover:text-blue-600'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
           </button>
           <img src="/logo.png" alt="Pensare Casa" className="h-5 object-contain" />
@@ -689,8 +690,8 @@ export default function CrmContent() {
       {/* ── BOTTOM NAV (mobile only) ── */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-40 flex safe-bottom">
         {[
+          {v:'home' as View, label:'Home', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>, color:'text-blue-600', badge:0},
           {v:'kanban' as View, label:'Pipeline', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>, color:'text-blue-600', badge:0},
-          {v:'list' as View, label:'Lista', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>, color:'text-blue-600', badge:0},
           {v:'tasks' as View, label:'Task', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>, color:'text-orange-500', badge:taskScadute},
           {v:'leads' as View, label:'Lead', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, color:'text-purple-600', badge:leadNonViste},
           {v:'dashboard' as View, label:'Stats', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>, color:'text-blue-600', badge:0},
@@ -706,6 +707,119 @@ export default function CrmContent() {
       <div className="pb-20 md:pb-0">
 
       {/* ── KANBAN ── */}
+      {/* ── HOME ── */}
+      {view==='home' && (() => {
+        const today = toYMD(new Date())
+        const monthRange = getCurrentMonthRange()
+        const venditeM = deals.filter(d => d.stage==='Vendita' && (d.sale_date||d.created_at.split('T')[0]) >= monthRange.from && (d.sale_date||d.created_at.split('T')[0]) <= monthRange.to)
+        const valoreVendite = venditeM.reduce((s,d)=>s+(d.estimate||0),0)
+        const valorePonderato = deals.filter(d=>d.probability!=null&&d.probability>0&&d.stage!=='Vendita'&&d.stage!=='Non convertito').reduce((s,d)=>s+(d.estimate||0)*(d.probability||0)/100,0)
+        const leadNonVisteLista = leads.filter(l=>!l.lead_viewed_at)
+        const taskScaduteList = allTasks.filter(t=>!t.done&&t.due_date&&t.due_date<today)
+        const taskOggiList = allTasks.filter(t=>!t.done&&t.due_date&&t.due_date===today)
+        const taskFuture = allTasks.filter(t=>!t.done&&(!t.due_date||(t.due_date>today)))
+        return (
+          <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+            {/* Saluto */}
+            <h1 className="text-xl font-bold text-gray-800 mb-1">Buongiorno 👋</h1>
+            <p className="text-sm text-gray-400 mb-5">{new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'})}</p>
+
+            {/* KPI */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <div onClick={()=>navigateTo('leads')} className="bg-white rounded-xl shadow p-4 cursor-pointer hover:shadow-md transition-shadow">
+                <p className="text-xs text-gray-400 mb-1">Lead non viste</p>
+                <p className={`text-2xl font-bold ${leadNonVisteLista.length>0?'text-red-500':'text-gray-300'}`}>{leadNonVisteLista.length}</p>
+              </div>
+              <div onClick={()=>navigateTo('tasks')} className="bg-white rounded-xl shadow p-4 cursor-pointer hover:shadow-md transition-shadow">
+                <p className="text-xs text-gray-400 mb-1">Task scadute</p>
+                <p className={`text-2xl font-bold ${taskScaduteList.length>0?'text-red-500':'text-gray-300'}`}>{taskScaduteList.length}</p>
+              </div>
+              <div className="bg-white rounded-xl shadow p-4">
+                <p className="text-xs text-gray-400 mb-1">Vendite del mese</p>
+                <p className="text-2xl font-bold text-green-600">{valoreVendite>0?`€ ${Math.round(valoreVendite/1000)}k`:venditeM.length}</p>
+              </div>
+              <div className="bg-white rounded-xl shadow p-4">
+                <p className="text-xs text-gray-400 mb-1">Pipeline ponderata</p>
+                <p className="text-2xl font-bold text-blue-600">{valorePonderato>0?`€ ${Math.round(valorePonderato/1000)}k`:'—'}</p>
+              </div>
+            </div>
+
+            {/* Azioni rapide */}
+            <div className="flex gap-3 mb-6">
+              <button onClick={()=>setShowIngressoForm(true)} className="flex-1 bg-green-600 text-white rounded-xl py-3 font-semibold text-sm hover:bg-green-700 transition-colors">+ Nuovo Ingresso</button>
+              <button onClick={()=>setShowNewTask(true)} className="flex-1 bg-orange-500 text-white rounded-xl py-3 font-semibold text-sm hover:bg-orange-600 transition-colors">+ Nuova Task</button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* Lead non viste */}
+              <div className="bg-white rounded-xl shadow p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-bold text-gray-700">Lead non viste</h2>
+                  <button onClick={()=>navigateTo('leads')} className="text-xs text-purple-600 hover:underline">Vedi tutte →</button>
+                </div>
+                {leadNonVisteLista.length===0 ? (
+                  <p className="text-sm text-gray-300 text-center py-4">Nessuna lead in attesa ✓</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {leadNonVisteLista.slice(0,5).map(lead=>(
+                      <div key={lead.id} className="flex items-center justify-between gap-2 p-2.5 rounded-lg bg-purple-50 border border-purple-100">
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals();goToDeal(lead)}}>
+                          <p className="font-semibold text-sm text-gray-800 truncate">{lead.contact_name}</p>
+                          <p className="text-xs text-gray-400">{lead.lead_stage||'Nuovo'} · {formatDate(lead.created_at.split('T')[0])}</p>
+                        </div>
+                        <button onClick={async(e)=>{e.stopPropagation();await supabase.from('deals').update({lead_viewed_at:new Date().toISOString()}).eq('id',lead.id);fetchDeals()}} className="text-[10px] text-gray-400 border border-gray-200 rounded px-2 py-1 hover:bg-gray-50 flex-shrink-0">✓ Letto</button>
+                      </div>
+                    ))}
+                    {leadNonVisteLista.length>5 && <p className="text-xs text-center text-gray-400 mt-1">+{leadNonVisteLista.length-5} altre</p>}
+                  </div>
+                )}
+              </div>
+
+              {/* Task */}
+              <div className="bg-white rounded-xl shadow p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-bold text-gray-700">Task</h2>
+                  <button onClick={()=>navigateTo('tasks')} className="text-xs text-orange-500 hover:underline">Vedi tutte →</button>
+                </div>
+                {taskScaduteList.length===0 && taskOggiList.length===0 && taskFuture.length===0 ? (
+                  <p className="text-sm text-gray-300 text-center py-4">Nessuna task ✓</p>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    {taskScaduteList.slice(0,3).map(t=>(
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-red-50 border border-red-100">
+                        <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onChange={async()=>{await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-800 truncate">{t.title}</p>
+                          <p className="text-xs text-red-400">{t.deals?.contact_name} · scad. {formatDate(t.due_date)}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {taskOggiList.slice(0,3).map(t=>(
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-orange-50 border border-orange-100">
+                        <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onChange={async()=>{await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-800 truncate">{t.title}</p>
+                          <p className="text-xs text-orange-400">{t.deals?.contact_name} · oggi</p>
+                        </div>
+                      </div>
+                    ))}
+                    {taskFuture.slice(0,2).map(t=>(
+                      <div key={t.id} className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100">
+                        <input type="checkbox" className="w-4 h-4 accent-orange-500 flex-shrink-0" checked={t.done} onChange={async()=>{await supabase.from('tasks').update({done:true}).eq('id',t.id);fetchDeals()}} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-gray-800 truncate">{t.title}</p>
+                          <p className="text-xs text-gray-400">{t.deals?.contact_name}{t.due_date?` · ${formatDate(t.due_date)}`:''}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {view==='kanban' && (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="p-3 sm:p-4 pb-0">
