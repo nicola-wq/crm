@@ -371,6 +371,42 @@ export default function CrmContent() {
     if (!env) return name
     return `${name} | ${env}`
   }
+
+  // Crea automaticamente un Ingresso se non esiste già per quel contatto+data
+  async function ensureIngresso(
+    contactId: string,
+    contactName: string,
+    phone: string,
+    email: string,
+    origin: string,
+    environment: string,
+    entryDate: string,
+    excludeDealId?: string
+  ) {
+    if (!entryDate || !contactId) return
+    const q = supabase.from('deals').select('id')
+      .eq('contact_id', contactId)
+      .eq('stage', 'Ingresso')
+      .eq('entry_date', entryDate)
+    if (excludeDealId) q.neq('id', excludeDealId)
+    const { data: existing } = await q
+    if (existing && existing.length > 0) return // già esiste
+    const ingressoTitle = buildDealTitle(contactName, environment)
+    await supabase.from('deals').insert({
+      title: ingressoTitle,
+      contact_name: contactName,
+      phone: phone || null,
+      email: email || null,
+      origin: origin || null,
+      environment: environment || null,
+      entry_date: entryDate,
+      stage: 'Ingresso',
+      is_lead: false,
+      probability: null,
+      contact_id: contactId,
+    })
+  }
+
   async function addDeal() {
     if (!form.contact_name) return
     if (!form.environment) { setFormEnvError(true); return }
@@ -393,7 +429,12 @@ export default function CrmContent() {
       project_timeline: form.project_timeline||null, stage: form.stage,
       probability: prob, is_lead: false, contact_id: contactId,
     })
-    if (!error) { setForm(emptyDeal); setFormContactSearch(''); setFormContactResults([]); setFormContactId(null); setFormTitle(''); setFormEnvError(false); setShowForm(false); fetchDeals() }
+    if (!error) {
+      if (form.entry_date && contactId) {
+        await ensureIngresso(contactId, form.contact_name, form.phone, form.email, form.origin, form.environment, form.entry_date)
+      }
+      setForm(emptyDeal); setFormContactSearch(''); setFormContactResults([]); setFormContactId(null); setFormTitle(''); setFormEnvError(false); setShowForm(false); fetchDeals()
+    }
   }
 
   async function addQuickDeal() {
@@ -419,6 +460,9 @@ export default function CrmContent() {
       stage: quickAddStage, probability: prob, is_lead: false, contact_id: contactId,
     })
     if (!error) {
+      if (quickForm.entry_date && contactId) {
+        await ensureIngresso(contactId, quickForm.contact_name, quickForm.phone, quickForm.email, quickForm.origin, quickForm.environment, quickForm.entry_date)
+      }
       setQuickForm(emptyDeal); setQuickAddStage(null)
       setQuickContactSearch(''); setQuickContactResults([]); setQuickContactId(null)
       setQuickTitle(''); setQuickEnvError(false)

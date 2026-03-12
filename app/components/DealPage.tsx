@@ -174,6 +174,23 @@ export default function DealPage({ dealId }: { dealId: string }) {
       : ed.stage === 'Preventivo' ? (ed.probability ?? 50)
       : (ed.probability ?? null)
     const saleDate = ed.stage === 'Vendita' ? (ed.sale_date || null) : null
+
+    // Helper: crea Ingresso se non esiste già (stesso contact_id + entry_date)
+    async function ensureIngresso(contactId: string, entryDate: string) {
+      if (!entryDate || !contactId) return
+      const { data: existing } = await supabase.from('deals').select('id')
+        .eq('contact_id', contactId).eq('stage', 'Ingresso').eq('entry_date', entryDate)
+        .neq('id', dealId)
+      if (existing && existing.length > 0) return
+      const ingressoTitle = (ed.title || ed.contact_name).split(' | ')[0] + (ed.environment ? ` | ${ed.environment}` : '')
+      await supabase.from('deals').insert({
+        title: ingressoTitle, contact_name: ed.contact_name,
+        phone: ed.phone || null, email: ed.email || null, origin: ed.origin || null,
+        environment: ed.environment || null, entry_date: entryDate,
+        stage: 'Ingresso', is_lead: false, probability: null, contact_id: contactId,
+      })
+    }
+
     if (overrideNewDeal) {
       await supabase.from('deals').insert({
         contact_name: ed.contact_name, title: ed.title || ed.contact_name,
@@ -202,6 +219,10 @@ export default function DealPage({ dealId }: { dealId: string }) {
         deal_id: dealId, type: 'stage_change',
         from_value: oldStage, to_value: ed.stage, created_by: userEmail,
       })
+    }
+    // Crea automaticamente Ingresso se c'è entry_date e il deal è collegato a un contatto
+    if (ed.entry_date && ed.contact_id) {
+      await ensureIngresso(ed.contact_id, ed.entry_date)
     }
     setShowMoveFromVenditaPopup(false); setEditMode(false); fetchAll()
   }
