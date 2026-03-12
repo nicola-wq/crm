@@ -223,6 +223,8 @@ export default function CrmContent() {
   const [formContactSearch, setFormContactSearch] = useState('')
   const [formContactResults, setFormContactResults] = useState<any[]>([])
   const [formContactId, setFormContactId] = useState<string|null>(null)
+  const [formTitle, setFormTitle] = useState('')
+  const [formEnvError, setFormEnvError] = useState(false)
   const [groupBy, setGroupBy] = useState('none')
   const [activeQuick, setActiveQuick] = useState<QuickRange>('month')
   const [saveError, setSaveError] = useState('')
@@ -351,8 +353,16 @@ export default function CrmContent() {
     }
   }
 
+
+  function buildDealTitle(name: string, env: string) {
+    if (!name) return ''
+    if (!env) return name
+    return `${name} | ${env}`
+  }
   async function addDeal() {
     if (!form.contact_name) return
+    if (!form.environment) { setFormEnvError(true); return }
+    setFormEnvError(false)
     const prob = form.probability ?? getDefaultProb(form.stage)
     let contactId: string | null = formContactId
     if (!contactId) {
@@ -362,15 +372,16 @@ export default function CrmContent() {
       }).select().single()
       if (newContact) contactId = newContact.id
     }
+    const dealTitle = formTitle || buildDealTitle(form.contact_name, form.environment)
     const { error } = await supabase.from('deals').insert({
-      title: form.contact_name, contact_name: form.contact_name,
+      title: dealTitle, contact_name: form.contact_name,
       phone: form.phone||null, email: form.email||null, origin: form.origin||null,
       environment: form.environment||null, entry_date: form.entry_date||null,
       appointment_date: form.appointment_date||null, estimate: form.estimate||0,
       project_timeline: form.project_timeline||null, stage: form.stage,
       probability: prob, is_lead: false, contact_id: contactId,
     })
-    if (!error) { setForm(emptyDeal); setFormContactSearch(''); setFormContactResults([]); setFormContactId(null); setShowForm(false); fetchDeals() }
+    if (!error) { setForm(emptyDeal); setFormContactSearch(''); setFormContactResults([]); setFormContactId(null); setFormTitle(''); setFormEnvError(false); setShowForm(false); fetchDeals() }
   }
 
   async function addQuickDeal() {
@@ -1368,35 +1379,58 @@ export default function CrmContent() {
 
       {/* ── MODALI (sheet su mobile) ── */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" onKeyDown={e=>{if(e.key==='Escape')setShowForm(false)}}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" onKeyDown={e=>{if(e.key==='Escape'){setShowForm(false);setFormContactSearch('');setFormContactResults([]);setFormContactId(null);setFormTitle('');setFormEnvError(false)}}}>
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Nuovo Affare</h2>
             <div className="flex flex-col gap-3">
+              {/* Ricerca contatto con omonimi */}
               <div className="relative">
                 <label className="text-xs text-gray-500">Contatto *</label>
                 <input className="border rounded-lg p-3 w-full mt-1" placeholder="Cerca contatto esistente o scrivi nuovo..."
                   value={formContactSearch}
                   onChange={async e=>{
-                    const v=e.target.value; setFormContactSearch(v); setFormContactId(null); setForm({...form,contact_name:v,phone:'',email:'',origin:''})
-                    if(v.length>=2){const{data}=await supabase.from('contacts').select('*').or(`name.ilike.%${v}%,phone.ilike.%${v}%`).limit(6);setFormContactResults(data||[])}else setFormContactResults([])
+                    const v=e.target.value
+                    setFormContactSearch(v); setFormContactId(null)
+                    setForm(f=>({...f,contact_name:v,phone:'',email:'',origin:''}))
+                    setFormTitle(buildDealTitle(v, form.environment))
+                    if(v.length>=2){const{data}=await supabase.from('contacts').select('*').or(`name.ilike.%${v}%,phone.ilike.%${v}%`).limit(8);setFormContactResults(data||[])}else setFormContactResults([])
                   }} />
                 {formContactResults.length>0&&(
-                  <div className="absolute left-0 right-0 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto mt-0.5">
+                  <div className="absolute left-0 right-0 bg-white border rounded-lg shadow-lg z-10 mt-0.5" style={{maxHeight:'220px',overflowY:'auto'}}>
                     {formContactResults.map((c:any)=>(
-                      <div key={c.id} onClick={()=>{setFormContactId(c.id);setFormContactSearch(c.name);setForm({...form,contact_name:c.name,phone:c.phone||'',email:c.email||'',origin:c.origin||''});setFormContactResults([])}}
-                        className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-0">
-                        <p className="font-semibold text-sm">{c.name}</p>
-                        {c.phone&&<p className="text-xs text-gray-400">{c.phone}</p>}
+                      <div key={c.id}
+                        onClick={()=>{setFormContactId(c.id);setFormContactSearch(c.name);setForm(f=>({...f,contact_name:c.name,phone:c.phone||'',email:c.email||'',origin:c.origin||''}));setFormTitle(buildDealTitle(c.name,form.environment));setFormContactResults([])}}
+                        className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-0 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0">{c.name?.charAt(0)?.toUpperCase()}</div>
+                        <div><p className="font-semibold text-sm">{c.name}</p>{c.phone&&<p className="text-xs text-gray-400">{c.phone}</p>}</div>
                       </div>
                     ))}
+                    {/* Opzione crea nuovo anche se ci sono omonimi */}
+                    <div onClick={()=>{setFormContactId(null);setFormContactResults([])}}
+                      className="p-3 hover:bg-green-50 cursor-pointer text-green-700 font-medium text-sm flex items-center gap-2 border-t">
+                      <span className="text-lg leading-none">+</span> Crea nuovo &quot;{formContactSearch}&quot;
+                    </div>
                   </div>
                 )}
-                {formContactId&&<p className="text-xs text-green-600 mt-1">✓ Contatto esistente selezionato</p>}
+                {formContactId&&<p className="text-xs text-green-600 mt-1">✓ Contatto esistente: {formContactSearch}</p>}
+                {!formContactId&&formContactSearch.length>0&&formContactResults.length===0&&<p className="text-xs text-blue-500 mt-1">✦ Verrà creato un nuovo contatto</p>}
               </div>
               <input className="border rounded-lg p-3" placeholder="Telefono" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} />
               <input className="border rounded-lg p-3" placeholder="Email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} />
               <input className="border rounded-lg p-3" placeholder="Origine" value={form.origin} onChange={e=>setForm({...form,origin:e.target.value})} />
-              <label className="text-xs text-gray-500">Ambiente</label><EnvSelect value={form.environment} onChange={v=>setForm({...form,environment:v})} />
+              {/* Ambiente obbligatorio */}
+              <div>
+                <label className={`text-xs font-medium ${formEnvError?'text-red-500':'text-gray-500'}`}>Ambiente * {formEnvError&&<span className="text-red-500">— obbligatorio</span>}</label>
+                <EnvSelect value={form.environment} onChange={v=>{setForm(f=>({...f,environment:v}));setFormTitle(buildDealTitle(form.contact_name,v));setFormEnvError(false)}} />
+              </div>
+              {/* Nome affare auto-generato, modificabile */}
+              <div>
+                <label className="text-xs text-gray-500">Nome affare</label>
+                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Es. Mario Rossi | Cucina"
+                  value={formTitle}
+                  onChange={e=>setFormTitle(e.target.value)} />
+                <p className="text-xs text-gray-400 mt-0.5">Generato automaticamente, puoi modificarlo</p>
+              </div>
               <label className="text-xs text-gray-500">Data ingresso</label><input className="border rounded-lg p-3" type="date" value={form.entry_date} onChange={e=>setForm({...form,entry_date:e.target.value})} />
               <label className="text-xs text-gray-500">Data appuntamento</label><input className="border rounded-lg p-3" type="date" value={form.appointment_date} onChange={e=>setForm({...form,appointment_date:e.target.value})} />
               <input className="border rounded-lg p-3" type="number" placeholder="Preventivo (€)" value={form.estimate||''} onChange={e=>setForm({...form,estimate:Number(e.target.value)})} />
@@ -1404,7 +1438,10 @@ export default function CrmContent() {
               <select className="border rounded-lg p-3" value={form.stage} onChange={e=>setForm({...form,stage:e.target.value})}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
               {(form.stage==='Preventivo'||form.stage==='Vendita')&&(<div><label className="text-xs text-gray-500">Probabilità</label><select className="border rounded-lg p-3 w-full mt-1" value={form.probability??''} onChange={e=>setForm({...form,probability:e.target.value?Number(e.target.value):null})} disabled={form.stage==='Vendita'}>{form.stage==='Vendita'?<option value={100}>100%</option>:PROB_OPTIONS.map(p=><option key={p} value={p}>{p}%</option>)}</select></div>)}
             </div>
-            <div className="flex gap-2 mt-5"><button onClick={addDeal} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium">Salva</button><button onClick={()=>{setShowForm(false);setFormContactSearch('');setFormContactResults([]);setFormContactId(null)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button></div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={addDeal} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium">Salva</button>
+              <button onClick={()=>{setShowForm(false);setFormContactSearch('');setFormContactResults([]);setFormContactId(null);setFormTitle('');setFormEnvError(false)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+            </div>
           </div>
         </div>
       )}
