@@ -203,13 +203,15 @@ export default function CrmContent() {
       if (e.key !== 'Escape') return
       if (saleDatePopup) { setSaleDatePopup(null); fetchDeals(); return }
       if (confirmDelete) { setConfirmDelete(null); return }
+      if (showNewTask) { setShowNewTask(false); setNewTaskForm({title:'',due_date:'',deal_id:'',search:''}); setNewTaskSearch(''); setNewTaskSearchResults([]); return }
+      if (showForm) { setShowForm(false); return }
       if (showLeadForm) { setShowLeadForm(false); return }
       if (showIngressoForm) { setShowIngressoForm(false); setSearchQuery(''); setSearchResults([]); setIsNewContact(false); return }
       if (selectedDeal) { setSelectedDeal(null); setEditMode(false); setEditDeal(null); return }
     }
     window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
-  }, [saleDatePopup, confirmDelete, showLeadForm, showIngressoForm, selectedDeal])
+  }, [saleDatePopup, confirmDelete, showNewTask, showForm, showLeadForm, showIngressoForm, selectedDeal])
 
   async function fetchDeals() {
     const { data } = await supabase.from('deals').select('*').eq('is_lead', false).order('created_at', { ascending: false })
