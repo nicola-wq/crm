@@ -220,8 +220,11 @@ export default function DealPage({ dealId }: { dealId: string }) {
         from_value: oldStage, to_value: ed.stage, created_by: userEmail,
       })
     }
-    // Crea automaticamente Ingresso se c'è entry_date e il deal è collegato a un contatto
-    if (ed.entry_date && ed.contact_id) {
+    // Crea automaticamente Ingresso se:
+    // 1. il deal ha entry_date + contact_id (nuovo Ingresso compilato), oppure
+    // 2. il deal stava in stage Ingresso e viene spostato altrove
+    const wasIngresso = oldStage === 'Ingresso' && ed.stage !== 'Ingresso'
+    if (ed.contact_id && ed.entry_date && (wasIngresso || ed.entry_date !== deal?.entry_date)) {
       await ensureIngresso(ed.contact_id, ed.entry_date)
     }
     setShowMoveFromVenditaPopup(false); setEditMode(false); fetchAll()
