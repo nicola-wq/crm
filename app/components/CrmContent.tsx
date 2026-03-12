@@ -1012,7 +1012,7 @@ export default function CrmContent() {
 
       {/* ── MODALI (sheet su mobile) ── */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" onKeyDown={e=>{if(e.key==='Escape')setShowForm(false)}}>
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Nuovo Affare</h2>
             <div className="flex flex-col gap-3">
@@ -1125,7 +1125,7 @@ export default function CrmContent() {
       )}
 
       {showNewTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50" onKeyDown={e=>{if(e.key==='Escape'){setShowNewTask(false);setNewTaskForm({title:'',due_date:'',deal_id:'',search:''});setNewTaskSearch('');setNewTaskSearchResults([])}}}>
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-md shadow-xl">
             <h2 className="text-lg font-bold mb-4">Nuova Task</h2>
             <div className="flex flex-col gap-3">
