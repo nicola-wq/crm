@@ -18,7 +18,7 @@ interface Deal {
 }
 
 const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Qualificato', probability: null as number | null }
-type View = 'home' | 'kanban' | 'list' | 'dashboard' | 'leads' | 'tasks'
+type View = 'home' | 'kanban' | 'list' | 'dashboard' | 'leads' | 'tasks' | 'contacts'
 type QuickRange = 'today' | 'week' | 'month' | 'lastmonth' | 'alltime' | 'custom'
 
 function formatDate(dateStr: string) {
@@ -87,6 +87,104 @@ function PieChart({ data, size=160 }: { data: {label:string, value:number, color
 
 const PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316']
 
+
+interface Contact {
+  id: string; name: string; phone: string; email: string; origin: string; company?: string; notes?: string; created_at: string
+}
+
+function ContactsView({ router }: { router: any }) {
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState({name:'', phone:'', email:'', origin:''})
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => { fetchContacts() }, [])
+
+  async function fetchContacts() {
+    setLoading(true)
+    const { data } = await supabase.from('contacts').select('*').order('name', { ascending: true })
+    setContacts(data || [])
+    setLoading(false)
+  }
+
+  async function addContact() {
+    if (!form.name.trim()) return
+    setSaving(true)
+    await supabase.from('contacts').insert({ name: form.name.trim(), phone: form.phone||null, email: form.email||null, origin: form.origin||null })
+    setForm({name:'', phone:'', email:'', origin:''})
+    setShowForm(false)
+    setSaving(false)
+    fetchContacts()
+  }
+
+  const filtered = contacts.filter(c =>
+    !search || c.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.phone?.includes(search) || c.email?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div className="p-3 sm:p-6 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-4 gap-3">
+        <input
+          className="border rounded-xl px-4 py-2.5 text-sm flex-1 bg-white shadow-sm"
+          placeholder="Cerca per nome, telefono, email..."
+          value={search} onChange={e => setSearch(e.target.value)}
+        />
+        <button onClick={() => setShowForm(true)} className="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 whitespace-nowrap">
+          + Nuovo
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-center text-gray-400 py-12">Caricamento...</p>
+      ) : filtered.length === 0 ? (
+        <p className="text-center text-gray-400 py-12">Nessun contatto trovato</p>
+      ) : (
+        <div className="bg-white rounded-xl shadow overflow-hidden">
+          {filtered.map((c, i) => (
+            <div key={c.id}
+              onClick={() => router.push(`/contact/${c.id}`)}
+              className={`flex items-center gap-4 px-4 py-3.5 cursor-pointer hover:bg-blue-50 transition-colors ${i > 0 ? 'border-t' : ''}`}>
+              <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                {c.name?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-gray-800">{c.name}</p>
+                <div className="flex gap-3 mt-0.5">
+                  {c.phone && <span className="text-xs text-gray-400">{c.phone}</span>}
+                  {c.email && <span className="text-xs text-gray-400 truncate">{c.email}</span>}
+                  {c.origin && <span className="text-xs text-blue-400">{c.origin}</span>}
+                </div>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl p-5 w-full sm:max-w-md shadow-xl">
+            <h2 className="text-lg font-bold mb-4">Nuovo Contatto</h2>
+            <div className="flex flex-col gap-3">
+              <input className="border rounded-lg p-3 text-sm" placeholder="Nome *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} autoFocus />
+              <input className="border rounded-lg p-3 text-sm" placeholder="Telefono" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+              <input className="border rounded-lg p-3 text-sm" placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+              <input className="border rounded-lg p-3 text-sm" placeholder="Origine" value={form.origin} onChange={e => setForm({...form, origin: e.target.value})} />
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={addContact} disabled={saving || !form.name.trim()} className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium disabled:opacity-40">Salva</button>
+              <button onClick={() => { setShowForm(false); setForm({name:'', phone:'', email:'', origin:''}) }} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function CrmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -101,9 +199,8 @@ export default function CrmContent() {
 
   function navigateTo(v: View) {
     setMobileMenuOpen(false)
-    if (v === 'home') router.push('/')
-    if (v === 'kanban') router.push('/?tab=kanban')
-    else router.push(`/?tab=${v}`)
+    if (v === 'home') { router.push('/'); return }
+    router.push(`/?tab=${v}`)
   }
 
   const [deals, setDeals] = useState<Deal[]>([])
@@ -640,6 +737,9 @@ export default function CrmContent() {
           <button onClick={()=>navigateTo('home')} className={`transition-colors ${view==='home'?'text-blue-600':'text-gray-400 hover:text-blue-600'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
           </button>
+          <button onClick={()=>navigateTo('contacts')} title="Contatti" className={`transition-colors ${view==='contacts'?'text-blue-600':'text-gray-400 hover:text-blue-600'}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
           <img src="/logo.png" alt="Pensare Casa" className="h-5 object-contain" />
           <span className="text-sm font-semibold text-gray-700">C.so Regina</span>
         </div>
@@ -709,6 +809,7 @@ export default function CrmContent() {
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-40 flex safe-bottom">
         {[
           {v:'home' as View, label:'Home', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>, color:'text-blue-600', badge:0},
+          {v:'contacts' as View, label:'Contatti', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, color:'text-blue-600', badge:0},
           {v:'kanban' as View, label:'Pipeline', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>, color:'text-blue-600', badge:0},
           {v:'tasks' as View, label:'Task', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>, color:'text-orange-500', badge:taskScadute},
           {v:'leads' as View, label:'Lead', icon:<svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>, color:'text-purple-600', badge:leadNonViste},
@@ -1243,6 +1344,9 @@ export default function CrmContent() {
           </div>
         </div>
       )}
+
+      {/* ── CONTATTI ── */}
+      {view==='contacts' && <ContactsView router={router} />}
 
       {/* ── MODALI (sheet su mobile) ── */}
       {showForm && (

@@ -15,7 +15,7 @@ const PROB_COLORS: Record<number, string> = {
 }
 
 interface Deal {
-  id: string; title: string; contact_name: string; phone: string; email: string
+  id: string; title: string; contact_name: string; phone: string; email: string; contact_id?: string
   origin: string; environment: string; entry_date: string; appointment_date: string
   estimate: number; project_timeline: string; stage: string; created_at: string; sale_date?: string
   probability: number | null; is_lead: boolean; lead_stage: string; lead_viewed_at?: string
@@ -286,6 +286,12 @@ export default function DealPage({ dealId }: { dealId: string }) {
         </button>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-gray-800">{deal.contact_name || '—'}</h1>
+          {deal.contact_id && (
+            <button onClick={() => router.push(`/contact/${deal.contact_id}`)} className="text-xs text-blue-500 hover:underline flex items-center gap-1 mt-0.5">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+              Scheda contatto
+            </button>
+          )}
           <div className="flex items-center gap-2 mt-0.5">
             <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">{deal.stage}</span>
             {deal.probability != null && (
