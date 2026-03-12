@@ -219,6 +219,7 @@ export default function CrmContent() {
   const [searchResults, setSearchResults] = useState<Deal[]>([])
   const [isNewContact, setIsNewContact] = useState(false)
   const [existingDealId, setExistingDealId] = useState<string|null>(null)
+  const [existingContactId, setExistingContactId] = useState<string|null>(null)
   const [groupBy, setGroupBy] = useState('none')
   const [activeQuick, setActiveQuick] = useState<QuickRange>('month')
   const [saveError, setSaveError] = useState('')
@@ -312,7 +313,7 @@ export default function CrmContent() {
       if (showNewTask) { setShowNewTask(false); setNewTaskForm({title:'',due_date:'',deal_id:'',search:''}); setNewTaskSearch(''); setNewTaskSearchResults([]); return }
       if (showForm) { setShowForm(false); return }
       if (showLeadForm) { setShowLeadForm(false); return }
-      if (showIngressoForm) { setShowIngressoForm(false); setSearchQuery(''); setSearchResults([]); setIsNewContact(false); setExistingDealId(null); return }
+      if (showIngressoForm) { setShowIngressoForm(false); setSearchQuery(''); setSearchResults([]); setIsNewContact(false); setExistingDealId(null); setExistingContactId(null); return }
       if (selectedDeal) { setSelectedDeal(null); setEditMode(false); setEditDeal(null); return }
     }
     window.addEventListener('keydown', handleEsc)
@@ -350,14 +351,26 @@ export default function CrmContent() {
   async function addDeal() {
     if (!form.contact_name) return
     const prob = form.probability ?? getDefaultProb(form.stage)
-    const { error } = await supabase.rpc('insert_deal', buildRpcParams(form))
-    if (!error) {
-      if (prob !== null) {
-        const { data } = await supabase.from('deals').select('id').eq('contact_name', form.contact_name).order('created_at', {ascending:false}).limit(1)
-        if (data?.[0]) await supabase.from('deals').update({probability: prob}).eq('id', data[0].id)
-      }
-      setForm(emptyDeal); setShowForm(false); fetchDeals()
+    let contactId: string | null = null
+    const { data: existing } = await supabase.from('contacts').select('id').ilike('name', form.contact_name).limit(1)
+    if (existing?.[0]) {
+      contactId = existing[0].id
+    } else {
+      const { data: newContact } = await supabase.from('contacts').insert({
+        name: form.contact_name, phone: form.phone||null,
+        email: form.email||null, origin: form.origin||null,
+      }).select().single()
+      if (newContact) contactId = newContact.id
     }
+    const { error } = await supabase.from('deals').insert({
+      title: form.contact_name, contact_name: form.contact_name,
+      phone: form.phone||null, email: form.email||null, origin: form.origin||null,
+      environment: form.environment||null, entry_date: form.entry_date||null,
+      appointment_date: form.appointment_date||null, estimate: form.estimate||0,
+      project_timeline: form.project_timeline||null, stage: form.stage,
+      probability: prob, is_lead: false, contact_id: contactId,
+    })
+    if (!error) { setForm(emptyDeal); setShowForm(false); fetchDeals() }
   }
 
   async function addQuickDeal() {
@@ -375,26 +388,25 @@ export default function CrmContent() {
 
   async function addIngresso() {
     if (!ingressoForm.contact_name) return
-    if (existingDealId) {
-      // Contatto esistente: aggiorna entry_date e ambiente, non crea nuovo
-      const { error } = await supabase.from('deals').update({
-        environment: ingressoForm.environment||null,
-        entry_date: ingressoForm.entry_date||null,
-        stage: 'Ingresso',
-      }).eq('id', existingDealId)
-      if (!error) {
-        await logStageChange(existingDealId, 'Qualificato', 'Ingresso')
-        setIngressoForm({...emptyDeal, stage:'Ingresso', entry_date:toYMD(new Date())})
-        setExistingDealId(null)
-        setShowIngressoForm(false); setIsNewContact(false); setSearchQuery(''); setSearchResults([]); fetchDeals()
-      }
-    } else {
-      // Nuovo contatto: crea record
-      const { error } = await supabase.rpc('insert_deal', buildRpcParams(ingressoForm, 'Ingresso'))
-      if (!error) {
-        setIngressoForm({...emptyDeal, stage:'Ingresso', entry_date:toYMD(new Date())})
-        setShowIngressoForm(false); setIsNewContact(false); setSearchQuery(''); setSearchResults([]); fetchDeals()
-      }
+    let contactId = existingContactId
+    if (!contactId) {
+      const { data: newContact } = await supabase.from('contacts').insert({
+        name: ingressoForm.contact_name, phone: ingressoForm.phone||null,
+        email: ingressoForm.email||null, origin: ingressoForm.origin||null,
+      }).select().single()
+      if (newContact) contactId = newContact.id
+    }
+    const { error } = await supabase.from('deals').insert({
+      title: ingressoForm.contact_name, contact_name: ingressoForm.contact_name,
+      phone: ingressoForm.phone||null, email: ingressoForm.email||null,
+      origin: ingressoForm.origin||null, environment: ingressoForm.environment||null,
+      entry_date: ingressoForm.entry_date||null, stage: 'Ingresso',
+      is_lead: false, probability: null, contact_id: contactId,
+    })
+    if (!error) {
+      setIngressoForm({...emptyDeal, stage:'Ingresso', entry_date:toYMD(new Date())})
+      setExistingContactId(null); setExistingDealId(null)
+      setShowIngressoForm(false); setIsNewContact(false); setSearchQuery(''); setSearchResults([]); fetchDeals()
     }
   }
 
@@ -426,13 +438,19 @@ export default function CrmContent() {
   async function searchContacts(q: string) {
     setSearchQuery(q)
     if (q.length < 2) { setSearchResults([]); return }
-    const { data } = await supabase.from('deals').select('*').or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`)
-    const unique = data ? data.filter((d,i,arr) => arr.findIndex(x=>x.contact_name===d.contact_name&&x.phone===d.phone)===i) : []
-    setSearchResults(unique)
+    const { data } = await supabase.from('contacts').select('*').or(`name.ilike.%${q}%,phone.ilike.%${q}%`).limit(8)
+    const adapted = (data || []).map((c: any) => ({
+      id: c.id, contact_name: c.name, phone: c.phone, email: c.email,
+      origin: c.origin, title: c.name, environment: '', entry_date: '', stage: '',
+      estimate: 0, created_at: c.created_at, probability: null, is_lead: false,
+      lead_stage: '', appointment_date: '', project_timeline: '', _contactId: c.id
+    }))
+    setSearchResults(adapted)
   }
 
-  function selectExistingContact(deal: Deal) {
-    setExistingDealId(deal.id)
+  function selectExistingContact(deal: any) {
+    setExistingContactId(deal._contactId || null)
+    setExistingDealId(null)
     setIngressoForm({...emptyDeal, stage:'Ingresso', entry_date:toYMD(new Date()), contact_name:deal.contact_name||'', phone:deal.phone||'', email:deal.email||'', origin:deal.origin||''})
     setSearchQuery(deal.contact_name); setSearchResults([]); setIsNewContact(false)
   }
@@ -1406,7 +1424,7 @@ export default function CrmContent() {
                 <input className="border rounded-lg p-3 w-full" placeholder="Cerca per nome o telefono..." value={searchQuery} onChange={e=>{searchContacts(e.target.value);setExistingDealId(null)}} />
                 {searchResults.length>0&&(<div className="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">{searchResults.map(d=>(<div key={d.id} onClick={()=>selectExistingContact(d)} className="p-3 hover:bg-gray-50 cursor-pointer border-b"><p className="font-semibold text-sm">{d.contact_name}</p><p className="text-xs text-gray-500">{d.phone}</p></div>))}</div>)}
                 {searchQuery.length>=2&&searchResults.length===0&&<p className="text-sm text-gray-500 mt-2">Nessuno. <button onClick={()=>{setIsNewContact(true);setExistingDealId(null)}} className="text-blue-600 underline">Crea nuovo</button></p>}
-                {existingDealId && <p className="text-xs text-green-600 mt-1 font-medium">✓ Contatto trovato: {ingressoForm.contact_name}</p>}
+                {existingContactId && <p className="text-xs text-green-600 mt-1 font-medium">✓ Contatto trovato: {ingressoForm.contact_name}</p>}
               </div>
             )}
             <div className="flex flex-col gap-3">
@@ -1419,7 +1437,7 @@ export default function CrmContent() {
             </div>
             <div className="flex gap-2 mt-5">
               <button onClick={addIngresso} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-medium">Salva Ingresso</button>
-              <button onClick={()=>{setShowIngressoForm(false);setSearchQuery('');setSearchResults([]);setIsNewContact(false);setExistingDealId(null)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
+              <button onClick={()=>{setShowIngressoForm(false);setSearchQuery('');setSearchResults([]);setIsNewContact(false);setExistingDealId(null);setExistingContactId(null)}} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg">Annulla</button>
             </div>
           </div>
         </div>
