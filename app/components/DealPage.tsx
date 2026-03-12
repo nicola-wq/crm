@@ -61,6 +61,15 @@ function EnvSelect({ value, onChange }: { value: string, onChange: (v: string) =
   )
 }
 
+const stageColor: Record<string, string> = {
+  'Qualificato': 'bg-gray-100 text-gray-600',
+  'Appuntamento fissato': 'bg-blue-100 text-blue-700',
+  'Ingresso': 'bg-cyan-100 text-cyan-700',
+  'Preventivo': 'bg-yellow-100 text-yellow-700',
+  'Vendita': 'bg-green-100 text-green-700',
+  'Non convertito': 'bg-red-100 text-red-500',
+}
+
 export default function DealPage({ dealId }: { dealId: string }) {
   const router = useRouter()
   const [deal, setDeal] = useState<Deal | null>(null)
@@ -70,6 +79,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [activityLog, setActivityLog] = useState<ActivityLog[]>([])
+  const [relatedDeals, setRelatedDeals] = useState<Deal[]>([])
   const [newNote, setNewNote] = useState('')
   const [newTask, setNewTask] = useState('')
   const [newTaskDue, setNewTaskDue] = useState('')
@@ -124,7 +134,18 @@ export default function DealPage({ dealId }: { dealId: string }) {
       supabase.from('attachments').select('*').eq('deal_id', dealId).order('created_at', { ascending: false }),
       supabase.from('activity_log').select('*').eq('deal_id', dealId).order('created_at', { ascending: false }),
     ])
-    if (d) { setDeal(d); setEditDeal({ ...d }) }
+    if (d) {
+      setDeal(d); setEditDeal({ ...d })
+      // Carica affari e ingressi correlati (stesso contact_id, escluso se stesso)
+      if (d.contact_id) {
+        const { data: related } = await supabase.from('deals')
+          .select('*').eq('contact_id', d.contact_id).neq('id', dealId)
+          .order('created_at', { ascending: false })
+        setRelatedDeals(related || [])
+      } else {
+        setRelatedDeals([])
+      }
+    }
     setNotes(n || [])
     setTasks(t || [])
     setAttachments(a || [])
@@ -134,12 +155,10 @@ export default function DealPage({ dealId }: { dealId: string }) {
   async function saveDeal() {
     if (!editDeal) return
     const oldStage = deal?.stage
-    // Se viene rimesso in Vendita senza data, mostra popup
     if (editDeal.stage === 'Vendita' && !editDeal.sale_date) {
       setShowSaleDatePopup(true)
       return
     }
-    // Se viene spostato da Vendita, chiedi cosa fare
     if (oldStage === 'Vendita' && editDeal.stage !== 'Vendita') {
       setPendingEditDeal(editDeal as Deal)
       setShowMoveFromVenditaPopup(true)
@@ -150,14 +169,12 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
   async function doSaveDeal(ed: Deal, oldStage: string | undefined, overrideNewDeal?: boolean) {
     setSaving(true); setSaveError('')
-    // Probabilità automatica per fase
     const prob = ed.stage === 'Vendita' ? 100
       : ed.stage === 'Non convertito' ? 0
       : ed.stage === 'Preventivo' ? (ed.probability ?? 50)
       : (ed.probability ?? null)
     const saleDate = ed.stage === 'Vendita' ? (ed.sale_date || null) : null
     if (overrideNewDeal) {
-      // Crea nuovo affare con stesso contatto
       await supabase.from('deals').insert({
         contact_name: ed.contact_name, title: ed.title || ed.contact_name,
         phone: ed.phone, email: ed.email, origin: ed.origin,
@@ -166,7 +183,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
         project_timeline: ed.project_timeline, stage: ed.stage, probability: prob,
         sale_date: null, is_lead: false,
       })
-      // Mantieni questo in Vendita
       setSaving(false); setShowMoveFromVenditaPopup(false); setEditMode(false)
       window.location.href = '/?tab=kanban'
       return
@@ -262,7 +278,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
   )
 
   const stageChanges = activityLog.filter(a => a.type === 'stage_change')
-
   const timeline: TimelineItem[] = [
     ...notes.map(n => ({ type: 'note' as const, data: n })),
     ...tasks.map(t => ({ type: 'task' as const, data: t })),
@@ -276,6 +291,11 @@ export default function DealPage({ dealId }: { dealId: string }) {
     : timeline.filter(i => i.type === 'attachment')
 
   const isImage = (type: string) => type?.startsWith('image/')
+
+  // Separa related in ingressi e affari
+  const relatedIngressi = relatedDeals.filter(d => d.stage === 'Ingresso')
+  const relatedAffari = relatedDeals.filter(d => d.stage !== 'Ingresso')
+  const isIngresso = deal.stage === 'Ingresso'
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -386,8 +406,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
             )}
           </div>
 
-
-
           {/* Task */}
           <div className="bg-white rounded-xl shadow p-5 mt-4">
             <h2 className="font-bold text-gray-700 mb-3">Task</h2>
@@ -397,25 +415,10 @@ export default function DealPage({ dealId }: { dealId: string }) {
                 <div key={task.id} className={`rounded-lg border ${task.done ? 'bg-gray-50 border-gray-100' : 'bg-white border-gray-200'}`}>
                   {editingTaskId === task.id ? (
                     <div className="flex flex-col gap-2 p-3">
-                      <input
-                        className="border rounded-lg p-2 text-sm w-full"
-                        value={editingTaskTitle}
-                        onChange={e => setEditingTaskTitle(e.target.value)}
-                        autoFocus
-                        onKeyDown={e => { if (e.key === 'Escape') setEditingTaskId(null) }}
-                      />
-                      <input
-                        type="date"
-                        className="border rounded-lg p-2 text-sm w-full"
-                        value={editingTaskDue}
-                        onChange={e => setEditingTaskDue(e.target.value)}
-                      />
+                      <input className="border rounded-lg p-2 text-sm w-full" value={editingTaskTitle} onChange={e => setEditingTaskTitle(e.target.value)} autoFocus onKeyDown={e => { if (e.key === 'Escape') setEditingTaskId(null) }} />
+                      <input type="date" className="border rounded-lg p-2 text-sm w-full" value={editingTaskDue} onChange={e => setEditingTaskDue(e.target.value)} />
                       <div className="flex gap-2 mt-1">
-                        <button onClick={async () => {
-                          await supabase.from('tasks').update({ title: editingTaskTitle.trim(), due_date: editingTaskDue || null }).eq('id', task.id)
-                          setEditingTaskId(null)
-                          fetchAll()
-                        }} className="flex-1 bg-orange-500 text-white py-2 rounded-lg text-sm font-medium">Salva</button>
+                        <button onClick={async () => { await supabase.from('tasks').update({ title: editingTaskTitle.trim(), due_date: editingTaskDue || null }).eq('id', task.id); setEditingTaskId(null); fetchAll() }} className="flex-1 bg-orange-500 text-white py-2 rounded-lg text-sm font-medium">Salva</button>
                         <button onClick={() => setEditingTaskId(null)} className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm">Annulla</button>
                       </div>
                     </div>
@@ -437,14 +440,89 @@ export default function DealPage({ dealId }: { dealId: string }) {
               ))}
             </div>
             <div className="flex flex-col gap-2">
-              <input className="border rounded-lg p-2 text-sm" placeholder="Nuovo task..." value={newTask} onChange={e => setNewTask(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') addTask() }} />
+              <input className="border rounded-lg p-2 text-sm" placeholder="Nuovo task..." value={newTask} onChange={e => setNewTask(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addTask() }} />
               <div className="flex gap-2">
                 <input type="date" className="border rounded-lg p-2 text-sm flex-1" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} />
                 <button onClick={addTask} className="bg-gray-800 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-900">Aggiungi</button>
               </div>
             </div>
           </div>
+
+          {/* Sezione affari/ingressi correlati */}
+          {deal.contact_id && relatedDeals.length > 0 && (
+            <div className="bg-white rounded-xl shadow p-5 mt-4">
+              <h2 className="font-bold text-gray-700 mb-3">
+                {isIngresso ? 'Affari collegati' : 'Ingressi e affari collegati'}
+              </h2>
+
+              {/* Se questo è un Ingresso → mostra solo gli affari */}
+              {isIngresso && relatedAffari.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {relatedAffari.map(d => (
+                    <div key={d.id} onClick={() => router.push(`/deal/${d.id}`)}
+                      className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{d.title || d.contact_name}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stageColor[d.stage] || 'bg-gray-100 text-gray-600'}`}>{d.stage}</span>
+                          {d.environment && <span className="text-xs text-gray-500">{d.environment}</span>}
+                          {d.estimate > 0 && <span className="text-xs text-green-600 font-semibold">€ {d.estimate.toLocaleString()}</span>}
+                        </div>
+                      </div>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Se questo è un Affare → mostra ingressi sopra e altri affari sotto */}
+              {!isIngresso && (
+                <>
+                  {relatedIngressi.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Ingressi</p>
+                      <div className="flex flex-col gap-2">
+                        {relatedIngressi.map(d => (
+                          <div key={d.id} onClick={() => router.push(`/deal/${d.id}`)}
+                            className="flex items-center gap-3 p-2.5 rounded-xl border border-cyan-100 hover:border-cyan-300 hover:bg-cyan-50 cursor-pointer transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-800 truncate">{d.title || d.contact_name}</p>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {d.environment && <span className="text-xs text-gray-500">{d.environment}</span>}
+                                {d.entry_date && <span className="text-xs text-gray-400">{formatDate(d.entry_date)}</span>}
+                              </div>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {relatedAffari.length > 0 && (
+                    <div>
+                      {relatedIngressi.length > 0 && <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Altri affari</p>}
+                      <div className="flex flex-col gap-2">
+                        {relatedAffari.map(d => (
+                          <div key={d.id} onClick={() => router.push(`/deal/${d.id}`)}
+                            className="flex items-center gap-3 p-2.5 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 cursor-pointer transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-800 truncate">{d.title || d.contact_name}</p>
+                              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stageColor[d.stage] || 'bg-gray-100 text-gray-600'}`}>{d.stage}</span>
+                                {d.environment && <span className="text-xs text-gray-500">{d.environment}</span>}
+                                {d.estimate > 0 && <span className="text-xs text-green-600 font-semibold">€ {d.estimate.toLocaleString()}</span>}
+                              </div>
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* RIGHT — Cronologia */}
@@ -477,20 +555,13 @@ export default function DealPage({ dealId }: { dealId: string }) {
               ))}
             </div>
 
-            {filteredTimeline.length === 0 && (
-              <p className="text-gray-400 text-sm text-center py-8">Nessun elemento</p>
-            )}
+            {filteredTimeline.length === 0 && <p className="text-gray-400 text-sm text-center py-8">Nessun elemento</p>}
 
             <div className="flex flex-col gap-0">
               {filteredTimeline.map((item, idx) => (
                 <div key={item.data.id} className="flex gap-3">
                   <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${
-                      item.type === 'note' ? 'bg-yellow-100 text-yellow-600' :
-                      item.type === 'task' ? 'bg-purple-100 text-purple-600' :
-                      item.type === 'stage_change' ? 'bg-green-100 text-green-600' :
-                      'bg-blue-100 text-blue-600'
-                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 ${item.type === 'note' ? 'bg-yellow-100 text-yellow-600' : item.type === 'task' ? 'bg-purple-100 text-purple-600' : item.type === 'stage_change' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
                       {item.type === 'note' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>}
                       {item.type === 'task' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>}
                       {item.type === 'attachment' && <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>}
@@ -501,13 +572,11 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
                   <div className="flex-1 pb-4">
                     <p className="text-xs text-gray-400 mb-1">{formatDateTime(item.data.created_at)}</p>
-
                     {item.type === 'note' && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 relative group">
                         {editingNoteId === item.data.id ? (
                           <div className="flex flex-col gap-2">
-                            <textarea className="border rounded-lg p-2 text-sm w-full resize-none bg-white" rows={3}
-                              value={editingNoteText} onChange={e => setEditingNoteText(e.target.value)} autoFocus />
+                            <textarea className="border rounded-lg p-2 text-sm w-full resize-none bg-white" rows={3} value={editingNoteText} onChange={e => setEditingNoteText(e.target.value)} autoFocus />
                             <div className="flex gap-2">
                               <button onClick={() => saveNoteEdit(item.data.id)} className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Salva</button>
                               <button onClick={() => { setEditingNoteId(null); setEditingNoteText('') }} className="text-xs text-gray-500 hover:underline">Annulla</button>
@@ -525,7 +594,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
                         )}
                       </div>
                     )}
-
                     {item.type === 'task' && (
                       <div className={`border rounded-lg relative group ${(item.data as Task).done ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200'}`}>
                         {editingTaskId === item.data.id ? (
@@ -553,7 +621,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
                         )}
                       </div>
                     )}
-
                     {item.type === 'attachment' && (
                       <div className="border border-gray-200 rounded-lg p-3 relative group flex items-center gap-3">
                         {isImage((item.data as Attachment).file_type) ? (
@@ -571,7 +638,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
                         <button onClick={() => setConfirmDeleteAttachment(item.data.id)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 text-xs transition-opacity">✕</button>
                       </div>
                     )}
-
                     {item.type === 'stage_change' && (
                       <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 flex items-center gap-2">
                         <span className="text-xs text-gray-500">Fase cambiata:</span>
@@ -587,7 +653,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
             </div>
           </div>
 
-          {/* Elimina affare + Segna NEW — in fondo */}
           <div className="flex flex-col gap-2 mt-4">
             <button onClick={() => setConfirmDeleteDeal(true)} className="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg py-2 transition-colors">
               Elimina affare
@@ -654,7 +719,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
           </div>
         </div>
       )}
-
       {showMoveFromVenditaPopup && pendingEditDeal && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-50">
           <div className="bg-white rounded-t-2xl sm:rounded-xl p-6 w-full max-w-sm shadow-xl">
@@ -662,28 +726,18 @@ export default function DealPage({ dealId }: { dealId: string }) {
             <p className="text-gray-600 text-sm mb-1"><strong>{pendingEditDeal.contact_name}</strong> è attualmente venduto.</p>
             <p className="text-gray-500 text-sm mb-5">Come vuoi procedere?</p>
             <div className="flex flex-col gap-2">
-              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, true)}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium text-sm">
-                🆕 Crea nuovo affare con questo contatto
-              </button>
-              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, false)}
-                className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium text-sm">
-                ↩ Sposta questo affare (rimuovi da Vendita)
-              </button>
-              <button onClick={() => { setShowMoveFromVenditaPopup(false); setPendingEditDeal(null) }}
-                className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg text-sm">
-                Annulla
-              </button>
+              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, true)} className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium text-sm">🆕 Crea nuovo affare con questo contatto</button>
+              <button onClick={() => doSaveDeal(pendingEditDeal, deal?.stage, false)} className="w-full bg-orange-500 text-white py-3 rounded-lg font-medium text-sm">↩ Sposta questo affare (rimuovi da Vendita)</button>
+              <button onClick={() => { setShowMoveFromVenditaPopup(false); setPendingEditDeal(null) }} className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg text-sm">Annulla</button>
             </div>
           </div>
         </div>
       )}
-
       {confirmDeleteDeal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
             <h3 className="font-bold mb-2">Elimina affare?</h3>
-            <p className="text-gray-600 text-sm mb-4">L'operazione è irreversibile. Verranno eliminate anche tutte le note, task e allegati collegati a questo affare. Il contatto non verrà eliminato.</p>
+            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile. Verranno eliminate anche tutte le note, task e allegati collegati a questo affare. Il contatto non verrà eliminato.</p>
             <div className="flex gap-2">
               <button onClick={deleteDeal} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
               <button onClick={() => setConfirmDeleteDeal(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
@@ -691,7 +745,6 @@ export default function DealPage({ dealId }: { dealId: string }) {
           </div>
         </div>
       )}
-
       {confirmDeleteAttachment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
