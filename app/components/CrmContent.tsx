@@ -1173,7 +1173,13 @@ export default function CrmContent() {
                                   <input type="date" className="border rounded p-2 text-xs" value={editingTask!.due_date} onChange={e=>setEditingTask(t=>t?{...t,due_date:e.target.value}:t)} />
                                   <div className="relative">
                                     <input className="border rounded p-2 text-xs w-full" placeholder="Associa contatto..." value={editTaskSearch}
-                                      onChange={async e=>{setEditTaskSearch(e.target.value);if(e.target.value.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5);setEditTaskSearchResults(data||[])}else setEditTaskSearchResults([])}} />
+                                      onChange={async e=>{
+                                        const v=e.target.value
+                                        setEditTaskSearch(v)
+                                        // Reset associazione se l'utente modifica il testo
+                                        setEditingTask(t=>t?{...t,deal_id:'',deal_name:''}:t)
+                                        if(v.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${v}%,phone.ilike.%${v}%`).limit(5);setEditTaskSearchResults(data||[])}else setEditTaskSearchResults([])
+                                      }} />
                                     {editTaskSearchResults.length>0&&(<div className="absolute z-10 left-0 right-0 border rounded bg-white shadow-lg mt-0.5 max-h-32 overflow-y-auto">{editTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setEditingTask(t=>t?{...t,deal_id:d.id,deal_name:d.contact_name}:t);setEditTaskSearch(d.contact_name);setEditTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 border-b"><span className="font-medium">{d.contact_name}</span></button>))}</div>)}
                                     {editingTask!.deal_name&&!editTaskSearchResults.length&&<p className="text-xs text-green-600 mt-0.5">✓ {editingTask!.deal_name}</p>}
                                   </div>
@@ -1364,9 +1370,19 @@ export default function CrmContent() {
               <div><label className="text-xs text-gray-500">Data scadenza</label><input type="date" className="border rounded-lg p-3 w-full mt-1 text-sm" value={newTaskForm.due_date} onChange={e=>setNewTaskForm({...newTaskForm,due_date:e.target.value})} /></div>
               <div>
                 <label className="text-xs text-gray-500">Associa a contatto</label>
-                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Cerca..." value={newTaskSearch} onChange={async e=>{setNewTaskSearch(e.target.value);if(e.target.value.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${e.target.value}%,phone.ilike.%${e.target.value}%`).limit(5);setNewTaskSearchResults(data||[])}else{setNewTaskSearchResults([])}}} />
+                <input className="border rounded-lg p-3 w-full mt-1 text-sm" placeholder="Cerca..." value={newTaskSearch} onChange={async e=>{
+                  const v=e.target.value
+                  setNewTaskSearch(v)
+                  // Se l'utente modifica il testo, resetta l'associazione
+                  setNewTaskForm(f=>({...f,deal_id:''}))
+                  if(v.length>=2){const{data}=await supabase.from('deals').select('*').or(`contact_name.ilike.%${v}%,phone.ilike.%${v}%`).limit(5);setNewTaskSearchResults(data||[])}else{setNewTaskSearchResults([])}
+                }} />
                 {newTaskSearchResults.length>0&&(<div className="border rounded-lg mt-1 bg-white shadow-lg max-h-40 overflow-y-auto">{newTaskSearchResults.map(d=>(<button key={d.id} onClick={()=>{setNewTaskForm({...newTaskForm,deal_id:d.id});setNewTaskSearch(d.contact_name);setNewTaskSearchResults([])}} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 border-b last:border-0"><span className="font-medium">{d.contact_name}</span></button>))}</div>)}
-                {newTaskForm.deal_id&&<p className="text-xs text-green-600 mt-1">✓ {newTaskSearch}</p>}
+                {newTaskForm.deal_id ? (
+                  <p className="text-xs text-green-600 mt-1">✓ Associato a: {newTaskSearch}</p>
+                ) : newTaskSearch.length>0 ? (
+                  <p className="text-xs text-orange-400 mt-1">⚠ Seleziona un contatto dall'elenco per associare</p>
+                ) : null}
               </div>
             </div>
             <div className="flex gap-2 mt-5">
