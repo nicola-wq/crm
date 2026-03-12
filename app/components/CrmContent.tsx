@@ -816,7 +816,7 @@ export default function CrmContent() {
           </button>
           <div className="flex border rounded-lg overflow-hidden mr-2">
             <button onClick={()=>navigateTo('kanban')} className={`px-3 py-2 text-sm ${view==='kanban'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Pipeline</button>
-            <button onClick={()=>navigateTo('list')} className={`px-3 py-2 text-sm ${view==='list'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Lista</button>
+            <button onClick={()=>navigateTo('list')} className={`px-3 py-2 text-sm ${view==='list'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Affari</button>
             <button onClick={()=>navigateTo('dashboard')} className={`px-3 py-2 text-sm ${view==='dashboard'?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>Dashboard</button>
           </div>
           {view==='leads' && <button onClick={()=>setShowLeadForm(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">+ Nuovo Lead</button>}
@@ -845,7 +845,7 @@ export default function CrmContent() {
         <div className="md:hidden bg-white border-b shadow-lg z-30 px-4 py-3 flex flex-col gap-2">
           <div className="grid grid-cols-3 gap-1 mb-1">
             <button onClick={()=>navigateTo('kanban')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='kanban'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Pipeline</button>
-            <button onClick={()=>navigateTo('list')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='list'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Lista</button>
+            <button onClick={()=>navigateTo('list')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='list'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Affari</button>
             <button onClick={()=>navigateTo('dashboard')} className={`py-2.5 rounded-lg text-sm font-medium ${view==='dashboard'?'bg-blue-600 text-white':'bg-gray-100 text-gray-700'}`}>Dashboard</button>
           </div>
           <div className="grid grid-cols-2 gap-1 mb-1">
@@ -1124,14 +1124,14 @@ export default function CrmContent() {
                     <tbody>
                       {groupDeals.map(deal => (
                         <tr key={deal.id} className={`border-t hover:bg-gray-50 ${selectedIds.has(deal.id)?'bg-blue-50':''}`}>
-                          <td className="p-2" onClick={e=>{e.stopPropagation();toggleSelect(deal.id)}}><input type="checkbox" checked={selectedIds.has(deal.id)} onChange={()=>toggleSelect(deal.id)} /></td>
+                          <td className="p-2 cursor-pointer" onClick={()=>toggleSelect(deal.id)}><input type="checkbox" checked={selectedIds.has(deal.id)} onChange={()=>toggleSelect(deal.id)} className="cursor-pointer" /></td>
                           <td className="p-2 font-medium whitespace-nowrap">
                             {inlineEdit?.id===deal.id&&inlineEdit.col==='contact_name'?(
                               <input autoFocus className="border rounded px-2 py-1 text-xs w-28 font-medium" value={inlineEdit.val}
                                 onChange={e=>setInlineEdit({...inlineEdit,val:e.target.value})} onBlur={saveInlineEdit}
                                 onKeyDown={e=>{if(e.key==='Enter')saveInlineEdit();if(e.key==='Escape')setInlineEdit(null)}} onClick={e=>e.stopPropagation()} />
                             ):(
-                              <span className="cursor-pointer hover:text-blue-600 hover:underline" onClick={()=>goToDeal(deal)}>{deal.contact_name||<span className="text-gray-300 italic">—</span>}</span>
+                              <span className="font-medium text-blue-700 hover:underline cursor-pointer" onClick={()=>goToDeal(deal)}>{deal.title||deal.contact_name||<span className="text-gray-300 italic">—</span>}</span>
                             )}
                           </td>
                           {listCols.map(({col})=>{
