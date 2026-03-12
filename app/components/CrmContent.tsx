@@ -341,7 +341,7 @@ export default function CrmContent() {
   }
 
   async function updateStage(id: string, stage: string, currentProb: number|null, fromStage: string) {
-    const newProb = (stage === 'Vendita' && currentProb === null) ? 100 : (stage === 'Preventivo' && currentProb === null ? 50 : stage === 'Non convertito' && currentProb === null ? 0 : currentProb)
+    const newProb = stage === 'Vendita' ? 100 : (stage === 'Preventivo' && (currentProb === null || currentProb === 0) ? 50 : stage === 'Non convertito' ? 0 : currentProb)
     await supabase.from('deals').update({stage, probability: newProb}).eq('id', id)
     await logStageChange(id, fromStage, stage)
     if (stage === 'Appuntamento fissato') {
@@ -519,7 +519,7 @@ export default function CrmContent() {
   async function confirmSaleDate() {
     if (!saleDatePopup) return
     const {id, stage, prob, fromStage} = saleDatePopup
-    await supabase.from('deals').update({stage, probability: prob ?? 100, sale_date: saleDateValue}).eq('id', id)
+    await supabase.from('deals').update({stage, probability: 100, sale_date: saleDateValue}).eq('id', id)
     if (fromStage && fromStage !== stage) await logStageChange(id, fromStage, stage)
     // Invia notifica email
     const deal = deals.find(d => d.id === id)
