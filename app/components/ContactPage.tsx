@@ -37,7 +37,9 @@ export default function ContactPage({ contactId }: { contactId: string }) {
 
   async function fetchAll() {
     setLoading(true)
-    const { data: c } = await supabase.from('contacts').select('*').eq('id', contactId).single()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { window.location.replace('/login'); return }
+    const { data: c, error } = await supabase.from('contacts').select('*').eq('id', contactId).single()
     if (c) { setContact(c); setEditContact({ ...c }) }
     const { data: d } = await supabase.from('deals').select('*').eq('contact_id', contactId).order('created_at', { ascending: false })
     setDeals(d || [])
