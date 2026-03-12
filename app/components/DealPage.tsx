@@ -18,7 +18,7 @@ interface Deal {
   id: string; title: string; contact_name: string; phone: string; email: string
   origin: string; environment: string; entry_date: string; appointment_date: string
   estimate: number; project_timeline: string; stage: string; created_at: string; sale_date?: string
-  probability: number | null; is_lead: boolean; lead_stage: string
+  probability: number | null; is_lead: boolean; lead_stage: string; lead_viewed_at?: string
 }
 interface Note { id: string; deal_id: string; text: string; created_at: string; created_by: string }
 interface Task { id: string; deal_id: string; title: string; done: boolean; auto: boolean; due_date: string; created_at: string; created_by: string }
@@ -235,7 +235,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <div className="bg-white shadow px-6 py-4 flex items-center gap-4">
+      <div className="bg-white shadow px-3 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-4">
         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800 flex items-center gap-1 text-sm">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
           Indietro
@@ -255,7 +255,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto p-6 grid grid-cols-3 gap-6">
+      <div className="max-w-5xl mx-auto p-3 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         {/* LEFT */}
         <div className="col-span-1">
           <div className="bg-white rounded-xl shadow p-5">
@@ -319,7 +319,12 @@ export default function DealPage({ dealId }: { dealId: string }) {
           </div>
 
           {/* Elimina contatto */}
-          <div className="mt-3">
+          <div className="mt-3 flex flex-col gap-2">
+            {deal.is_lead && deal.lead_viewed_at && (
+              <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:null}).eq('id',deal.id);fetchAll()}} className="w-full text-xs text-purple-500 hover:text-purple-700 border border-purple-200 hover:border-purple-400 rounded-lg py-2 transition-colors">
+                ↩ Segna come NEW
+              </button>
+            )}
             <button onClick={() => setConfirmDeleteDeal(true)} className="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg py-2 transition-colors">
               Elimina contatto
             </button>
@@ -354,7 +359,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
         </div>
 
         {/* RIGHT — Cronologia */}
-        <div className="col-span-2">
+        <div className="col-span-1 sm:col-span-2">
           <div className="bg-white rounded-xl shadow p-5 mb-4">
             <h2 className="font-bold text-gray-700 mb-3">Aggiungi nota</h2>
             <textarea className="border rounded-lg p-3 w-full text-sm resize-none" rows={3}
