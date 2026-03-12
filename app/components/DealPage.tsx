@@ -587,10 +587,10 @@ export default function DealPage({ dealId }: { dealId: string }) {
             </div>
           </div>
 
-          {/* Elimina contatto + Segna NEW — in fondo */}
+          {/* Elimina affare + Segna NEW — in fondo */}
           <div className="flex flex-col gap-2 mt-4">
             <button onClick={() => setConfirmDeleteDeal(true)} className="w-full text-xs text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 rounded-lg py-2 transition-colors">
-              Elimina contatto
+              Elimina affare
             </button>
             {deal.is_lead && deal.lead_viewed_at && (
               <button onClick={async()=>{await supabase.from('deals').update({lead_viewed_at:null}).eq('id',deal.id);fetchAll()}} className="w-full text-xs text-purple-500 hover:text-purple-700 border border-purple-200 hover:border-purple-400 rounded-lg py-2 transition-colors">
@@ -682,8 +682,8 @@ export default function DealPage({ dealId }: { dealId: string }) {
       {confirmDeleteDeal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="font-bold mb-2">Elimina contatto?</h3>
-            <p className="text-gray-600 text-sm mb-4">L&apos;operazione è irreversibile. Verranno eliminate anche tutte le note, task e allegati.</p>
+            <h3 className="font-bold mb-2">Elimina affare?</h3>
+            <p className="text-gray-600 text-sm mb-4">L'operazione è irreversibile. Verranno eliminate anche tutte le note, task e allegati collegati a questo affare. Il contatto non verrà eliminato.</p>
             <div className="flex gap-2">
               <button onClick={deleteDeal} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Elimina</button>
               <button onClick={() => setConfirmDeleteDeal(false)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg">Annulla</button>
