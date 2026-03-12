@@ -198,6 +198,19 @@ export default function CrmContent() {
     init()
   }, [])
 
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (saleDatePopup) { setSaleDatePopup(null); fetchDeals(); return }
+      if (confirmDelete) { setConfirmDelete(null); return }
+      if (showLeadForm) { setShowLeadForm(false); return }
+      if (showIngressoForm) { setShowIngressoForm(false); setSearchQuery(''); setSearchResults([]); setIsNewContact(false); return }
+      if (selectedDeal) { setSelectedDeal(null); setEditMode(false); setEditDeal(null); return }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [saleDatePopup, confirmDelete, showLeadForm, showIngressoForm, selectedDeal])
+
   async function fetchDeals() {
     const { data } = await supabase.from('deals').select('*').eq('is_lead', false).order('created_at', { ascending: false })
     setDeals(data || [])

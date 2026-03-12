@@ -96,6 +96,18 @@ export default function DealPage({ dealId }: { dealId: string }) {
     init()
   }, [dealId])
 
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (confirmDeleteDeal) { setConfirmDeleteDeal(false); return }
+      if (confirmDeleteNote) { setConfirmDeleteNote(null); return }
+      if (confirmDeleteTask) { setConfirmDeleteTask(null); return }
+      if (confirmDeleteAttachment) { setConfirmDeleteAttachment(null); return }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [confirmDeleteDeal, confirmDeleteNote, confirmDeleteTask, confirmDeleteAttachment])
+
   async function fetchAll() {
     const [{ data: d }, { data: n }, { data: t }, { data: a }, { data: al }] = await Promise.all([
       supabase.from('deals').select('*').eq('id', dealId).single(),
