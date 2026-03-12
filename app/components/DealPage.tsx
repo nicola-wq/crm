@@ -17,7 +17,7 @@ const PROB_COLORS: Record<number, string> = {
 interface Deal {
   id: string; title: string; contact_name: string; phone: string; email: string
   origin: string; environment: string; entry_date: string; appointment_date: string
-  estimate: number; project_timeline: string; stage: string; created_at: string
+  estimate: number; project_timeline: string; stage: string; created_at: string; sale_date?: string
   probability: number | null; is_lead: boolean; lead_stage: string
 }
 interface Note { id: string; deal_id: string; text: string; created_at: string; created_by: string }
@@ -279,6 +279,7 @@ export default function DealPage({ dealId }: { dealId: string }) {
                 {deal.environment && <div><span className="text-gray-400 text-xs">Ambiente</span><p className="text-gray-800">{deal.environment}</p></div>}
                 {deal.entry_date && <div><span className="text-gray-400 text-xs">Data ingresso</span><p className="text-gray-800">{formatDate(deal.entry_date)}</p></div>}
                 {deal.appointment_date && <div><span className="text-gray-400 text-xs">Appuntamento</span><p className="text-gray-800">{formatDate(deal.appointment_date)}</p></div>}
+                {deal.sale_date && <div><span className="text-gray-400 text-xs">Data vendita</span><p className="text-green-600 font-semibold">{formatDate(deal.sale_date)}</p></div>}
                 {deal.estimate > 0 && <div><span className="text-gray-400 text-xs">Preventivo</span><p className="text-green-600 font-semibold">€ {deal.estimate.toLocaleString()}</p></div>}
                 {deal.estimate > 0 && deal.probability != null && (
                   <div><span className="text-gray-400 text-xs">Valore ponderato</span><p className="text-blue-600 font-semibold">€ {Math.round(deal.estimate * deal.probability / 100).toLocaleString()}</p></div>

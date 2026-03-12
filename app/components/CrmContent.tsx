@@ -14,7 +14,7 @@ interface Deal {
   id: string; title: string; contact_name: string; phone: string; email: string
   origin: string; environment: string; entry_date: string; appointment_date: string
   estimate: number; project_timeline: string; stage: string; created_at: string
-  probability: number | null; is_lead: boolean; lead_stage: string; lead_stage_updated_at?: string
+  probability: number | null; is_lead: boolean; lead_stage: string; lead_stage_updated_at?: string; sale_date?: string
 }
 
 const emptyDeal = { title: '', contact_name: '', phone: '', email: '', origin: '', environment: '', entry_date: '', appointment_date: '', estimate: 0, project_timeline: '', stage: 'Qualificato', probability: null as number | null }
@@ -479,7 +479,14 @@ export default function CrmContent() {
     if (stage === 'Vendita') {
       return deals.filter(d => {
         if (d.stage !== 'Vendita') return false
-        const ds = d.entry_date || d.created_at.split('T')[0]
+        const ds = d.sale_date || d.created_at.split('T')[0]
+        return ds >= kanbanVenditaFrom && ds <= kanbanVenditaTo
+      })
+    }
+    if (stage === 'Non convertito') {
+      return deals.filter(d => {
+        if (d.stage !== 'Non convertito') return false
+        const ds = d.created_at.split('T')[0]
         return ds >= kanbanVenditaFrom && ds <= kanbanVenditaTo
       })
     }
@@ -489,7 +496,7 @@ export default function CrmContent() {
   async function confirmSaleDate() {
     if (!saleDatePopup) return
     const {id, stage, prob, fromStage} = saleDatePopup
-    await supabase.from('deals').update({stage, probability: prob ?? 100, entry_date: saleDateValue}).eq('id', id)
+    await supabase.from('deals').update({stage, probability: prob ?? 100, sale_date: saleDateValue}).eq('id', id)
     if (fromStage && fromStage !== stage) await logStageChange(id, fromStage, stage)
     setSaleDatePopup(null); fetchDeals()
     setSelectedDeal(null); setEditMode(false); setEditDeal(null)
