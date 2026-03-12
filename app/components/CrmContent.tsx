@@ -710,7 +710,7 @@ export default function CrmContent() {
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="p-3 sm:p-4 pb-0">
             <div className="bg-white rounded-xl shadow px-3 py-2 flex items-center gap-2 text-xs sm:text-sm flex-wrap">
-              <span className="font-semibold text-gray-600">Vendita:</span>
+              
               <input type="date" className="border rounded-lg p-1.5 text-xs" value={kanbanVenditaFrom} onChange={e=>setKanbanVenditaFrom(e.target.value)} />
               <span className="text-gray-400">→</span>
               <input type="date" className="border rounded-lg p-1.5 text-xs" value={kanbanVenditaTo} onChange={e=>setKanbanVenditaTo(e.target.value)} />
