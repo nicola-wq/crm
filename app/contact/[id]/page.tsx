@@ -1,5 +1,6 @@
 import ContactPage from '@/app/components/ContactPage'
 
-export default function ContactRoute({ params }: { params: { id: string } }) {
-  return <ContactPage contactId={params.id} />
+export default async function ContactRoute({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  return <ContactPage contactId={id} />
 }
