@@ -67,6 +67,8 @@ export default function ContactPage({ contactId }: { contactId: string }) {
   }
 
   async function deleteContact() {
+    // Prima scollega tutti gli affari (FK constraint)
+    await supabase.from('deals').update({ contact_id: null }).eq('contact_id', contactId)
     await supabase.from('contacts').delete().eq('id', contactId)
     router.push('/?tab=contacts')
   }
