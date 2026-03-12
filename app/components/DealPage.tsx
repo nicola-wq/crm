@@ -84,6 +84,10 @@ export default function DealPage({ dealId }: { dealId: string }) {
   const [userEmail, setUserEmail] = useState('')
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingNoteText, setEditingNoteText] = useState('')
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [editingTaskTitle, setEditingTaskTitle] = useState('')
+  const [editingTaskDue, setEditingTaskDue] = useState('')
+
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -326,14 +330,45 @@ export default function DealPage({ dealId }: { dealId: string }) {
             <div className="flex flex-col gap-2 mb-4">
               {tasks.length === 0 && <p className="text-gray-400 text-sm">Nessun task</p>}
               {tasks.map(task => (
-                <div key={task.id} className={`flex items-start gap-2 p-2 rounded-lg ${task.done ? 'bg-gray-50' : 'bg-white border'}`}>
-                  <input type="checkbox" checked={task.done} onChange={() => toggleTask(task.id, task.done)} className="mt-0.5 cursor-pointer" />
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${task.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.title}</p>
-                    {task.due_date && <p className="text-xs text-orange-500">{formatDate(task.due_date)}</p>}
-                    {task.auto && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
-                  </div>
-                  <button onClick={() => setConfirmDeleteTask(task.id)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                <div key={task.id} className={`rounded-lg border ${task.done ? 'bg-gray-50 border-gray-100' : 'bg-white border-gray-200'}`}>
+                  {editingTaskId === task.id ? (
+                    <div className="flex flex-col gap-2 p-3">
+                      <input
+                        className="border rounded-lg p-2 text-sm w-full"
+                        value={editingTaskTitle}
+                        onChange={e => setEditingTaskTitle(e.target.value)}
+                        autoFocus
+                        onKeyDown={e => { if (e.key === 'Escape') setEditingTaskId(null) }}
+                      />
+                      <input
+                        type="date"
+                        className="border rounded-lg p-2 text-sm w-full"
+                        value={editingTaskDue}
+                        onChange={e => setEditingTaskDue(e.target.value)}
+                      />
+                      <div className="flex gap-2 mt-1">
+                        <button onClick={async () => {
+                          await supabase.from('tasks').update({ title: editingTaskTitle.trim(), due_date: editingTaskDue || null }).eq('id', task.id)
+                          setEditingTaskId(null)
+                          fetchAll()
+                        }} className="flex-1 bg-orange-500 text-white py-2 rounded-lg text-sm font-medium">Salva</button>
+                        <button onClick={() => setEditingTaskId(null)} className="flex-1 bg-gray-100 text-gray-600 py-2 rounded-lg text-sm">Annulla</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-2 p-2.5">
+                      <input type="checkbox" checked={task.done} onChange={() => toggleTask(task.id, task.done)} className="mt-0.5 cursor-pointer flex-shrink-0" />
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { setEditingTaskId(task.id); setEditingTaskTitle(task.title); setEditingTaskDue(task.due_date || '') }}>
+                        <p className={`text-sm ${task.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>{task.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {task.due_date && <p className="text-xs text-orange-500">{formatDate(task.due_date)}</p>}
+                          {task.auto && <span className="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">automatico</span>}
+                          {!task.done && <span className="text-xs text-gray-300">✎ modifica</span>}
+                        </div>
+                      </div>
+                      <button onClick={() => setConfirmDeleteTask(task.id)} className="text-gray-300 hover:text-red-400 text-sm p-1 flex-shrink-0">✕</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
