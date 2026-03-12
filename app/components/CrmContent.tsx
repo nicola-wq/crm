@@ -649,7 +649,7 @@ export default function CrmContent() {
                     {(provided,snapshot) => (
                       <div ref={provided.innerRef} {...provided.droppableProps}
                         className={`rounded-xl p-2.5 flex flex-col ${snapshot.isDraggingOver?'bg-blue-100':'bg-gray-200'}`}
-                        style={{width:'185px',minWidth:'185px'}}>
+                        style={{width:'clamp(185px, 20vw, 256px)',minWidth:'185px'}}>
                         <h2 className="font-semibold text-gray-700 text-xs leading-tight">{stage}</h2>
                         <p className="text-xs text-gray-500">{stageDeals.length} affari</p>
                         {total>0 && <p className="text-xs text-green-700 font-semibold">€ {total.toLocaleString()}</p>}
@@ -888,7 +888,7 @@ export default function CrmContent() {
             {(['Nuovo','Contattato','Qualificato','Non Qualificato'] as const).map(stage => {
               const stageLeads = leads.filter(l => (l.lead_stage||'Nuovo')===stage)
               return (
-                <div key={stage} className="flex-shrink-0" style={{width:'220px'}}>
+                <div key={stage} className="flex-shrink-0" style={{width:'clamp(220px, 20vw, 288px)'}}>
                   <div className={`rounded-t-xl px-3 py-2.5 flex items-center justify-between ${stage==='Nuovo'?'bg-gray-700':stage==='Contattato'?'bg-blue-600':stage==='Qualificato'?'bg-green-600':'bg-red-500'}`}>
                     <span className="text-white font-semibold text-sm">{stage}</span>
                     <span className="bg-white bg-opacity-20 text-white text-xs px-2 py-0.5 rounded-full">{stageLeads.length}</span>
